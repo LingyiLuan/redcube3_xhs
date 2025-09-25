@@ -1,0 +1,56 @@
+groups:
+- name: redcube_alerts
+  rules:
+  - alert: ServiceDown
+    expr: up == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Service {{ $labels.job }} is down"
+      description: "Service {{ $labels.job }} has been down for more than 1 minute."
+
+  - alert: HighResponseTime
+    expr: http_request_duration_seconds{quantile="0.95"} > 0.5
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High response time on {{ $labels.job }}"
+      description: "95th percentile response time is {{ $value }} seconds"
+
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High error rate on {{ $labels.job }}"
+      description: "Error rate is {{ $value }} errors per second"
+
+  - alert: DatabaseConnectionHigh
+    expr: postgres_connections_active / postgres_connections_max > 0.8
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Database connection usage high"
+      description: "Database connection usage is {{ $value | humanizePercentage }}"
+
+  - alert: RedisMemoryHigh
+    expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Redis memory usage high"
+      description: "Redis memory usage is {{ $value | humanizePercentage }}"
+
+  - alert: DiskSpaceHigh
+    expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes > 0.85
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Disk space usage high"
+      description: "Disk space usage is {{ $value | humanizePercentage }}"
