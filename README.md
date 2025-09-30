@@ -1,12 +1,46 @@
-# RedCube XHS Content Analysis MVP
+# RedCube XHS - Autonomous Job Hunt Intelligence Platform
 
-An intelligent microservices platform for analyzing XHS (小红书) posts about job interviews and career experiences using OpenAI.
+🚀 **Phase 2 Complete**: Multi-Post Analysis & Autonomous Intelligence Foundation
+
+An intelligent microservices platform for analyzing XHS (小红书) posts about job interviews and career experiences using OpenRouter AI with autonomous trend detection and relationship mapping.
+
+## 🎯 Current Features (Phase 2 Complete)
+
+### ✅ **Intelligent Content Analysis**
+- **OpenRouter AI Integration**: Model fallback cascade (moonshot → deepseek → gpt-3.5-turbo)
+- **Single Post Analysis**: Company, role, sentiment, interview topics, key insights
+- **Batch Post Analysis**: Multi-post processing with relationship detection
+- **Robust JSON Parsing**: Handles special tokens, markdown, and AI response variations
+
+### ✅ **Post Relationship Detection**
+- **Connection Algorithm**: Identifies same company, similar roles, topic overlap, career progression
+- **Strength Scoring**: 0.0-1.0 confidence scores for relationship strength
+- **Connection Types**: same_company, similar_role, topic_overlap, career_progression, same_industry
+- **Insights Generation**: Automated insights about post relationships
+
+### ✅ **Trend Analysis & Market Signals**
+- **Historical Trend Analysis**: Company mention frequency, topic evolution, sentiment trends
+- **Market Signal Detection**: Hiring activity patterns, skill emergence, pattern density
+- **Actionable Recommendations**: Personalized recommendations based on trend data
+- **Time-based Analytics**: 7d, 30d, 90d, 180d, 1y analysis windows
+
+### ✅ **Enhanced Frontend Interface**
+- **Multi-Post Upload**: Drag-and-drop interface for batch analysis
+- **Connection Visualization**: Visual display of post relationships and insights
+- **Trend Dashboard**: Comprehensive trend analysis with charts and recommendations
+- **Real-time Results**: Live analysis results with connection indicators
+
+### ✅ **Database Foundation for Autonomy**
+- **Analysis Results**: Comprehensive storage of all analysis data
+- **Connection Mapping**: analysis_connections table with relationship data
+- **User Goals**: user_goals table for personalized autonomous intelligence
+- **Performance Optimized**: Proper indexing for complex queries
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Docker and Docker Compose
-- OpenAI API key
+- OpenRouter API key
 - Node.js 18+ (for local development)
 
 ### Setup and Run
@@ -19,8 +53,8 @@ An intelligent microservices platform for analyzing XHS (小红书) posts about 
 2. **Set up environment variables:**
    ```bash
    cp .env.example .env
-   # Edit .env and add your OpenAI API key:
-   # OPENAI_API_KEY=your-openai-api-key-here
+   # Edit .env and add your OpenRouter API key:
+   # OPENROUTER_API_KEY=your-openrouter-api-key-here
    ```
 
 3. **Start all services:**
@@ -29,131 +63,133 @@ An intelligent microservices platform for analyzing XHS (小红书) posts about 
    ```
 
 4. **Access the application:**
-   - **Frontend**: http://localhost:3001
+   - **Frontend**: http://localhost:3002
    - **API Gateway**: http://localhost:8080
    - **Grafana Monitoring**: http://localhost:3000 (admin/admin)
    - **Prometheus**: http://localhost:9090
 
-### Test the MVP
+### Test the Phase 2 Features
 
-1. Open http://localhost:3001 in your browser
-2. Use one of the sample XHS posts or paste your own content
-3. Click "开始分析" to analyze the content
-4. View extracted insights: company, role, sentiment, interview topics, etc.
+1. **Single Analysis**: Open http://localhost:3002 and analyze individual posts
+2. **Batch Analysis**: Use the "批量分析" tab to upload multiple posts
+3. **View Connections**: See relationship detection between posts
+4. **Trend Analysis**: Visit the "趋势分析" tab for market insights
 
 ## 🏗️ Architecture
 
 ### Microservices
-- **frontend**: React app for user interface
-- **api-gateway**: Nginx reverse proxy routing requests
-- **content-service**: OpenAI-powered content analysis service
-- **user-service**: User management (future features)
-- **interview-service**: Interview session management (future features)
-- **notification-service**: Real-time notifications (future features)
+- **frontend**: React app with multi-post analysis and trend visualization
+- **api-gateway**: Nginx reverse proxy routing requests to services
+- **content-service**: OpenRouter-powered analysis with relationship detection
+- **user-service**: User management and goals tracking
+- **interview-service**: Interview session management
+- **notification-service**: Real-time notifications
 
 ### Infrastructure
-- **PostgreSQL**: Primary database with separate schemas per service
+- **PostgreSQL**: Primary database with analysis_connections and user_goals tables
 - **Redis**: Caching and session management
 - **Prometheus**: Metrics collection
 - **Grafana**: Monitoring dashboards
 
-## 📋 MVP Features Delivered
+## 📋 API Endpoints
 
-✅ **XHS Content Analysis**
-- OpenAI-powered extraction of company, role, sentiment
-- Interview topics and preparation materials identification
-- Key insights generation
-
-✅ **Data Storage**
-- Analysis results stored in PostgreSQL
-- Designed for future features (connections, learning paths)
-- History tracking and analytics
-
-✅ **Web Interface**
-- Clean, responsive React frontend
-- Sample posts for testing
-- Real-time analysis results display
-
-✅ **Monitoring Stack**
-- Prometheus metrics collection
-- Grafana dashboards
-- Service health monitoring
-
-## 🔧 API Endpoints
-
-### Content Analysis Service (Port 3003)
-
-#### Analyze Content
+### Single Post Analysis
 ```bash
 POST /api/content/analyze
 Content-Type: application/json
 
 {
-  "text": "刚刚结束了字节跳动的面试...",
-  "userId": 1  // optional
+  "text": "今天去腾讯面试了算法工程师...",
+  "userId": 1
 }
 ```
 
-**Response:**
+### Batch Post Analysis
+```bash
+POST /api/content/analyze/batch
+Content-Type: application/json
+
+{
+  "posts": [
+    {"id": "post1", "text": "腾讯面试经验..."},
+    {"id": "post2", "text": "字节跳动二面..."}
+  ],
+  "userId": 1,
+  "analyzeConnections": true
+}
+```
+
+**Response includes:**
 ```json
 {
-  "id": 123,
-  "company": "字节跳动",
-  "role": "软件工程师",
-  "sentiment": "positive",
-  "interview_topics": ["算法", "系统设计", "项目经验"],
-  "industry": "互联网",
-  "experience_level": "mid",
-  "preparation_materials": ["算法题库", "系统设计案例"],
-  "key_insights": ["面试官很专业", "需要深入准备算法"],
-  "createdAt": "2023-09-21T10:30:00Z"
+  "individual_analyses": [...],
+  "connections": [
+    {
+      "post1_index": 0,
+      "post2_index": 1,
+      "strength": 0.6,
+      "connection_types": ["same_company"],
+      "insights": "Both posts discuss experiences at 腾讯"
+    }
+  ],
+  "batch_insights": {
+    "most_mentioned_companies": [...],
+    "most_common_topics": [...],
+    "overall_sentiment": {...}
+  }
 }
 ```
 
-#### Get Analysis History
+### Trend Analysis
 ```bash
-GET /api/content/history?userId=1&limit=10
+GET /api/content/trends?timeframe=30d&userId=1
 ```
 
-#### Get Analytics
-```bash
-GET /api/content/analytics
+**Response includes:**
+```json
+{
+  "topCompanies": [...],
+  "topTopics": [...],
+  "trending_insights": [...],
+  "market_signals": [...],
+  "recommended_focuses": [...]
+}
 ```
 
-## 🧪 Testing
+## 🧪 Testing Phase 2 Features
 
-### Manual Testing
-1. **Service Health Check:**
-   ```bash
-   curl http://localhost:8080/health
-   curl http://localhost:3003/health
-   ```
+### Test Batch Analysis with Connections
+```bash
+curl -X POST http://localhost:8080/api/content/analyze/batch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "posts": [
+      {"id": "post1", "text": "今天去腾讯面试了算法工程师岗位，主要问了深度学习相关问题"},
+      {"id": "post2", "text": "腾讯二面结束了，这次主要考察系统设计和深度学习项目经验"}
+    ],
+    "analyzeConnections": true
+  }'
+```
 
-2. **Test Analysis API:**
-   ```bash
-   curl -X POST http://localhost:8080/api/content/analyze \
-     -H "Content-Type: application/json" \
-     -d '{"text":"刚刚结束了字节跳动的面试，感觉不错！"}'
-   ```
+### Test Trend Analysis
+```bash
+curl "http://localhost:8080/api/content/trends?timeframe=30d"
+```
 
-3. **Check Database:**
-   ```bash
-   docker exec -it redcube3_xhs-postgres-1 psql -U postgres -d redcube_content
-   \dt
-   SELECT * FROM analysis_results LIMIT 5;
-   ```
+## 📊 Phase 2 Success Metrics
 
-### Frontend Testing
-1. Navigate to http://localhost:3001
-2. Test with sample posts
-3. Verify analysis results display correctly
-4. Check history section updates
+✅ **Multi-Post Analysis**: Users can analyze multiple XHS posts together
+✅ **Connection Detection**: System identifies and stores relationships between posts
+✅ **Trend Analysis**: Historical data analysis with market signals and recommendations
+✅ **OpenRouter Integration**: Cost-effective AI analysis with model fallback
+✅ **Database Foundation**: Ready for autonomous data collection and processing
+✅ **Enhanced Frontend**: Multi-post interface with connection visualization
 
 ## 🔄 Development Workflow
 
 ### Local Development
 ```bash
-# Start only infrastructure
+# Start infrastructure
 docker-compose up postgres redis -d
 
 # Run content-service locally
@@ -163,117 +199,45 @@ npm run dev
 
 # Run frontend locally
 cd frontend
-npm install
-npm start
+PORT=3002 npm start
 ```
 
-### View Logs
+### Database Schema Updates
+The Phase 2 database includes:
+- `analysis_connections` table for post relationships
+- `user_goals` table for personalized intelligence
+- Enhanced `analysis_results` with new fields (interview_stages, difficulty_level, etc.)
+
 ```bash
-# All services
-docker-compose logs -f
-
-# Specific service
-docker-compose logs -f content-service
-docker-compose logs -f frontend
+# Check Phase 2 tables
+docker exec redcube3_xhs-postgres-1 psql -U postgres -d redcube_content -c "\dt"
 ```
 
-### Database Management
-```bash
-# Connect to PostgreSQL
-docker exec -it redcube3_xhs-postgres-1 psql -U postgres -d redcube_content
+## 🚀 Autonomous Intelligence Foundation
 
-# Restart database with fresh schema
-docker-compose down postgres
-docker volume rm redcube3_xhs_postgres_data
-docker-compose up postgres -d
-```
+### Current Capabilities
+- **Relationship Mapping**: Automatic detection of connections between career experiences
+- **Trend Detection**: Historical pattern analysis for market insights
+- **Signal Processing**: Detection of hiring activity and skill emergence
+- **Recommendation Engine**: Personalized suggestions based on trend data
 
-## 📊 Monitoring
+### Ready for Phase 3 Autonomous Features
+- Autonomous XHS data scraping and filtering
+- Proactive trend detection and user briefing generation
+- Self-updating learning path recommendations
+- 24/7 career intelligence monitoring and alerts
 
-### Prometheus Metrics (http://localhost:9090)
-- Service health and uptime
-- Request rates and response times
-- Database connection metrics
-- Custom OpenAI API metrics
+## 🛠️ Technology Stack
 
-### Grafana Dashboards (http://localhost:3000)
-- Login: admin/admin
-- Pre-configured dashboard for microservices monitoring
-- Real-time service performance visualization
+**Backend**: Node.js, Express, PostgreSQL, Redis, OpenRouter AI
+**Frontend**: React, react-beautiful-dnd for drag-drop
+**Infrastructure**: Docker, Nginx, Prometheus, Grafana
+**AI**: OpenRouter with model cascade (moonshot/deepseek/gpt-3.5-turbo)
 
-## 🚀 Next Steps (Post-MVP)
+## 📈 Next Phase Planning
 
-### Phase 2: Advanced Analysis
-- [ ] Post similarity detection and clustering
-- [ ] Trend analysis across multiple posts
-- [ ] Company-specific interview pattern recognition
-- [ ] Real-time streaming analysis
-
-### Phase 3: Intelligent Features
-- [ ] Personalized learning path generation
-- [ ] Interview preparation recommendations
-- [ ] Peer matching based on similar experiences
-- [ ] AI-powered Q&A assistant
-
-### Phase 4: Scale & Production
-- [ ] Kubernetes deployment
-- [ ] Advanced caching strategies
-- [ ] Rate limiting and API optimization
-- [ ] User authentication and authorization
-- [ ] Mobile application development
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-1. **OpenAI API Key not working:**
-   - Verify key is set in .env file
-   - Check content-service logs: `docker-compose logs content-service`
-   - Ensure sufficient OpenAI credits
-
-2. **Database connection errors:**
-   - Wait for PostgreSQL to fully start: `docker-compose logs postgres`
-   - Check if database tables are created: Connect via psql
-
-3. **Frontend not loading:**
-   - Check if frontend service built successfully
-   - Verify port 3001 is not in use
-   - Check nginx configuration in api-gateway
-
-4. **Analysis returns errors:**
-   - Verify OpenAI API key is valid
-   - Check text length (max 10,000 characters)
-   - Review content-service logs for detailed errors
-
-### Reset Everything
-```bash
-docker-compose down -v
-docker system prune -f
-docker-compose up -d
-```
-
-## 📝 Environment Variables
-
-Required in `.env` file:
-```
-OPENAI_API_KEY=your-openai-api-key-here
-DB_HOST=postgres
-DB_USER=postgres
-DB_PASSWORD=postgres
-REDIS_URL=redis://redis:6379
-```
-
-## 🏆 Success Metrics
-
-The MVP successfully demonstrates:
-- ✅ End-to-end XHS content analysis workflow
-- ✅ OpenAI integration with structured data extraction
-- ✅ Microservices architecture with proper separation
-- ✅ Scalable database design for future features
-- ✅ Monitoring and observability stack
-- ✅ Clean, responsive user interface
-- ✅ Docker-based deployment ready for production
+**Phase 3**: Advanced Autonomous Intelligence (See PHASE_3_MVP_INSTRUCTION.md)
 
 ---
 
-**Built with**: React, Node.js, Express, PostgreSQL, Redis, OpenAI, Docker, Prometheus, Grafana
+**Phase 2 Complete** 🎉 - Built with React, Node.js, Express, PostgreSQL, Redis, OpenRouter, Docker

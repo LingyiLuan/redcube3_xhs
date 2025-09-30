@@ -120,13 +120,50 @@ CREATE TABLE analysis_results (
     preparation_materials JSONB DEFAULT '[]',
     key_insights JSONB DEFAULT '[]',
     user_id INTEGER,
+    batch_id VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
+    -- Phase 2 additions
+    interview_stages JSONB DEFAULT '[]',
+    difficulty_level VARCHAR(20) CHECK (difficulty_level IN ('easy', 'medium', 'hard')),
+    timeline TEXT,
+    outcome VARCHAR(20) CHECK (outcome IN ('passed', 'failed', 'pending', 'unknown')),
+
     -- Future scalability fields
-    analysis_version VARCHAR(10) DEFAULT '1.0',
+    analysis_version VARCHAR(10) DEFAULT '2.0',
     confidence_score DECIMAL(3,2),
     tags TEXT[],
     metadata JSONB DEFAULT '{}'
+);
+
+-- Phase 2: Analysis Connections Table
+CREATE TABLE analysis_connections (
+    id SERIAL PRIMARY KEY,
+    post1_id INTEGER REFERENCES analysis_results(id) ON DELETE CASCADE,
+    post2_id INTEGER REFERENCES analysis_results(id) ON DELETE CASCADE,
+    connection_type VARCHAR(50) NOT NULL, -- 'same_company', 'similar_role', 'topic_overlap', 'career_progression', 'same_industry'
+    strength DECIMAL(3,2) NOT NULL CHECK (strength >= 0.0 AND strength <= 1.0), -- 0.0 to 1.0 confidence score
+    insights TEXT,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- Ensure we don't duplicate connections
+    UNIQUE(post1_id, post2_id)
+);
+
+-- Phase 2: User Goals for Autonomous Intelligence
+CREATE TABLE user_goals (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    target_role VARCHAR(200),
+    target_companies TEXT[],
+    timeline_months INTEGER,
+    focus_areas TEXT[],
+    current_level VARCHAR(50),
+    is_active BOOLEAN DEFAULT true,
+    progress_tracking JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Future tables for advanced features (commented out for MVP)
@@ -203,12 +240,28 @@ CREATE INDEX idx_analysis_results_role ON analysis_results(role);
 CREATE INDEX idx_analysis_results_sentiment ON analysis_results(sentiment);
 CREATE INDEX idx_analysis_results_created_at ON analysis_results(created_at);
 CREATE INDEX idx_analysis_results_experience_level ON analysis_results(experience_level);
+CREATE INDEX idx_analysis_results_batch_id ON analysis_results(batch_id);
+CREATE INDEX idx_analysis_results_outcome ON analysis_results(outcome);
 
 -- GIN indexes for JSONB fields (for future complex queries)
 CREATE INDEX idx_analysis_results_interview_topics ON analysis_results USING GIN(interview_topics);
 CREATE INDEX idx_analysis_results_preparation_materials ON analysis_results USING GIN(preparation_materials);
 CREATE INDEX idx_analysis_results_key_insights ON analysis_results USING GIN(key_insights);
+CREATE INDEX idx_analysis_results_interview_stages ON analysis_results USING GIN(interview_stages);
 CREATE INDEX idx_analysis_results_metadata ON analysis_results USING GIN(metadata);
+
+-- Phase 2: Analysis connections indexes
+CREATE INDEX idx_connections_post1_id ON analysis_connections(post1_id);
+CREATE INDEX idx_connections_post2_id ON analysis_connections(post2_id);
+CREATE INDEX idx_connections_type ON analysis_connections(connection_type);
+CREATE INDEX idx_connections_strength ON analysis_connections(strength);
+CREATE INDEX idx_connections_created_at ON analysis_connections(created_at);
+
+-- Phase 2: User goals indexes
+CREATE INDEX idx_user_goals_user_id ON user_goals(user_id);
+CREATE INDEX idx_user_goals_active ON user_goals(is_active);
+CREATE INDEX idx_user_goals_target_companies ON user_goals USING GIN(target_companies);
+CREATE INDEX idx_user_goals_focus_areas ON user_goals USING GIN(focus_areas);
 
 \c redcube_notifications;
 CREATE INDEX idx_notifications_user_id ON notifications(user_id);

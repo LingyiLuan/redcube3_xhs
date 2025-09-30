@@ -16,7 +16,8 @@
     "redis": "^4.6.7",
     "joi": "^17.9.2",
     "dotenv": "^16.1.4",
-    "openai": "^4.20.1"
+    "openai": "^4.20.1",
+    "axios": "^1.5.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.22",

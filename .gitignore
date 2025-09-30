@@ -179,3 +179,14 @@ test-api-structure.js
 
 # Export files from development sessions
 *.txt
+
+# Instruction and guiding files (development-specific)
+*INSTRUCTION*
+*_INSTRUCTION*
+*_INSTRUCTIONS*
+RESPONSE_JSON
+*guiding_principles*
+*principle*
+backend_guiding_principles
+universal_guiding_principles
+OPENROUTER_INSTRUCTION
