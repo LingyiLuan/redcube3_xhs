@@ -181,12 +181,13 @@ test-api-structure.js
 *.txt
 
 # Instruction and guiding files (development-specific)
-*INSTRUCTION*
-*_INSTRUCTION*
-*_INSTRUCTIONS*
+PHASE_1_MVP_INSTRUCTIONS.md
+PHASE_2_MVP_INSTRUCTIONS.md
+PHASE_3_MVP_INSTRUCTIONS.md
+PHASE_*_COMPLETION_SUMMARY.md
+OPENROUTER_INSTRUCTIONS
 RESPONSE_JSON
 *guiding_principles*
 *principle*
 backend_guiding_principles
 universal_guiding_principles
-OPENROUTER_INSTRUCTION
