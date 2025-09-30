@@ -63,14 +63,15 @@ An intelligent microservices platform for analyzing XHS (小红书) posts about 
    ```
 
 4. **Access the application:**
-   - **Frontend**: http://localhost:3002
+   - **Frontend (Container)**: http://localhost:3001
+   - **Frontend (Local Dev)**: http://localhost:3002
    - **API Gateway**: http://localhost:8080
    - **Grafana Monitoring**: http://localhost:3000 (admin/admin)
    - **Prometheus**: http://localhost:9090
 
 ### Test the Phase 2 Features
 
-1. **Single Analysis**: Open http://localhost:3002 and analyze individual posts
+1. **Single Analysis**: Open http://localhost:3002 (local dev) or http://localhost:3001 (container) and analyze individual posts
 2. **Batch Analysis**: Use the "批量分析" tab to upload multiple posts
 3. **View Connections**: See relationship detection between posts
 4. **Trend Analysis**: Visit the "趋势分析" tab for market insights
@@ -197,10 +198,14 @@ cd services/content-service
 npm install
 npm run dev
 
-# Run frontend locally
+# Run frontend locally (fast development)
 cd frontend
 PORT=3002 npm start
 ```
+
+**Development Ports:**
+- **Container Frontend**: http://localhost:3001 (full Docker stack)
+- **Local Dev Frontend**: http://localhost:3002 (faster rebuilds, hot reload)
 
 ### Database Schema Updates
 The Phase 2 database includes:
