@@ -191,3 +191,6 @@ RESPONSE_JSON
 *principle*
 backend_guiding_principles
 universal_guiding_principles
+
+# Development journal (personal development notes)
+DEVELOPMENT_JOURNAL.md
