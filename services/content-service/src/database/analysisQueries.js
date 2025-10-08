@@ -31,7 +31,16 @@ async function saveAnalysisResult(originalText, analysisResult, userId, batchId 
     batchId
   ];
 
+  console.log(`💾 DATABASE QUERY - Saving Analysis:`);
+  console.log(`  - User ID being saved: ${userId}`);
+  console.log(`  - Company: ${analysisResult.company}`);
+  console.log(`  - Batch ID: ${batchId || 'null'}`);
+
   const result = await pool.query(query, values);
+
+  console.log(`✅ DATABASE SAVE SUCCESS:`);
+  console.log(`  - Analysis ID: ${result.rows[0].id}`);
+  console.log(`  - Created at: ${result.rows[0].created_at}`);
   return result.rows[0];
 }
 
@@ -62,13 +71,14 @@ async function getAnalysisHistory(userId, limit = 10, batchId = null) {
 
   const result = await pool.query(query, values);
 
-  // Parse JSON fields back to objects
+  // JSONB columns are already parsed as objects by PostgreSQL driver
+  // No JSON.parse() needed - just ensure defaults for null values
   return result.rows.map(row => ({
     ...row,
-    interview_topics: JSON.parse(row.interview_topics || '[]'),
-    preparation_materials: JSON.parse(row.preparation_materials || '[]'),
-    key_insights: JSON.parse(row.key_insights || '[]'),
-    interview_stages: JSON.parse(row.interview_stages || '[]')
+    interview_topics: row.interview_topics || [],
+    preparation_materials: row.preparation_materials || [],
+    key_insights: row.key_insights || [],
+    interview_stages: row.interview_stages || []
   }));
 }
 

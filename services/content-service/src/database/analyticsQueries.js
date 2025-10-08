@@ -64,11 +64,28 @@ async function getAnalytics(timeframe = '30d', userId = null) {
 
   const connectionsResult = await pool.query(connectionsQuery);
 
+  // Timeline data for charts
+  const timelineQuery = `
+    SELECT
+      DATE(created_at) as date,
+      COUNT(*) as total_posts,
+      COUNT(CASE WHEN sentiment = 'positive' THEN 1 END) as positive_posts,
+      COUNT(CASE WHEN sentiment = 'negative' THEN 1 END) as negative_posts,
+      COUNT(CASE WHEN sentiment = 'neutral' THEN 1 END) as neutral_posts
+    FROM analysis_results
+    ${whereClause}
+    GROUP BY DATE(created_at)
+    ORDER BY date ASC
+  `;
+
+  const timelineResult = await pool.query(timelineQuery, queryParams);
+
   return {
     topCompanies: companiesResult.rows,
     topTopics: topicsResult.rows,
     connectionStats: connectionsResult.rows,
     totalAnalyses: parseInt(totalResult.rows[0].total),
+    timeline_data: timelineResult.rows,
     timeframe
   };
 }

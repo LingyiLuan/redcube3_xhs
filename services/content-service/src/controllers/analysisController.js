@@ -14,7 +14,22 @@ async function analyzeSinglePost(req, res) {
       return res.status(400).json({ error: error.details[0].message });
     }
 
-    const { text, userId = null } = value;
+    const { text } = value;
+
+    // Use authenticated user's ID from middleware, fallback to 1 if not available
+    const userId = req.user?.id || 1;
+
+    console.log(`🔍 ANALYSIS CONTROLLER - Single Post:`);
+    console.log(`  - req.user exists: ${!!req.user}`);
+    console.log(`  - User ID: ${userId}`);
+
+    if (req.user) {
+      console.log(`  - User Email: ${req.user.email}`);
+      console.log(`  - req.user object:`, JSON.stringify(req.user, null, 2));
+    } else {
+      console.log(`  - WARNING: No req.user found, using fallback userId = 1`);
+    }
+
     const analysisResult = await analyzeText(text);
     const savedResult = await saveAnalysisResult(text, analysisResult, userId);
 
@@ -44,8 +59,21 @@ async function analyzeBatchPosts(req, res) {
       return res.status(400).json({ error: error.details[0].message });
     }
 
-    const { posts, userId = null, analyzeConnections = true } = value;
+    const { posts, analyzeConnections = true } = value;
+    // Use authenticated user's ID from middleware, fallback to 1 if not available
+    const userId = req.user?.id || 1;
     const batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    console.log(`🔍 ANALYSIS CONTROLLER - Batch Posts:`);
+    console.log(`  - req.user exists: ${!!req.user}`);
+    console.log(`  - User ID: ${userId}`);
+    console.log(`  - Batch size: ${posts.length}`);
+
+    if (req.user) {
+      console.log(`  - User Email: ${req.user.email}`);
+    } else {
+      console.log(`  - WARNING: No req.user found, using fallback userId = 1`);
+    }
 
     let result;
     if (analyzeConnections && posts.length > 1) {

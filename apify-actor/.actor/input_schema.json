@@ -1,0 +1,34 @@
+{
+  "title": "RedCube Reddit Scraper Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "subreddit": {
+      "title": "Subreddit Name",
+      "type": "string",
+      "description": "The subreddit to scrape (without the 'r/' prefix)",
+      "default": "cscareerquestions",
+      "editor": "textfield",
+      "example": "cscareerquestions"
+    },
+    "numberOfPosts": {
+      "title": "Number of Posts to Scrape",
+      "type": "integer",
+      "description": "How many posts to collect",
+      "default": 25,
+      "minimum": 1,
+      "maximum": 100,
+      "editor": "number"
+    },
+    "sortBy": {
+      "title": "Sort Posts By",
+      "type": "string",
+      "description": "How to sort the posts",
+      "default": "new",
+      "enum": ["new", "hot", "top"],
+      "enumTitles": ["New (latest posts)", "Hot (trending posts)", "Top (most upvoted)"],
+      "editor": "select"
+    }
+  },
+  "required": ["subreddit"]
+}

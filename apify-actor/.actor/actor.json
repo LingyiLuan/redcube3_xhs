@@ -1,0 +1,19 @@
+{
+  "actorSpecification": 1,
+  "name": "redcube-reddit-scraper",
+  "title": "RedCube Reddit Interview Data Scraper",
+  "description": "Autonomous scraper for collecting and labeling interview experience posts from Reddit. Extracts post data with keyword-based outcome detection (positive/negative/unknown).",
+  "version": "3.0",
+  "meta": {
+    "templateId": "node-crawlee"
+  },
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile",
+  "readme": "./README.md",
+  "categories": ["SCRAPER"],
+  "defaultRunOptions": {
+    "build": "latest",
+    "timeoutSecs": 3600,
+    "memoryMbytes": 2048
+  }
+}

@@ -1,31 +1,14 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
 require('dotenv').config();
+const app = require('./app');
 
-const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', service: 'user-service' });
-});
-
-app.get('/api/users', (req, res) => {
-  res.json({ message: 'User service endpoint - get all users' });
-});
-
-app.post('/api/auth/login', (req, res) => {
-  res.json({ message: 'User authentication endpoint' });
-});
-
-app.post('/api/auth/register', (req, res) => {
-  res.json({ message: 'User registration endpoint' });
-});
-
+// Start server
 app.listen(PORT, () => {
-  console.log(`User service running on port ${PORT}`);
+  console.log(`User service with Google OAuth running on port ${PORT}`);
+  console.log('Features: Google OAuth 2.0, Session Management, User Profiles');
+  console.log(`Authentication provider: ${process.env.GOOGLE_CLIENT_ID ? 'Google OAuth configured' : 'Google OAuth NOT configured - add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET'}`);
+  console.log(`Frontend URLs: ${process.env.FRONTEND_URL || 'http://localhost:3001, http://localhost:3002'}`);
 });
+
+module.exports = app;

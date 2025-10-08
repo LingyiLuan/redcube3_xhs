@@ -2,6 +2,9 @@ import React from 'react';
 import { useTrends } from '../hooks/useData';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
+import MarketActivityChart from '../components/charts/MarketActivityChart';
+import TrendingSkillsChart from '../components/charts/TrendingSkillsChart';
+import CompanyOpportunityChart from '../components/charts/CompanyOpportunityChart';
 
 /**
  * Trends analysis page component
@@ -24,6 +27,23 @@ const TrendsPage = () => {
   return (
     <div className="trends-analysis">
       <TrendsOverview trends={trends} />
+
+      {/* Interactive Charts Section */}
+      <div className="charts-section">
+        <h2 className="section-title">📊 数据可视化</h2>
+        <div className="charts-grid">
+          <div className="chart-card">
+            <MarketActivityChart trendsData={trends} />
+          </div>
+          <div className="chart-card">
+            <TrendingSkillsChart trendsData={trends} />
+          </div>
+          <div className="chart-card full-width">
+            <CompanyOpportunityChart trendsData={trends} />
+          </div>
+        </div>
+      </div>
+
       <CompaniesSection companies={trends.topCompanies} />
       <TopicsSection topics={trends.topTopics} />
       <TrendsInsights insights={trends.trending_insights} />

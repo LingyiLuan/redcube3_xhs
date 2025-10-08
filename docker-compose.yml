@@ -38,6 +38,11 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - REDIS_URL=redis://redis:6379
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
       - postgres
       - redis
@@ -78,6 +83,13 @@ services:
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - NODE_ENV=development
+      - ENABLE_SCHEDULER=${ENABLE_SCHEDULER:-true}
+      - APIFY_API_TOKEN=${APIFY_API_TOKEN}
+      - APIFY_ACTOR_ID=${APIFY_ACTOR_ID}
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID}
+      - REDDIT_SECRET=${REDDIT_SECRET}
+      - REDDIT_USER=${REDDIT_USER}
+      - REDDIT_PASS=${REDDIT_PASS}
     depends_on:
       - postgres
       - redis
@@ -99,6 +111,24 @@ services:
     depends_on:
       - postgres
       - redis
+    networks:
+      - redcube-network
+
+  # Prediction Service (Python/FastAPI)
+  prediction-service:
+    build:
+      context: ./services/prediction-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=redcube_content
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+    depends_on:
+      - postgres
     networks:
       - redcube-network
 

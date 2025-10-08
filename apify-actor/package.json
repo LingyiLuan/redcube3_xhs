@@ -1,0 +1,21 @@
+{
+  "name": "redcube-reddit-scraper",
+  "version": "1.0.0",
+  "description": "Autonomous Reddit interview data scraper for RedCube XHS platform",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "start": "node main.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "author": "RedCube XHS Team",
+  "license": "MIT",
+  "dependencies": {
+    "apify": "^3.1.0",
+    "got-scraping": "^3.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/redcube-xhs"
+  }
+}

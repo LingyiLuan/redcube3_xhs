@@ -155,6 +155,42 @@ function getMockAnalysisResponse(text) {
   };
 }
 
+/**
+ * Generic OpenRouter analysis function for custom prompts
+ * Used by learning map generation and other AI-powered features
+ */
+async function analyzeWithOpenRouter(prompt, options = {}) {
+  const {
+    model = 'deepseek/deepseek-chat',
+    max_tokens = 4000,
+    temperature = 0.7
+  } = options;
+
+  try {
+    const completion = await openrouterClient.chat.completions.create({
+      model: model,
+      models: ['deepseek/deepseek-chat', 'openai/gpt-3.5-turbo', 'anthropic/claude-3.5-sonnet'],
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: temperature,
+      max_tokens: max_tokens
+    });
+
+    const content = completion.choices[0].message.content;
+    console.log('OpenRouter generic analysis response received');
+    return content;
+
+  } catch (error) {
+    console.error('OpenRouter generic analysis error:', error.message);
+    throw new Error(`OpenRouter API call failed: ${error.message}`);
+  }
+}
+
 module.exports = {
-  analyzeText
+  analyzeText,
+  analyzeWithOpenRouter
 };
