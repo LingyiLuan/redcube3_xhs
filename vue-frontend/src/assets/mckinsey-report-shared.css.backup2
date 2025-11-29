@@ -1,0 +1,2699 @@
+/* ===== McKinsey Clean White Report Styles ===== */
+
+.mckinsey-report {
+  background-color: #FFFFFF;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Header - Clean White with Minimal Border */
+.report-header {
+  background-color: #FFFFFF;
+  padding: 48px 64px 32px;
+  border-bottom: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.header-content {
+  flex: 1;
+}
+
+.report-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 40px;
+  font-weight: 400;
+  color: #111827;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.report-subtitle {
+  font-size: 14px;
+  color: #6B7280;
+  margin-bottom: 16px;
+  font-weight: 400;
+}
+
+.report-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #6B7280;
+  margin-bottom: 24px;
+}
+
+.meta-item {
+  font-weight: 400;
+}
+
+.meta-divider {
+  color: #D1D5DB;
+}
+
+/* Filters - Minimal Clean Style */
+.filters-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-label {
+  font-size: 11px;
+  color: #6B7280;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.filter-select {
+  background-color: #FFFFFF;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-select:hover {
+  border-color: #1E40AF;
+  box-shadow: 0 2px 4px rgba(30, 64, 175, 0.05);
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #1E40AF;
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+
+.reset-filters-btn {
+  background-color: #FFFFFF;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-filters-btn:hover {
+  border-color: #1E40AF;
+  color: #1E40AF;
+  box-shadow: 0 2px 4px rgba(30, 64, 175, 0.08);
+  transform: translateY(-1px);
+}
+
+.view-controls {
+  display: flex;
+  gap: 8px;
+  background-color: #F9FAFB;
+  border-radius: 6px;
+  padding: 4px;
+  border: 1px solid #E5E7EB;
+}
+
+.view-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: #6B7280;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.view-btn:hover {
+  color: #1E40AF;
+  background-color: #F3F4F6;
+}
+
+.view-btn.active {
+  background-color: #1E40AF;
+  color: #FFFFFF;
+  box-shadow: 0 2px 4px rgba(30, 64, 175, 0.15);
+}
+
+/* Report Body - McKinsey Layout */
+.report-body {
+  padding: 64px 80px;
+  max-width: 1400px;
+  margin: 0 auto;
+  background-color: #FFFFFF;
+}
+
+.report-section {
+  margin-bottom: 80px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.report-section:last-child {
+  border-bottom: none;
+}
+
+.section-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 32px;
+  font-weight: 400;
+  color: #111827;
+  margin-bottom: 32px;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+/* Two-Column Layout (60% / 40%) */
+.two-column-layout {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+.narrative-column {
+  padding-right: 24px;
+}
+
+.metrics-column {
+  padding-left: 24px;
+  border-left: 1px solid #E5E7EB;
+}
+
+/* Typography */
+.body-text {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #374151;
+  margin-bottom: 16px;
+  font-weight: 400;
+}
+
+.body-text strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+/* Badge Styles */
+.badge {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background-color: #F3F4F6;
+  color: #6B7280;
+  border: 1px solid #E5E7EB;
+  display: inline-block;
+}
+
+.badge.critical {
+  background-color: #EFF6FF;
+  color: #2563EB;
+  border-color: #BFDBFE;
+}
+
+/* Metrics Table - Clean Professional */
+.metrics-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.metrics-table tbody tr {
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.metrics-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.metrics-table tbody tr.metric-highlight {
+  background-color: #F9FAFB;
+}
+
+.metric-label {
+  font-size: 10px;
+  color: #6B7280;
+  padding: 6px 0 4px 0;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  font-size: 20px;
+  color: #111827;
+  font-weight: 700;
+  text-align: right;
+  padding: 0;
+}
+
+/* Charts - McKinsey Clean Style */
+.chart-wrapper {
+  background-color: #FFFFFF;
+  padding: 32px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  margin-top: 24px;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.chart-wrapper:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-color: #D1D5DB;
+}
+
+.chart-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.chart-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.chart-subtitle {
+  font-size: 13px;
+  color: #6B7280;
+  font-weight: 400;
+}
+
+/* Chart header with title and hover instruction */
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  gap: 24px;
+}
+
+.header-text {
+  flex: 1;
+}
+
+/* Hover instruction box */
+.hover-instruction {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #6B7280;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cursor-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.chart-container {
+  position: relative;
+  height: 400px;
+  background-color: #FFFFFF;
+}
+
+.chart-container.medium {
+  height: 320px;
+}
+
+.chart-container.small {
+  height: 280px;
+}
+
+/* Skill Chart with Percentage Labels - McKinsey Style */
+.chart-container-with-labels {
+  position: relative;
+  height: 400px;
+}
+
+.skill-bar-labels {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 52px 20px 35px 0; /* Align with chart bars */
+  pointer-events: none; /* Don't block chart interactions */
+}
+
+.skill-label-row {
+  height: calc(100% / 10); /* 10 bars */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.skill-percentage {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1F2937;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.skill-label-row.top-skill .skill-percentage {
+  color: #1E40AF;
+  font-weight: 700;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 20px;
+  justify-content: center;
+  padding-top: 16px;
+  border-top: 1px solid #F3F4F6;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-dot.critical {
+  background-color: #2563EB;
+}
+
+.legend-dot.important {
+  background-color: #60A5FA;
+}
+
+.legend-dot.common {
+  background-color: #93C5FD;
+}
+
+.legend-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6B7280;
+}
+
+/* Dual Chart Layout */
+.dual-chart-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.dual-chart-layout > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Insight Callout - Minimal Style */
+.insight-callout {
+  background-color: #F9FAFB;
+  border-left: 3px solid #1E40AF;
+  border-radius: 0 8px 8px 0;
+  padding: 20px 24px;
+  margin: 24px 0;
+}
+
+.callout-content {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #374151;
+}
+
+
+/* Sentiment Layout (Legacy - can be removed if not used elsewhere) */
+.sentiment-layout {
+  display: flex;
+  gap: 48px;
+  align-items: start;
+}
+
+.outcome-stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.outcome-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border: 1px solid #E5E7EB;
+  background-color: #FFFFFF;
+}
+
+.outcome-data {
+  flex: 1;
+}
+
+.outcome-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.outcome-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Knowledge Gaps - Clean List */
+.heatmap-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.gap-card {
+  padding: 20px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  background-color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.gap-card:hover {
+  border-color: #1E40AF;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.08);
+  transform: translateY(-2px);
+}
+
+.gap-topic {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.gap-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #6B7280;
+}
+
+/* Role Cards - Clean Style */
+.role-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.role-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.role-card:hover {
+  border-color: #1E40AF;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.08);
+  transform: translateY(-2px);
+}
+
+.role-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.role-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.role-count {
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.role-skills {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skill-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 50px;
+  gap: 12px;
+  align-items: center;
+}
+
+.skill-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.skill-bar-bg {
+  height: 16px;
+  background-color: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  overflow: hidden;
+}
+
+.skill-bar-fill {
+  height: 100%;
+  background-color: #60A5FA;
+}
+
+.skill-pct {
+  font-size: 12px;
+  color: #6B7280;
+  text-align: right;
+  font-weight: 500;
+}
+
+.role-preview {
+  margin-top: 12px;
+}
+
+.skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.skill-tag {
+  padding: 4px 10px;
+  background-color: #F3F4F6;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid #E5E7EB;
+}
+
+/* Insights Container - Clean Numbered List */
+.insights-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.insight-card {
+  background-color: #F9FAFB;
+  border-left: 3px solid #1E40AF;
+  padding: 20px 24px;
+  display: flex;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 0 8px 8px 0;
+}
+
+.insight-card:hover {
+  border-left-color: #1E3A8A;
+  background-color: #F3F4F6;
+  box-shadow: 0 2px 8px rgba(30, 64, 175, 0.08);
+}
+
+.insight-number {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1E40AF;
+  color: #FFFFFF;
+  font-weight: 600;
+  border-radius: 50%;
+  font-size: 14px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(30, 64, 175, 0.2);
+}
+
+.insight-body {
+  flex: 1;
+}
+
+.insight-finding {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.insight-meta {
+  display: flex;
+  gap: 8px;
+}
+
+.meta-badge {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background-color: #F3F4F6;
+  color: #6B7280;
+  border: 1px solid #E5E7EB;
+}
+
+/* Actions - Clean Buttons */
+.actions-section {
+  background-color: #F9FAFB;
+  padding: 32px;
+  border: 1px solid #E5E7EB;
+  margin-top: 48px;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.action-card {
+  background-color: #FFFFFF;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 2px solid #E5E7EB;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.action-card:hover {
+  border-color: #1E40AF;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.1);
+  transform: translateY(-2px);
+}
+
+.action-content {
+  flex: 1;
+}
+
+.action-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.action-desc {
+  font-size: 13px;
+  color: #6B7280;
+}
+
+/* Data View */
+.data-view {
+  background-color: #1F2937;
+  padding: 24px;
+  margin: 32px 0;
+  overflow: auto;
+  max-height: 800px;
+  border: 1px solid #374151;
+}
+
+.data-content {
+  color: #059669;
+  font-size: 12px;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+/* Executive Summary - No Special Styling (Already handled by section) */
+.executive-summary {
+  /* Remove gradient - use default section styles */
+}
+
+/* ===== Role Intelligence Section Styles ===== */
+
+.role-intelligence {
+  /* Inherits report-section styles */
+}
+
+.role-table-wrapper {
+  overflow-x: auto;
+  margin-top: 16px;
+}
+
+.role-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #FFFFFF;
+  font-size: 14px;
+}
+
+.role-comparison-table thead {
+  background-color: #F9FAFB;
+}
+
+.role-comparison-table thead th {
+  padding: 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6B7280;
+  border-bottom: 2px solid #E5E7EB;
+  letter-spacing: 0.05em;
+}
+
+.role-comparison-table tbody tr {
+  border-bottom: 1px solid #E5E7EB;
+  transition: all 0.2s ease;
+}
+
+.role-comparison-table tbody tr:hover {
+  background: #F9FAFB;
+  box-shadow: inset 0 0 0 1px #E5E7EB;
+}
+
+.role-comparison-table tbody tr.best-performer {
+  background: #EFF6FF;
+}
+
+.role-comparison-table tbody tr.worst-performer {
+  background: #FEF2F2;
+}
+
+.role-comparison-table tbody tr.best-performer:hover {
+  background: #DBEAFE;
+}
+
+.role-comparison-table tbody tr.worst-performer:hover {
+  background: #FEE2E2;
+}
+
+.role-comparison-table td {
+  padding: 12px;
+  font-size: 14px;
+}
+
+.role-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.posts-count {
+  color: #6B7280;
+}
+
+.inline-bar-container {
+  position: relative;
+  width: 100%;
+  min-width: 120px;
+  height: 24px;
+  background: #F3F4F6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.inline-bar {
+  height: 100%;
+  background: #1E40AF;
+  transition: width 0.3s ease;
+}
+
+.inline-bar-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: 600;
+  font-size: 12px;
+  z-index: 1;
+  transition: color 0.3s ease;
+
+  /* Default: black text (for when bar is empty/small) */
+  color: #111827;
+}
+
+/* When bar is wide enough (>30%), text goes inside bar as white */
+.inline-bar-label.label-inside {
+  color: #FFFFFF;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.difficulty-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.difficulty-low {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.difficulty-medium {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.difficulty-high {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.skills-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.skill-tag {
+  padding: 4px 10px;
+  background: #DBEAFE;
+  color: #1E40AF;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.skill-count {
+  padding: 4px 8px;
+  background: #F3F4F6;
+  color: #6B7280;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+/* ===== Company Intelligence Section Styles ===== */
+
+/* Narrative Block */
+.narrative-block {
+  margin-bottom: 32px;
+}
+
+.insight-text {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #374151;
+  font-weight: 400;
+}
+
+.insight-text strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+/* Company Comparison Table */
+.company-intelligence-table-wrapper {
+  overflow-x: auto;
+  margin-top: 16px;
+  border: 1px solid #E5E7EB;
+}
+
+.company-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #FFFFFF;
+  font-size: 14px;
+}
+
+.company-comparison-table thead {
+  background-color: #F9FAFB;
+}
+
+.company-comparison-table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #111827;
+  border-bottom: 2px solid #E5E7EB;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.company-comparison-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #F3F4F6;
+  color: #374151;
+}
+
+.company-comparison-table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.company-comparison-table tbody tr:hover {
+  background-color: #F9FAFB;
+  box-shadow: inset 0 0 0 1px #E5E7EB;
+}
+
+.company-comparison-table tbody tr.best-performer {
+  background-color: #EFF6FF;
+}
+
+.company-comparison-table tbody tr.best-performer:hover {
+  background-color: #DBEAFE;
+}
+
+.company-comparison-table tbody tr.worst-performer {
+  background-color: #FEF2F2;
+}
+
+.company-comparison-table tbody tr.worst-performer:hover {
+  background-color: #FEE2E2;
+}
+
+.company-comparison-table .company-cell {
+  font-weight: 600;
+  color: #111827;
+}
+
+.company-comparison-table .success-rate-cell {
+  font-weight: 600;
+  color: #1E40AF;
+}
+
+/* Small Multiples Grid */
+.small-multiples-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.small-multiple-card {
+  background-color: #FAFBFC;
+  border: 1px solid #E5E7EB;
+  padding: 20px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.small-multiple-card:hover {
+  border-color: #1E40AF;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.08);
+  transform: translateY(-2px);
+}
+
+.small-multiple-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.small-multiple-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.small-multiple-subtitle {
+  font-size: 12px;
+  color: #6B7280;
+  font-weight: 400;
+}
+
+.small-multiple-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stage-bar-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 50px;
+  gap: 12px;
+  align-items: center;
+}
+
+.stage-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.stage-bar-container {
+  height: 20px;
+  background-color: #E5E7EB;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stage-bar-fill {
+  height: 100%;
+  background-color: #1E40AF;
+  transition: width 0.6s ease;
+}
+
+.stage-percentage {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  text-align: right;
+}
+
+/* Scatter Plot - Clean Design Without Overlaps */
+.scatter-chart-container-clean {
+  position: relative;
+  height: 450px;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+/* Interpretation grid below chart */
+.scatter-interpretation {
+  margin-top: 24px;
+  padding: 20px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+}
+
+.interp-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.interp-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.interp-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.interp-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.interp-text strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+/* Clean McKinsey-style Scatter Plot - Minimal Design */
+.scatter-chart-minimal {
+  position: relative;
+  height: 500px;
+  margin: 32px 0;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 4px;
+  padding: 24px;
+}
+
+/* Minimal legend with bubble size indicator */
+.minimal-legend {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #F3F4F6;
+}
+
+.legend-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+.dot-example {
+  border-radius: 50%;
+  background: #2563EB;
+  border: 1px solid #1E40AF;
+}
+
+.dot-example.small {
+  width: 8px;
+  height: 8px;
+}
+
+.dot-example.medium {
+  width: 12px;
+  height: 12px;
+}
+
+.dot-example.large {
+  width: 16px;
+  height: 16px;
+}
+
+.legend-bubble {
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.6);
+  border: 2px solid #2563EB;
+}
+
+.legend-bubble.small {
+  width: 12px;
+  height: 12px;
+}
+
+.legend-bubble.large {
+  width: 24px;
+  height: 24px;
+}
+
+.legend-item span {
+  font-size: 12px;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+/* Temporal Data Unavailable */
+.temporal-unavailable {
+  background-color: #FAFBFC;
+}
+
+.unavailable-message {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.unavailable-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.unavailable-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #6B7280;
+  margin-bottom: 8px;
+}
+
+.unavailable-subtext {
+  font-size: 13px;
+  color: #9CA3AF;
+  max-width: 400px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Comparative Table - Clean McKinsey Style */
+.comparative-table-wrapper {
+  overflow-x: auto;
+  margin-top: 24px;
+  border: 1px solid #E5E7EB;
+}
+
+.comparative-table {
+  width: 100%;
+  font-size: 14px;
+  background-color: #FFFFFF;
+  border-collapse: collapse;
+}
+
+.comparative-table thead {
+  background-color: #F9FAFB;
+}
+
+.comparative-table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #111827;
+  border-bottom: 2px solid #E5E7EB;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.comparative-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #F3F4F6;
+  color: #374151;
+}
+
+.comparative-table tbody tr:hover {
+  background-color: #FAFBFC;
+}
+
+.comparative-table .company-cell {
+  font-weight: 600;
+  color: #111827;
+}
+
+.comparative-table .success-cell {
+  font-weight: 600;
+  color: #2563EB;
+}
+
+.comparative-table .sentiment-cell {
+  padding: 10px 16px;
+}
+
+/* Seed company highlighting */
+.comparative-table tbody tr.seed-company-row {
+  background-color: #EFF6FF !important;
+  border-left: 4px solid #2563EB;
+}
+
+.comparative-table tbody tr.seed-company-row:hover {
+  background-color: #DBEAFE !important;
+}
+
+.seed-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background-color: #2563EB;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.subsection-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 16px;
+}
+
+/* Heatmap Matrix - McKinsey Professional Style */
+.heatmap-container-wrapper {
+  margin-top: 32px;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+}
+
+.legend-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.legend-scale {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 300px;
+}
+
+.scale-gradient {
+  height: 20px;
+  flex: 1;
+  background: linear-gradient(to right, #F9FAFB, #DBEAFE, #93C5FD, #60A5FA, #1E40AF);
+  border: 1px solid #E5E7EB;
+}
+
+.scale-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6B7280;
+  width: 100px;
+}
+
+.skill-heatmap-matrix {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  overflow-x: auto;
+  margin-bottom: 32px;
+}
+
+.heatmap-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.corner-cell {
+  width: 120px;
+  min-width: 120px;
+  background-color: #FAFBFC;
+  border: 1px solid #E5E7EB;
+}
+
+.skill-header {
+  padding: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  text-align: center;
+  background-color: #FAFBFC;
+  border: 1px solid #E5E7EB;
+  white-space: nowrap;
+}
+
+.row-header {
+  text-align: left;
+  min-width: 120px;
+  width: 120px;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.heatmap-cell {
+  width: 60px;
+  min-width: 60px;
+  height: 60px;
+  text-align: center;
+  vertical-align: middle;
+  border: 1px solid #E5E7EB;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.heatmap-cell:hover {
+  border-color: #2563EB;
+  border-width: 2px;
+  z-index: 10;
+}
+
+.heatmap-cell.diagonal-cell {
+  font-weight: 700;
+}
+
+.cell-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.diagonal-cell .cell-value {
+  color: #FFFFFF;
+}
+
+.heatmap-tooltip {
+  position: fixed;
+  background-color: #111827;
+  color: #FFFFFF;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 1000;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Top Skill Pairs List */
+.top-connections {
+  margin-top: 32px;
+}
+
+.skill-pairs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skill-pair-row {
+  display: grid;
+  grid-template-columns: 40px 300px 1fr 80px;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #FAFBFC;
+  border: 1px solid #E5E7EB;
+  transition: border-color 0.2s;
+}
+
+.skill-pair-row:hover {
+  border-color: #2563EB;
+}
+
+.pair-rank {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2563EB;
+  text-align: center;
+}
+
+.pair-skills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pair-skill-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.pair-arrow {
+  color: #9CA3AF;
+  font-weight: 600;
+}
+
+.pair-bar-container {
+  height: 8px;
+  background-color: #F3F4F6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pair-bar {
+  height: 100%;
+  background-color: #2563EB;
+  transition: width 0.6s ease;
+}
+
+.pair-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1E40AF;
+  text-align: right;
+}
+
+/* Company Sections - Clean Expandable Style */
+.company-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.company-accordion-item {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.company-accordion-item.is-expanded {
+  border-color: #2563EB;
+}
+
+.company-accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.company-accordion-header:hover {
+  background-color: #F9FAFB;
+}
+
+.company-info {
+  flex: 1;
+}
+
+.company-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.company-stats {
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.expand-icon {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2563EB;
+  margin-left: 16px;
+}
+
+.company-accordion-body {
+  padding: 16px 20px 20px 20px;
+  border-top: 1px solid #F3F4F6;
+  background-color: #FAFBFC;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.company-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-top: 12px;
+}
+
+.metric-box {
+  background-color: #FFFFFF;
+  padding: 8px 10px;
+  text-align: center;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  position: relative;
+  min-height: 50px;
+}
+
+.metric-box.interactive {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.metric-box.interactive:hover {
+  background-color: #F9FAFB;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-color: #2563EB;
+}
+
+.metric-hint {
+  font-size: 11px;
+  color: #6B7280;
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.metric-box.interactive:hover .metric-hint {
+  opacity: 1;
+}
+
+.company-top-skills {
+  margin-bottom: 16px;
+}
+
+.skills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skill-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skill-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.skill-bar-container {
+  flex: 1;
+  height: 20px;
+  background-color: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  overflow: hidden;
+  border-radius: 3px;
+}
+
+.skill-bar-fill-company {
+  height: 100%;
+  background-color: #2563EB;
+  transition: width 0.3s ease;
+}
+
+.skill-percentage {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  width: 42px;
+  text-align: right;
+}
+
+/* Company Posts Section */
+.company-posts-section {
+  margin-top: 16px;
+}
+
+.posts-placeholder {
+  background-color: #F9FAFB;
+  border: 2px dashed #D1D5DB;
+  border-radius: 6px;
+  padding: 20px 16px;
+  text-align: center;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.placeholder-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.placeholder-text {
+  font-size: 13px;
+  color: #6B7280;
+  line-height: 1.5;
+  margin-bottom: 14px;
+  max-width: 450px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.view-posts-btn {
+  background-color: #1E40AF;
+  color: #FFFFFF;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.view-posts-btn:hover {
+  background-color: #1E3A8A;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.25);
+}
+
+/* Company Actions */
+.company-actions {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.export-company-btn {
+  background-color: #FFFFFF;
+  color: #1E40AF;
+  border: 1px solid #1E40AF;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.export-company-btn:hover {
+  background-color: #EFF6FF;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.15);
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+/* Report Footer - Methodology Section */
+.report-footer {
+  margin-top: 64px;
+  padding-top: 48px;
+  border-top: 2px solid #E5E7EB;
+  background-color: #F9FAFB;
+}
+
+.methodology-section {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 48px 64px;
+  text-align: center;
+}
+
+.methodology-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #6B7280;
+  margin-bottom: 16px;
+}
+
+.methodology-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #4B5563;
+  margin-bottom: 32px;
+}
+
+.methodology-text strong {
+  color: #1F2937;
+  font-weight: 600;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+}
+
+.footer-btn {
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  font-family: inherit;
+}
+
+.footer-btn.primary {
+  background-color: #1E40AF;
+  color: #FFFFFF;
+  border: 1px solid #1E40AF;
+}
+
+.footer-btn.primary:hover {
+  background-color: #1E3A8A;
+  border-color: #1E3A8A;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.25);
+}
+
+.footer-btn.secondary {
+  background-color: #FFFFFF;
+  color: #1E40AF;
+  border: 1px solid #1E40AF;
+}
+
+.footer-btn.secondary:hover {
+  background-color: #EFF6FF;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.15);
+}
+
+/* ===== Critical Skills Analysis Section Styles ===== */
+
+.critical-skills-analysis {
+  /* Inherits report-section styles */
+}
+
+/* Component 1: Dual-Metric Skill Bars */
+.dual-metric-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.dual-bar-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 100px;
+  gap: 20px;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.dual-bar-row:last-child {
+  border-bottom: none;
+}
+
+.skill-name-col {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.dual-bars-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.metric-bar-group {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.metric-label-inline {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6B7280;
+  text-align: right;
+}
+
+.bar-container {
+  position: relative;
+  height: 24px;
+  background: #F3F4F6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.metric-bar {
+  height: 100%;
+  transition: width 0.6s ease;
+  border-radius: 4px;
+}
+
+.demand-bar {
+  background: #1E40AF;
+}
+
+.impact-bar {
+  background: #059669;
+}
+
+.bar-value {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.priority-badge-col {
+  text-align: center;
+}
+
+.priority-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.priority-badge.critical {
+  background: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+.priority-badge.high {
+  background: #FED7AA;
+  color: #9A3412;
+  border: 1px solid #FDBA74;
+}
+
+.priority-badge.medium {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+
+.priority-badge.low {
+  background: #F3F4F6;
+  color: #6B7280;
+  border: 1px solid #E5E7EB;
+}
+
+/* Component 2: Skill Correlation Heatmap */
+.heatmap-container-small {
+  margin-top: 24px;
+  overflow-x: auto;
+}
+
+.correlation-heatmap {
+  width: 100%;
+  border-collapse: collapse;
+  background: #FFFFFF;
+  font-size: 12px;
+}
+
+.correlation-heatmap thead th {
+  padding: 12px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  text-align: center;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  min-width: 80px;
+}
+
+.correlation-heatmap thead th:first-child {
+  background: #FAFBFC;
+  width: 120px;
+}
+
+.correlation-heatmap tbody th {
+  padding: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  text-align: left;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  min-width: 120px;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.correlation-heatmap tbody td {
+  padding: 12px 8px;
+  text-align: center;
+  border: 1px solid #E5E7EB;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 80px;
+}
+
+.correlation-heatmap tbody td:hover {
+  border: 2px solid #2563EB;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+/* Correlation color classes */
+.corr-diagonal {
+  background: #1E40AF;
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+.corr-very-high {
+  background: #2563EB;
+  color: #FFFFFF;
+}
+
+.corr-high {
+  background: #3B82F6;
+  color: #FFFFFF;
+}
+
+.corr-medium {
+  background: #93C5FD;
+  color: #111827;
+}
+
+.corr-low {
+  background: #DBEAFE;
+  color: #111827;
+}
+
+.corr-very-low {
+  background: #F0F9FF;
+  color: #6B7280;
+}
+
+/* Heatmap Legend */
+.heatmap-legend-horizontal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 4px;
+}
+
+.legend-gradient {
+  width: 200px;
+  height: 20px;
+  background: linear-gradient(to right, #F0F9FF, #DBEAFE, #93C5FD, #60A5FA, #3B82F6, #1E40AF);
+  border: 1px solid #E5E7EB;
+  border-radius: 3px;
+}
+
+.heatmap-legend-horizontal .legend-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+}
+
+/* Component 3: Skill Combinations Grid */
+.skill-combinations-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.combination-card {
+  background: #FAFBFC;
+  border: 1px solid #E5E7EB;
+  padding: 20px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.combination-card:hover {
+  border-color: #1E40AF;
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.1);
+  transform: translateY(-2px);
+}
+
+.combo-skills {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.combo-skill {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  background: #FFFFFF;
+  padding: 6px 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 4px;
+}
+
+.combo-plus {
+  font-size: 14px;
+  font-weight: 700;
+  color: #9CA3AF;
+}
+
+.combo-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.combo-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.metric-label-small {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.metric-value-combo {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1E40AF;
+}
+
+.metric-value-combo.success {
+  color: #059669;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .skill-combinations-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dual-bar-row {
+    grid-template-columns: 160px 1fr 90px;
+  }
+}
+
+@media (max-width: 768px) {
+  .skill-combinations-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dual-bar-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .metric-bar-group {
+    grid-template-columns: 100px 1fr;
+  }
+
+  .priority-badge-col {
+    text-align: left;
+  }
+
+  .heatmap-container-small {
+    overflow-x: scroll;
+  }
+}
+
+/* ===== Success Factors Section Styles ===== */
+
+.success-factors {
+  margin-top: 48px;
+}
+
+/* Waterfall Chart */
+.waterfall-chart {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.waterfall-item {
+  display: grid;
+  grid-template-columns: 200px 1fr 80px;
+  align-items: center;
+  gap: 16px;
+}
+
+.waterfall-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2937;
+  text-align: right;
+}
+
+.waterfall-bar-container {
+  position: relative;
+  height: 40px;
+  background-color: #f3f4f6;
+  border-radius: 4px;
+  overflow: visible;
+}
+
+.waterfall-bar {
+  position: absolute;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.waterfall-bar.positive {
+  background: #059669;
+  color: white;
+}
+
+.waterfall-bar.negative {
+  background: #DC2626;
+  color: white;
+}
+
+.waterfall-bar.total {
+  background: #2563EB;
+  color: white;
+}
+
+.waterfall-value {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.waterfall-cumulative {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: center;
+}
+
+/* Funnel Chart - Horizontal Row Layout */
+.funnel-chart {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+  max-width: 900px;
+  margin: 24px auto 0;
+  padding: 40px 20px;
+}
+
+.funnel-bars-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.funnel-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.stage-bar {
+  background: #2563EB;
+  color: white;
+  padding: 18px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 4px;
+  white-space: nowrap;
+  min-width: 180px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.stage-bar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stage-pct {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1F2937;
+  min-width: 60px;
+}
+
+.funnel-insights {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding-top: 50px;
+}
+
+.insight-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.connector-line {
+  width: 40px;
+  height: 1px;
+  background: #D1D5DB;
+  position: relative;
+}
+
+.connector-dot {
+  position: absolute;
+  right: 0;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  background: #D1D5DB;
+  border-radius: 50%;
+}
+
+.insight-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drop-rate {
+  font-size: 16px;
+  font-weight: 700;
+  color: #DC2626;
+}
+
+.reason {
+  font-size: 12px;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+/* Success Patterns Table */
+.success-patterns-table {
+  width: 100%;
+  margin-top: 24px;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.success-patterns-table thead {
+  background-color: #f9fafb;
+}
+
+.success-patterns-table th {
+  padding: 16px 20px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.success-patterns-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s ease;
+}
+
+.success-patterns-table tbody tr:nth-child(even) {
+  background-color: #fafbfc;
+}
+
+.success-patterns-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.success-patterns-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.success-patterns-table td {
+  padding: 16px 20px;
+  font-size: 14px;
+  color: #111827;
+}
+
+.factor-col {
+  width: 25%;
+}
+
+.successful-col {
+  width: 30%;
+}
+
+.unsuccessful-col {
+  width: 30%;
+}
+
+.impact-col {
+  width: 15%;
+  text-align: center;
+}
+
+.factor-name {
+  font-weight: 500;
+}
+
+.successful-value {
+  color: #111827;
+  font-weight: 400;
+}
+
+.unsuccessful-value {
+  color: #111827;
+  font-weight: 400;
+}
+
+.impact-cell {
+  text-align: center;
+}
+
+.impact-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  background-color: #eff6ff;
+  color: #1e40af;
+}
+
+.impact-badge.high {
+  background-color: #eff6ff;
+  color: #1e40af;
+}
+
+.impact-badge.medium {
+  background-color: #eff6ff;
+  color: #1e40af;
+}
+
+.impact-badge.low {
+  background-color: #eff6ff;
+  color: #1e40af;
+}
+
+/* Success Indicators - Ranked Horizontal Bars */
+.success-indicators-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.indicator-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  background: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.indicator-row:hover {
+  border-color: #1E40AF;
+  box-shadow: 0 2px 8px rgba(30, 64, 175, 0.08);
+}
+
+.indicator-rank {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1E40AF;
+  text-align: center;
+}
+
+.indicator-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+}
+
+.indicator-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.indicator-bar-container {
+  height: 8px;
+  background: #E5E7EB;
+  border-radius: 4px;
+  overflow: hidden;
+  max-width: 400px;
+}
+
+.indicator-bar {
+  height: 100%;
+  background: #2563EB;
+  transition: width 0.6s ease;
+}
+
+.indicator-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.correlation-value {
+  font-weight: 600;
+  color: #1E40AF;
+}
+
+.arrow {
+  color: #9CA3AF;
+  font-size: 14px;
+}
+
+.success-value {
+  color: #6B7280;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .indicator-row {
+    grid-template-columns: 40px 1fr;
+    gap: 12px;
+  }
+
+  .indicator-metrics {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: 8px;
+  }
+
+  .funnel-dropoff-labels {
+    width: 140px;
+  }
+
+  .dropoff-label {
+    padding: 6px 8px;
+  }
+
+  .dropoff-percentage {
+    font-size: 12px;
+  }
+
+  .dropoff-reason {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .indicator-row {
+    grid-template-columns: 30px 1fr;
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .indicator-rank {
+    font-size: 16px;
+  }
+
+  .indicator-name {
+    font-size: 13px;
+  }
+
+  .indicator-bar-container {
+    max-width: 100%;
+  }
+
+  .indicator-metrics {
+    font-size: 12px;
+    flex-wrap: wrap;
+  }
+
+  .waterfall-item {
+    grid-template-columns: 150px 1fr 60px;
+    gap: 12px;
+  }
+
+  .waterfall-label {
+    font-size: 12px;
+  }
+
+  .waterfall-value {
+    font-size: 11px;
+  }
+
+  .waterfall-cumulative {
+    font-size: 12px;
+  }
+
+  .funnel-chart {
+    flex-direction: column;
+    gap: 24px;
+    padding: 20px 10px;
+  }
+
+  .funnel-bars-section {
+    width: 100%;
+  }
+
+  .funnel-row {
+    gap: 12px;
+  }
+
+  .stage-bar {
+    min-width: 140px;
+    padding: 14px 20px;
+    font-size: 13px;
+  }
+
+  .stage-pct {
+    font-size: 16px;
+    min-width: 50px;
+  }
+
+  .funnel-insights {
+    width: 100%;
+    padding-top: 0;
+    gap: 24px;
+  }
+
+  .connector-line {
+    width: 30px;
+  }
+
+  .success-patterns-table {
+    font-size: 12px;
+  }
+
+  .success-patterns-table th,
+  .success-patterns-table td {
+    padding: 10px 12px;
+  }
+
+  .factor-col {
+    width: 35%;
+  }
+
+  .successful-col,
+  .unsuccessful-col {
+    width: 22.5%;
+  }
+
+  .impact-col {
+    width: 20%;
+  }
+}
+
+/* ===== Interview Process & Timeline Section Styles ===== */
+/* (Moved to InterviewProcessTimelineV1.vue component) */
+
+/* ===== 8. Preparation Roadmap Section Styles ===== */
+/* (Moved to PreparationRoadmapV1.vue component) */

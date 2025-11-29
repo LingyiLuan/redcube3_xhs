@@ -1,0 +1,123 @@
+/* ===== McKinsey Report - Buttons & Interactive Elements ===== */
+/* Buttons, badges, and clickable controls */
+
+/* Filter Select */
+.filter-select {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-base);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.filter-select:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 4px rgba(30, 64, 175, 0.05);
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+
+/* Reset Filters Button */
+.reset-filters-btn {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-base);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.reset-filters-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: 0 2px 4px rgba(30, 64, 175, 0.08);
+  transform: translateY(-1px);
+}
+
+/* View Toggle Buttons */
+.view-btn {
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-fast);
+  color: var(--color-text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.view-btn:hover {
+  color: var(--color-primary);
+  background-color: var(--color-bg-quaternary);
+}
+
+.view-btn.active {
+  background-color: var(--color-primary);
+  color: var(--color-bg-primary);
+  box-shadow: var(--shadow-primary);
+}
+
+/* Badge Styles */
+.badge {
+  padding: 4px 10px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background-color: var(--color-bg-quaternary);
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-border-light);
+  display: inline-block;
+}
+
+.badge.critical {
+  background-color: var(--color-accent-blue-lightest);
+  color: var(--color-primary-light);
+  border-color: var(--color-data-positive);
+}
+
+/* Priority Badges */
+.priority-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.priority-badge.critical {
+  background: var(--color-error-light);
+  color: var(--color-error-dark);
+  border: 1px solid var(--color-border-darker);
+}
+
+.priority-badge.high {
+  background: var(--color-warning-medium);
+  color: var(--color-warning-darker);
+  border: 1px solid var(--color-border-accent);
+}
+
+.priority-badge.medium {
+  background: var(--color-warning-light);
+  color: var(--color-warning-dark);
+  border: 1px solid var(--color-border-success);
+}
+
+.priority-badge.low {
+  background: var(--color-bg-quaternary);
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-border-light);
+}

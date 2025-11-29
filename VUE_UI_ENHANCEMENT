@@ -1,0 +1,102 @@
+
+
+# 🎨 **Phase 5+ — UI Polish Sprint Plan**
+
+**Goal:**
+Make the workflow editor *feel production-grade* through interaction, feedback, and usability polish — no major refactors.
+
+**Duration:** ~2 days
+**Owner:** Frontend / Product Engineer
+**Status:** 🟡 Ready to Start (Phase 4 Complete ✅)
+
+**Note:** Phase 4 is complete! AI Assistant with backend integration fully working. Some Phase 5 features are already implemented. See status updates below.
+
+---
+
+## 🎉 **Already Implemented (Phase 1-4)**
+
+These features were built during the Phase 1-4 migration and are **already working**:
+
+✅ **Autosave** - workflowStore.ts has debounced auto-save (500ms delay)
+✅ **Toast Notifications** - uiStore.showToast() used throughout (success, error, info)
+✅ **Loading States** - Analyze button shows spinner, AI assistant has typing indicator
+✅ **Status Colors** - Nodes show blue (idle), yellow (analyzing), green (completed), red (error)
+✅ **Responsive Layout** - Inspector panel slides in/out, canvas resizes
+✅ **Real-time Updates** - Node label editing, content editing with visual feedback
+✅ **Error Handling** - Try/catch blocks, error messages displayed
+✅ **Smooth Animations** - 300ms transitions, fade in/out effects
+
+**Result:** ~80% of "Day 1" is already done! Only snap-to-grid remains.
+
+---
+
+## ✅ **Day 1 — Core Feel & Feedback**
+
+**🎯 Focus:** Make the UI *feel smooth, responsive, and professional.*
+
+| Task                                                        | Status | ⏱ Est. | Priority  | Notes                                                            |
+| ----------------------------------------------------------- | ------ | ------ | --------- | ---------------------------------------------------------------- |
+| 🔄 **Implement Autosave + Dirty State Indicator**           | ✅      | 1h     | ⭐ High    | ✅ Already implemented! workflowStore has auto-save with debounce |
+| 💬 **Add Toast Notifications (Save, Run, Error)**           | ✅      | 1h     | ⭐ High    | ✅ Already implemented! uiStore.showToast() throughout app       |
+| ⏳ **Improve Loading States (Skeletons/Spinners)**           | ✅      | 1h     | ⭐ High    | ✅ Loading states on analyze button, AI assistant typing indicator |
+| 🧩 **Add Snap-to-Grid + Alignment Lines on Node Drag**      | ☐      | 1.5h   | ⭐⭐ Medium | TODO: Add grid snapping logic to WorkflowCanvas                  |
+| 🎨 **Define Consistent Color & Icon System for Node Types** | ✅      | 1h     | ⭐⭐ Medium | ✅ InputNode has status-based colors (blue/yellow/green/red)     |
+
+**Expected Outcome:**
+UI feels *alive* — no lag, no confusion about save states, smooth feedback.
+
+**Day 1 Progress:** ✅ 4/5 tasks already complete! Only snap-to-grid remaining.
+
+---
+
+## ✅ **Day 2 — Power & Accessibility**
+
+**🎯 Focus:** Enhance editing efficiency, keyboard support, and validation.
+
+| Task                                              | Status | ⏱ Est. | Priority  | Notes                                                          |
+| ------------------------------------------------- | ------ | ------ | --------- | -------------------------------------------------------------- |
+| ↩️ **Basic Undo/Redo Stack**                      | ☐      | 2h     | ⭐ High    | Keep shallow state history in memory (10–15 ops).              |
+| 🧠 **Multi-select + Bulk Move/Delete**            | ☐      | 2h     | ⭐⭐ Medium | Use Shift or marquee drag selection; batch apply actions.      |
+| ⚠️ **Inline Validation Messages for Node Config** | ☐      | 1.5h   | ⭐⭐ Medium | Highlight missing/invalid fields live.                         |
+| ⌨️ **Keyboard Accessibility + ARIA Labels**       | ☐      | 1h     | ⭐⭐ Medium | Tab navigation, focus rings, `aria-labels` for inputs/buttons. |
+| 🔍 **Cmd+K Command Palette (Quick Actions)**      | ☐      | 1.5h   | ⭐⭐ Medium | Fuzzy-search workflow actions: add node, run, save.            |
+
+**Expected Outcome:**
+Users can *work faster, correct mistakes instantly,* and navigate without touching the mouse.
+
+---
+
+## 🧭 **Optional (Backlog / Stretch Goals)**
+
+| Task                                        | Status | ⏱ Est. | Priority  | Notes                                                  |
+| ------------------------------------------- | ------ | ------ | --------- | ------------------------------------------------------ |
+| 💾 **Workflow Version History / Changelog** | ☐      | 3–4h   | ⭐⭐⭐ High  | Store past workflow states (limit to last N versions). |
+| 🗺️ **Mini-map Overview Panel**             | ☐      | 3h     | ⭐ Medium  | For large workflows, similar to n8n’s top-right map.   |
+| 🌗 **Dark / Light Theme Toggle**            | ☐      | 1.5h   | ⭐ Medium  | Respect system theme or toggle manually.               |
+| 🧪 **Dry Run / Simulation Mode**            | ☐      | 3–4h   | ⭐⭐ Medium | Test flow execution without actual API calls.          |
+
+---
+
+## 📊 **Summary Dashboard**
+
+| Category          | Effort | Impact | Status    |
+| ----------------- | ------ | ------ | --------- |
+| Core Feel (Day 1) | ~5h    | 🔥🔥🔥 | ☐ Pending |
+| Power UX (Day 2)  | ~6h    | 🔥🔥🔥 | ☐ Pending |
+| Stretch Goals     | ~10h   | 🔥🔥   | ☐ Backlog |
+
+---
+
+## 💡 **Post-Sprint QA Checklist**
+
+Before marking this phase complete:
+
+* [ ] All shortcuts and interactions tested in Chrome/Safari/Firefox.
+* [ ] No console errors on save/load.
+* [ ] Node alignment, drag, and selection feel smooth.
+* [ ] Toasts appear/disappear correctly.
+* [ ] Undo/Redo and Autosave both tested on edge cases.
+* [ ] Accessibility scan (Lighthouse or axe-core).
+* [ ] Responsive behavior verified down to 1024px width.
+
+

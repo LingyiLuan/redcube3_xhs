@@ -1,0 +1,18 @@
+{
+  "subreddits": [
+    "cscareerquestions",
+    "ExperiencedDevs",
+    "leetcode",
+    "csMajors"
+  ],
+  "postsPerSubreddit": 50,
+  "sortBy": "new",
+  "includeComments": true,
+  "maxCommentsPerPost": 10,
+  "filterInterviewOnly": true,
+  "minWordCount": 100,
+  "redditClientId": "YOUR_REDDIT_CLIENT_ID",
+  "redditSecret": "YOUR_REDDIT_SECRET",
+  "redditUser": "YOUR_REDDIT_USERNAME",
+  "redditPass": "YOUR_REDDIT_PASSWORD"
+}

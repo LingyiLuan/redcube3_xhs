@@ -1,0 +1,9 @@
+{
+  "posts": [
+    {"text": "I interviewed at Google for SWE role in 2024. They asked about React, Node.js, and system design. The coding round was tough. I passed!"},
+    {"text": "Amazon interview - asked about React, Python, and Docker. System design on AWS was challenging. Got the offer in 2024!"},
+    {"text": "Google SDE interview in 2025. Questions on React, Kubernetes, Machine Learning, and LLM. Very different from last year. Got offer!"},
+    {"text": "Meta 2025 interview - heavy focus on ML and AI. Asked about transformers, LLMs, and RAG systems. Passed all rounds!"}
+  ],
+  "analyzeConnections": true
+}

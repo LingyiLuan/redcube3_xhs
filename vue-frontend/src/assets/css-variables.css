@@ -1,0 +1,93 @@
+/**
+ * McKinsey Color System
+ * Professional blue/gray palette for data visualization and UI
+ */
+
+:root {
+  /* ===== PRIMARY BLUES - Data Visualization ===== */
+  --color-navy: #1E3A8A;
+  --color-blue: #3B82F6;
+  --color-light-blue: #60A5FA;
+  --color-baby-blue: #BFDBFE;
+
+  /* ===== NEUTRALS ===== */
+  --color-charcoal: #1F2937;
+  --color-slate: #64748B;
+  --color-light-gray: #E2E8F0;
+  --color-off-white: #F8FAFC;
+  --color-white: #FFFFFF;
+
+  /* ===== ACCENT ===== */
+  --color-dark-navy: #0F172A;
+
+  /* ===== SEMANTIC COLORS (mapped to palette) ===== */
+  --color-primary: var(--color-navy);
+  --color-primary-dark: var(--color-dark-navy);
+  --color-primary-light: var(--color-light-blue);
+
+  --color-text-primary: var(--color-charcoal);
+  --color-text-secondary: var(--color-slate);
+  --color-text-muted: var(--color-slate);
+
+  --color-border: var(--color-light-gray);
+  --color-border-light: #F1F5F9;
+
+  --color-background: var(--color-white);
+  --color-background-subtle: var(--color-off-white);
+  --color-background-hover: var(--color-baby-blue);
+
+  /* ===== CHART COLORS (Data Visualization Sequence) ===== */
+  --chart-color-1: var(--color-navy);
+  --chart-color-2: var(--color-blue);
+  --chart-color-3: var(--color-light-blue);
+  --chart-color-4: var(--color-baby-blue);
+
+  /* ===== STATUS COLORS (Blue spectrum only) ===== */
+  --color-status-low: var(--color-baby-blue);
+  --color-status-medium: var(--color-light-blue);
+  --color-status-high: var(--color-navy);
+  --color-status-critical: var(--color-dark-navy);
+
+  /* ===== COMPONENT-SPECIFIC ===== */
+  --color-button-primary: var(--color-dark-navy);
+  --color-button-primary-hover: var(--color-navy);
+  --color-button-secondary: var(--color-blue);
+  --color-button-secondary-hover: var(--color-light-blue);
+
+  --color-card-background: var(--color-white);
+  --color-card-background-subtle: var(--color-off-white);
+  --color-card-border: var(--color-light-gray);
+
+  --color-badge-background: var(--color-baby-blue);
+  --color-badge-text: var(--color-navy);
+
+  /* ===== DESTRUCTIVE ACTIONS (5% - Use Sparingly) ===== */
+  --color-destructive: #DC2626;           /* Delete, Clear, Reset buttons */
+  --color-destructive-hover: #B91C1C;      /* Hover state */
+  --color-destructive-bg: #FEE2E2;         /* Warning backgrounds */
+  --color-destructive-border: #FECACA;     /* Warning borders */
+
+  /* ===== SPACING & SIZING (for consistency) ===== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  --radius-sm: 4px;
+  --radius-base: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+}

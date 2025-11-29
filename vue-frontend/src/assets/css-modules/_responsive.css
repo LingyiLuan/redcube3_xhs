@@ -1,0 +1,312 @@
+/* ===== McKinsey Report - Responsive Styles ===== */
+/* Media queries and responsive adjustments for all breakpoints */
+
+/* ===== Tablet Breakpoint (max-width: 1200px) ===== */
+@media (max-width: 1200px) {
+  /* Skill Combinations Grid */
+  .skill-combinations-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Dual Bar Row */
+  .dual-bar-row {
+    grid-template-columns: 160px 1fr 90px;
+  }
+
+  /* Indicator Row */
+  .indicator-row {
+    grid-template-columns: 40px 1fr;
+    gap: var(--spacing-3);
+  }
+
+  .indicator-metrics {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: var(--spacing-2);
+  }
+
+  /* Funnel Dropoff Labels */
+  .funnel-dropoff-labels {
+    width: 140px;
+  }
+
+  .dropoff-label {
+    padding: 6px var(--spacing-2);
+  }
+
+  .dropoff-percentage {
+    font-size: var(--font-size-base);
+  }
+
+  .dropoff-reason {
+    font-size: var(--font-size-xs);
+  }
+}
+
+/* ===== Mobile Breakpoint (max-width: 768px) ===== */
+@media (max-width: 768px) {
+  /* Skill Combinations Grid */
+  .skill-combinations-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Dual Bar Row */
+  .dual-bar-row {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-3);
+  }
+
+  .metric-bar-group {
+    grid-template-columns: 100px 1fr;
+  }
+
+  .priority-badge-col {
+    text-align: left;
+  }
+
+  /* Heatmap Container */
+  .heatmap-container-small {
+    overflow-x: scroll;
+  }
+
+  /* Indicator Row */
+  .indicator-row {
+    grid-template-columns: 30px 1fr;
+    padding: var(--spacing-3);
+    gap: 10px;
+  }
+
+  .indicator-rank {
+    font-size: var(--font-size-2xl);
+  }
+
+  .indicator-name {
+    font-size: var(--font-size-md);
+  }
+
+  .indicator-bar-container {
+    max-width: 100%;
+  }
+
+  .indicator-metrics {
+    font-size: var(--font-size-base);
+    flex-wrap: wrap;
+  }
+
+  /* Waterfall Item */
+  .waterfall-item {
+    grid-template-columns: 150px 1fr 60px;
+    gap: var(--spacing-3);
+  }
+
+  .waterfall-label {
+    font-size: var(--font-size-base);
+  }
+
+  .waterfall-value {
+    font-size: var(--font-size-sm);
+  }
+
+  .waterfall-cumulative {
+    font-size: var(--font-size-base);
+  }
+
+  /* Funnel Chart */
+  .funnel-chart {
+    flex-direction: column;
+    gap: var(--spacing-6);
+    padding: 20px 10px;
+  }
+
+  .funnel-bars-section {
+    width: 100%;
+  }
+
+  .funnel-row {
+    gap: var(--spacing-3);
+  }
+
+  .stage-bar {
+    min-width: 140px;
+    padding: 14px 20px;
+    font-size: var(--font-size-md);
+  }
+
+  .stage-pct {
+    font-size: var(--font-size-2xl);
+    min-width: 50px;
+  }
+
+  .funnel-insights {
+    width: 100%;
+    padding-top: 0;
+    gap: var(--spacing-6);
+  }
+
+  .connector-line {
+    width: 30px;
+  }
+
+  /* Success Patterns Table */
+  .success-patterns-table {
+    font-size: var(--font-size-base);
+  }
+
+  .success-patterns-table th,
+  .success-patterns-table td {
+    padding: 10px var(--spacing-3);
+  }
+
+  .factor-col {
+    width: 35%;
+  }
+
+  .successful-col,
+  .unsuccessful-col {
+    width: 22.5%;
+  }
+
+  .impact-col {
+    width: 20%;
+  }
+
+  /* Report Header */
+  .report-header {
+    padding: var(--spacing-8) var(--spacing-6) var(--spacing-6);
+    flex-direction: column;
+  }
+
+  /* Report Body */
+  .report-body {
+    padding: var(--spacing-8) var(--spacing-6);
+  }
+
+  /* Two-Column Layout */
+  .two-column-layout {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-6);
+  }
+
+  .narrative-column {
+    padding-right: 0;
+  }
+
+  .metrics-column {
+    padding-left: 0;
+    border-left: none;
+    padding-top: var(--spacing-6);
+    border-top: 1px solid var(--color-border-light);
+  }
+
+  /* Dual Chart Layout */
+  .dual-chart-layout {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-6);
+  }
+
+  /* Small Multiples Grid */
+  .small-multiples-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Role Cards */
+  .role-cards {
+    grid-template-columns: 1fr;
+  }
+
+  /* Chart Wrapper */
+  .chart-wrapper {
+    padding: var(--spacing-4);
+  }
+
+  .chart-container {
+    height: 300px;
+  }
+
+  .chart-container.medium {
+    height: 260px;
+  }
+
+  .chart-container.small {
+    height: 220px;
+  }
+
+  /* Filters Row */
+  .filters-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .filter-select,
+  .reset-filters-btn {
+    width: 100%;
+  }
+
+  /* Hover Instruction - Hide on Mobile */
+  .hover-instruction {
+    display: none;
+  }
+
+  /* Chart Header */
+  .chart-header {
+    flex-direction: column;
+    gap: var(--spacing-3);
+  }
+}
+
+/* ===== Small Mobile Breakpoint (max-width: 480px) ===== */
+@media (max-width: 480px) {
+  /* Report Title */
+  .report-title {
+    font-size: var(--font-size-5xl);
+  }
+
+  /* Section Title */
+  .section-title {
+    font-size: var(--font-size-4xl);
+  }
+
+  /* Chart Title */
+  .chart-title {
+    font-size: var(--font-size-2xl);
+  }
+
+  /* Body Text */
+  .body-text,
+  .insight-text {
+    font-size: var(--font-size-lg);
+  }
+
+  /* Report Body */
+  .report-body {
+    padding: var(--spacing-6) var(--spacing-4);
+  }
+
+  /* Report Section */
+  .report-section {
+    margin-bottom: var(--spacing-12);
+  }
+
+  /* Tables */
+  .company-comparison-table th,
+  .company-comparison-table td,
+  .critical-skills-table th,
+  .critical-skills-table td,
+  .role-comparison-table th,
+  .role-comparison-table td {
+    padding: var(--spacing-2) var(--spacing-3);
+    font-size: var(--font-size-sm);
+  }
+
+  .role-comparison-table {
+    font-size: var(--font-size-base);
+  }
+
+  .skill-tags {
+    flex-direction: column;
+  }
+}

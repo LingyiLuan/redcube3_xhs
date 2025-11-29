@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear RedCube Reports</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+        }
+        button:hover {
+            background: #c82333;
+        }
+        .success {
+            background: #28a745;
+        }
+        .success:hover {
+            background: #218838;
+        }
+        .info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .status {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+        }
+        .ok {
+            background: #d4edda;
+            border: 1px solid #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clear RedCube Reports</h1>
+
+        <div class="info">
+            <strong>Current Status:</strong>
+            <div id="status" class="status"></div>
+        </div>
+
+        <button onclick="checkStatus()">📊 Check Current Reports</button>
+        <button onclick="clearReports()">🗑️ Clear All Reports</button>
+        <button onclick="clearAllStorage()">⚠️ Clear All localStorage (Nuclear Option)</button>
+
+        <div class="info">
+            <strong>Instructions:</strong>
+            <ol>
+                <li>Click "Check Current Reports" to see how many reports you have</li>
+                <li>Click "Clear All Reports" to remove them</li>
+                <li>Close this page and refresh your RedCube app</li>
+            </ol>
+        </div>
+
+        <div id="output" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        function checkStatus() {
+            try {
+                const data = JSON.parse(localStorage.getItem('redcube-reports') || '{"reports":[]}');
+                const count = data.reports ? data.reports.length : 0;
+
+                const statusDiv = document.getElementById('status');
+                const outputDiv = document.getElementById('output');
+
+                if (count === 0) {
+                    statusDiv.className = 'status ok';
+                    statusDiv.innerHTML = `✅ Clean! No reports in storage.`;
+                } else {
+                    statusDiv.className = 'status warning';
+                    statusDiv.innerHTML = `⚠️ Found ${count} reports in localStorage`;
+
+                    // Show batchIds
+                    const batchIds = data.reports.map(r => r.batchId);
+                    const uniqueBatchIds = new Set(batchIds);
+
+                    outputDiv.innerHTML = `
+                        <div class="info">
+                            <strong>Details:</strong><br>
+                            Total reports: ${count}<br>
+                            Unique batchIds: ${uniqueBatchIds.size}<br>
+                            Duplicates: ${count - uniqueBatchIds.size}<br>
+                            <br>
+                            <strong>Sample batchIds:</strong><br>
+                            ${Array.from(uniqueBatchIds).slice(0, 5).join('<br>')}
+                            ${uniqueBatchIds.size > 5 ? '<br>... and more' : ''}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('status').innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+
+        function clearReports() {
+            try {
+                const data = JSON.parse(localStorage.getItem('redcube-reports') || '{"reports":[]}');
+                const count = data.reports ? data.reports.length : 0;
+
+                localStorage.removeItem('redcube-reports');
+
+                document.getElementById('status').className = 'status ok';
+                document.getElementById('status').innerHTML = `✅ Cleared ${count} reports!`;
+                document.getElementById('output').innerHTML = `
+                    <div class="info">
+                        <strong>✅ Success!</strong><br>
+                        Removed ${count} reports from localStorage.<br>
+                        <br>
+                        <strong>Next steps:</strong><br>
+                        1. Close this page<br>
+                        2. Refresh your RedCube app (Cmd+Shift+R)<br>
+                        3. Run a fresh test workflow
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('status').innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+
+        function clearAllStorage() {
+            if (confirm('⚠️ This will clear ALL localStorage data. Are you sure?')) {
+                localStorage.clear();
+                document.getElementById('status').className = 'status ok';
+                document.getElementById('status').innerHTML = `✅ All localStorage cleared!`;
+                document.getElementById('output').innerHTML = `
+                    <div class="info">
+                        <strong>✅ Complete wipe done!</strong><br>
+                        All localStorage data has been removed.<br>
+                        <br>
+                        <strong>Next steps:</strong><br>
+                        1. Close this page<br>
+                        2. Refresh your RedCube app (Cmd+Shift+R)<br>
+                        3. Run a fresh test workflow
+                    </div>
+                `;
+            }
+        }
+
+        // Check status on page load
+        window.onload = checkStatus;
+    </script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+/* ===== McKinsey Report - Typography Styles ===== */
+/* All text and font-related styles */
+
+/* Primary Titles */
+.report-title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-7xl);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-2);
+  letter-spacing: -0.02em;
+  line-height: var(--line-height-tight);
+}
+
+.report-subtitle {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--spacing-4);
+  font-weight: var(--font-weight-normal);
+}
+
+.section-title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-6xl);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-8);
+  letter-spacing: -0.01em;
+  line-height: var(--line-height-snug);
+}
+
+/* Body Text */
+.body-text {
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-extra-loose);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-4);
+  font-weight: var(--font-weight-normal);
+}
+
+.body-text strong {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.insight-text {
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-extra-loose);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-normal);
+}
+
+.insight-text strong {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.callout-content {
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-loose);
+  color: var(--color-text-secondary);
+}
+
+/* Labels and Small Text */
+.filter-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  padding: 6px 0 4px 0;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-label-inline {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+  text-align: right;
+}
+
+.metric-label-small {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.outcome-label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Chart Typography */
+.chart-title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+}
+
+.chart-subtitle {
+  font-size: var(--font-size-md);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-normal);
+}
+
+.legend-text {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+}
+
+/* Metric Values */
+.metric-value {
+  font-size: var(--font-size-4xl);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+  text-align: right;
+  padding: 0;
+}
+
+.outcome-value {
+  font-size: var(--font-size-5xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+}
+
+.metric-value-combo {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-light);
+}
+
+.metric-value-combo.success {
+  color: var(--color-success);
+}
+
+/* Skill Percentage Labels */
+.skill-percentage {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-dark);
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.skill-label-row.top-skill .skill-percentage {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Bar Value Labels */
+.bar-value {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* Meta Text */
+.meta-item {
+  font-weight: var(--font-weight-normal);
+}

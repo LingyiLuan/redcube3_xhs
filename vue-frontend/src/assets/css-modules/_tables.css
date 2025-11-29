@@ -1,0 +1,484 @@
+/* ===== McKinsey Report - Table Styles ===== */
+/* All table-related styles including metrics and comparison tables */
+
+/* Metrics Table - Clean Professional */
+.metrics-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.metrics-table tbody tr {
+  border-bottom: 1px solid var(--color-border-dark);
+}
+
+.metrics-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.metrics-table tbody tr.metric-highlight {
+  background-color: var(--color-bg-secondary);
+}
+
+/* Company Comparison Table */
+.company-intelligence-table-wrapper {
+  overflow-x: auto;
+  margin-top: var(--spacing-4);
+  border: 1px solid var(--color-border-light);
+}
+
+.company-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--color-bg-primary);
+  font-size: var(--font-size-lg);
+}
+
+.company-comparison-table thead {
+  background-color: var(--color-bg-secondary);
+}
+
+.company-comparison-table th {
+  padding: 14px var(--spacing-4);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-border-light);
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.company-comparison-table td {
+  padding: 14px var(--spacing-4);
+  border-bottom: 1px solid var(--color-border-dark);
+  color: var(--color-text-secondary);
+}
+
+.company-comparison-table tbody tr {
+  transition: all var(--transition-fast);
+}
+
+.company-comparison-table tbody tr:hover {
+  background-color: var(--color-bg-secondary);
+  box-shadow: var(--shadow-inset);
+}
+
+.company-comparison-table tbody tr.best-performer {
+  background-color: var(--color-accent-blue-lightest);
+}
+
+.company-comparison-table tbody tr.best-performer:hover {
+  background-color: var(--color-accent-blue-light);
+}
+
+.company-comparison-table tbody tr.worst-performer {
+  background-color: var(--color-data-negative);
+}
+
+.company-comparison-table tbody tr.worst-performer:hover {
+  background-color: var(--color-error-light);
+}
+
+.company-comparison-table .company-cell {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.company-comparison-table .success-rate-cell {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+/* Critical Skills Table */
+.critical-skills-table-wrapper {
+  overflow-x: auto;
+  margin-top: var(--spacing-6);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+}
+
+.critical-skills-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--color-bg-primary);
+  font-size: var(--font-size-lg);
+}
+
+.critical-skills-table thead {
+  background-color: var(--color-bg-secondary);
+}
+
+.critical-skills-table th {
+  padding: 14px var(--spacing-4);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-border-light);
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.critical-skills-table td {
+  padding: 14px var(--spacing-4);
+  border-bottom: 1px solid var(--color-border-dark);
+  color: var(--color-text-secondary);
+}
+
+.critical-skills-table tbody tr {
+  transition: all var(--transition-fast);
+}
+
+.critical-skills-table tbody tr:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.critical-skills-table .skill-name-cell {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.critical-skills-table .demand-score-cell {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+.critical-skills-table .impact-score-cell {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-success);
+}
+
+/* Success Factors Table */
+.success-factors-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-lg);
+  margin-top: var(--spacing-6);
+}
+
+.success-factors-table thead {
+  background-color: var(--color-bg-secondary);
+}
+
+.success-factors-table th {
+  padding: var(--spacing-3) var(--spacing-4);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-border-light);
+  font-size: var(--font-size-base);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.success-factors-table td {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border-dark);
+  color: var(--color-text-secondary);
+}
+
+.success-factors-table tbody tr:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+/* Heatmap Table */
+.heatmap-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-base);
+  table-layout: fixed;
+}
+
+.heatmap-table th {
+  padding: var(--spacing-2) var(--spacing-3);
+  text-align: center;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+}
+
+.heatmap-table td {
+  padding: var(--spacing-3);
+  text-align: center;
+  border: 1px solid var(--color-border-light);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.heatmap-table td:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-base);
+}
+
+.heatmap-table .skill-label-cell {
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-secondary);
+  cursor: default;
+}
+
+.heatmap-table .skill-label-cell:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Heatmap Color Scales */
+.heatmap-cell-0 { background-color: #F9FAFB; color: var(--color-text-tertiary); }
+.heatmap-cell-1 { background-color: #F0F9FF; color: var(--color-text-secondary); }
+.heatmap-cell-2 { background-color: #E0F2FE; color: var(--color-text-secondary); }
+.heatmap-cell-3 { background-color: #BAE6FD; color: var(--color-text-primary); }
+.heatmap-cell-4 { background-color: #7DD3FC; color: var(--color-text-primary); }
+.heatmap-cell-5 { background-color: #38BDF8; color: var(--color-bg-primary); }
+.heatmap-cell-6 { background-color: #0EA5E9; color: var(--color-bg-primary); }
+.heatmap-cell-7 { background-color: #0284C7; color: var(--color-bg-primary); }
+.heatmap-cell-8 { background-color: #0369A1; color: var(--color-bg-primary); }
+.heatmap-cell-9 { background-color: #075985; color: var(--color-bg-primary); }
+.heatmap-cell-10 { background-color: #0C4A6E; color: var(--color-bg-primary); }
+
+/* Role Comparison Table */
+.role-table-wrapper {
+  overflow-x: auto;
+  margin-top: var(--spacing-4);
+}
+
+.role-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--color-bg-primary);
+  font-size: var(--font-size-lg);
+}
+
+.role-comparison-table thead {
+  background-color: var(--color-bg-secondary);
+  border-bottom: 2px solid var(--color-border-light);
+}
+
+.role-comparison-table th {
+  padding: var(--spacing-3) var(--spacing-4);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  white-space: nowrap;
+}
+
+.role-comparison-table td {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border-light);
+  color: var(--color-text-dark);
+}
+
+.role-comparison-table tbody tr:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.role-name-cell {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.seed-badge {
+  background: var(--color-baby-blue);
+  color: var(--color-navy);
+  padding: 2px 6px;
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Inline Progress Bar */
+.inline-bar-container {
+  position: relative;
+  width: 100%;
+  min-width: 120px;
+  height: 24px;
+  background: var(--color-bg-quaternary);
+  border-radius: var(--radius-base);
+  overflow: hidden;
+}
+
+.inline-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--color-primary);
+  transition: width var(--transition-base);
+}
+
+.inline-bar-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-dark);
+  z-index: var(--z-base);
+}
+
+/* Difficulty Badge */
+.difficulty-badge {
+  padding: 4px var(--spacing-2);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  display: inline-block;
+}
+
+.difficulty-low {
+  background: var(--color-baby-blue);
+  color: var(--color-navy);
+}
+
+.difficulty-medium {
+  background: var(--color-light-blue);
+  color: var(--color-white);
+}
+
+.difficulty-high {
+  background: var(--color-navy);
+  color: var(--color-white);
+}
+
+/* Skill Tags */
+.skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.skill-tag {
+  padding: 4px 10px;
+  background: var(--color-accent-blue-light);
+  color: var(--color-primary);
+  border-radius: 12px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+/* Success Patterns Table */
+.success-patterns-table {
+  width: 100%;
+  margin-top: var(--spacing-6);
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.success-patterns-table thead {
+  background-color: var(--color-bg-secondary);
+}
+
+.success-patterns-table th {
+  padding: var(--spacing-4) var(--spacing-5);
+  text-align: left;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--color-border-light);
+}
+
+.success-patterns-table tbody tr {
+  border-bottom: 1px solid var(--color-bg-quaternary);
+  transition: background-color var(--transition-fast);
+}
+
+.success-patterns-table tbody tr:nth-child(even) {
+  background-color: var(--color-bg-tertiary);
+}
+
+.success-patterns-table tbody tr:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.success-patterns-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.success-patterns-table td {
+  padding: var(--spacing-4) var(--spacing-5);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+
+.factor-col {
+  width: 25%;
+}
+
+.successful-col {
+  width: 30%;
+}
+
+.unsuccessful-col {
+  width: 30%;
+}
+
+.impact-col {
+  width: 15%;
+  text-align: center;
+}
+
+.factor-name {
+  font-weight: var(--font-weight-medium);
+}
+
+.successful-value {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-normal);
+}
+
+.unsuccessful-value {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-normal);
+}
+
+.impact-cell {
+  text-align: center;
+}
+
+.impact-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  background-color: var(--color-accent-blue-lightest);
+  color: var(--color-primary);
+}
+
+.impact-badge.high {
+  background-color: var(--color-accent-blue-lightest);
+  color: var(--color-primary);
+}
+
+.impact-badge.medium {
+  background-color: var(--color-accent-blue-lightest);
+  color: var(--color-primary);
+}
+
+.impact-badge.low {
+  background-color: var(--color-accent-blue-lightest);
+  color: var(--color-primary);
+}

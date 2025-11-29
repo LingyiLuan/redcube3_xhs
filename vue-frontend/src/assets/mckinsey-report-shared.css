@@ -1,0 +1,44 @@
+/* ===== McKinsey Report - Modular Shared Styles ===== */
+/*
+ * This file imports all CSS modules in the correct order.
+ * Previously this was a 2,700-line monolithic file.
+ * Now it's broken into focused, maintainable modules.
+ *
+ * Module Structure:
+ * 1. Variables - Design system tokens (colors, spacing, typography)
+ * 2. Typography - All text and font styles
+ * 3. Base Layout - Container, sections, grids, structural elements
+ * 4. Buttons - Interactive elements, badges, controls
+ * 5. Tables - Metrics, comparison, and data tables
+ * 6. Charts - Chart containers, wrappers, legends
+ * 7. Cards - Callouts, outcome cards, gap cards, role cards
+ * 8. Data Visualization - Heatmaps, correlations, indicators
+ * 9. Responsive - Media queries for all breakpoints
+ */
+
+/* 1. Design System Variables */
+@import './css-modules/_variables.css';
+
+/* 2. Typography Styles */
+@import './css-modules/_typography.css';
+
+/* 3. Base Layout & Structure */
+@import './css-modules/_base-layout.css';
+
+/* 4. Buttons & Interactive Elements */
+@import './css-modules/_buttons.css';
+
+/* 5. Table Styles */
+@import './css-modules/_tables.css';
+
+/* 6. Chart Styles */
+@import './css-modules/_charts.css';
+
+/* 7. Card Components */
+@import './css-modules/_cards.css';
+
+/* 8. Data Visualization */
+@import './css-modules/_data-visualization.css';
+
+/* 9. Responsive Styles (must be last) */
+@import './css-modules/_responsive.css';

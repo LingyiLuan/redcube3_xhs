@@ -1,0 +1,16 @@
+{
+  "posts": [
+    {
+      "text": "Just finished my Google interview. They asked me about system design and coding problems. The role was Software Engineer.",
+      "id": "test_google"
+    },
+    {
+      "text": "Microsoft interview went well! They focused on algorithms and data structures. Position: Senior SDE.",
+      "id": "test_microsoft"
+    },
+    {
+      "text": "Meta (Facebook) interview was tough. Lots of behavioral questions and coding challenges.",
+      "id": "test_meta"
+    }
+  ]
+}

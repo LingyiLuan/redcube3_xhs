@@ -1,0 +1,294 @@
+did we retrieve from the rag databse for most relevent posts to do the quantitative analysis? we are only doing the four posts analysis right? that's why our graphs looks so wrong.
+### **SYSTEM / DEV PROMPT**
+
+You are an AI system that performs **quantitative interview experience analysis** from social media or forum posts.
+You receive 1 or more posts describing interview experiences from different companies (e.g., Google, Amazon, TikTok, Apple).
+Your task is to generate a **data-driven analysis report** with both qualitative and quantitative insights.
+
+When multiple posts are provided, you must **retrieve additional relevant posts (50–100)** from a RAG database (vector store) to perform **pattern recognition, trend analysis, and skill frequency quantification.**
+The final report must feel like an **insightful market research summary** for job seekers preparing for interviews.
+
+---
+
+### **INPUT EXAMPLE**
+
+```json
+{
+  "user_posts": [
+    {
+      "company": "Google",
+      "content": "My Google interview was focused a lot on system design and scalability. The interviewer asked me to explain my thought process. Behavioral part was short."
+    },
+    {
+      "company": "Amazon",
+      "content": "Amazon’s interview revolved around leadership principles and STAR answers. I struggled with ownership questions."
+    },
+    {
+      "company": "TikTok",
+      "content": "TikTok’s process was fast, with emphasis on data structures and quick problem solving. Feedback was mostly positive."
+    },
+    {
+      "company": "Apple",
+      "content": "Apple focused heavily on creativity and collaboration. They asked about my design decisions and team communication."
+    }
+  ],
+  "retrieved_posts": [ /* array of 50–100 relevant RAG results, each with company, text, timestamp */ ]
+}
+```
+
+---
+
+### **TASKS**
+
+1. **Analyze the provided posts (user_posts)**
+
+   * Extract key skills, sentiment, interview type, and outcomes.
+   * Identify company-specific focus points (e.g., system design, leadership, creativity).
+
+2. **Integrate RAG results (retrieved_posts)**
+
+   * Perform statistical aggregation across the dataset.
+   * Count mentions of key themes (DSA, behavioral, system design, etc.).
+   * Track sentiment averages and recurring challenges per company.
+   * Identify emerging trends or patterns across time if timestamps exist.
+
+3. **Generate a structured quantitative summary table**
+   Example:
+
+   | Metric               | Google        | Amazon     | TikTok          | Apple         |
+   | -------------------- | ------------- | ---------- | --------------- | ------------- |
+   | Avg Sentiment (0–1)  | 0.72          | 0.58       | 0.63            | 0.70          |
+   | Top Skill Focus      | System Design | Leadership | Problem Solving | Collaboration |
+   | Avg Difficulty       | High          | Medium     | Medium          | High          |
+   | Behavioral Focus (%) | 25            | 60         | 40              | 55            |
+   | Technical Focus (%)  | 75            | 40         | 60              | 45            |
+
+4. **Add brief comparative insight paragraphs**
+   Example:
+
+   > “Amazon interviews emphasize leadership and culture fit, while Google prioritizes technical depth. Behavioral components have increased 40% year-over-year across all companies, indicating stronger focus on communication and teamwork.”
+
+5. **Optionally, show sample evidence**
+   Include either:
+
+   * Top recurring phrases (word cloud data)
+   * 2–3 short anonymized quotes from retrieved posts
+     This builds transparency and user trust.
+
+6. **Output a final structured JSON (for front-end rendering)**
+   Example:
+
+   ```json
+   {
+     "summary": "Amazon focuses more on leadership than technical depth, Google is still the most system-design-heavy interview...",
+     "quantitative_insights": [
+       {
+         "metric": "Behavioral Focus",
+         "Google": "25%",
+         "Amazon": "60%",
+         "TikTok": "40%",
+         "Apple": "55%"
+       },
+       {
+         "metric": "Avg Sentiment Score",
+         "Google": 0.72,
+         "Amazon": 0.58,
+         "TikTok": 0.63,
+         "Apple": 0.70
+       }
+     ],
+     "top_keywords": ["system design", "STAR method", "behavioral", "ownership", "creativity"],
+     "example_quotes": [
+       "Google interview emphasized scalability and communication.",
+       "Amazon asked STAR-based leadership questions."
+     ],
+     "meta": {
+       "retrieved_post_count": 85,
+       "data_source": "RAG interview experience database"
+     }
+   }
+   ```
+
+---
+
+### **OUTPUT FORMAT (Human-Readable)**
+
+Generate two parts:
+
+1. **Visual/Chart Summary (for frontend rendering)**
+
+   * Comparative tables
+   * Graph data (skill frequency, sentiment distribution)
+   * Timeline if timestamps exist
+2. **Narrative Summary**
+
+   * 2–4 paragraphs explaining the insights, e.g.:
+
+     > “System design remains the most frequently mentioned challenge in Google and Apple interviews, while Amazon continues to lead in behavioral-based evaluation…”
+
+---
+
+### **STYLE GUIDELINES**
+
+* Write in a professional, data-driven, clear tone (think LinkedIn + McKinsey).
+* Always ground insights in retrieved quantitative data.
+* If RAG data is missing or insufficient, state it clearly and rely only on user_posts.
+* Avoid generic summaries — highlight **comparisons, shifts, and patterns**.
+* Ensure outputs can be reused as **Learning Map input nodes** (skills, companies, and trends should be structured clearly).
+
+and i also want a Cross-Post Knowledge Graph, base don all teh potss we analyzed, there must be some connections, figur it out.
+        [Python]
+          /  \
+    [Django] [FastAPI]
+        |      |
+    [REST]  [GraphQL]
+        \    /
+      [Databases]
+  
+
+
+  and the report's structure:
+
+
+You want your **“Analysis Report”** to feel like a *real professional data story* — not just static charts, but a **narrative-driven, interactive dashboard** that *explains insights, interprets them, and invites exploration.*
+
+Let’s break down **how to transform it** — both in *content* and *structure*.
+
+---
+
+### 🧭 1. Core Concept: “Narrative + Data Fusion”
+
+Think of your report as **a story that happens to use data**, not a data dump with captions.
+
+Each section should:
+
+1. Start with a **human-readable insight paragraph** — like a summary written by a data analyst.
+2. Follow with **interactive visualizations** (hover, filter, company comparison).
+3. End with **interpretation or recommendation** (e.g., “Candidates tend to struggle most with behavioral interviews at Google, suggesting…”).
+
+---
+
+### 🧩 2. Ideal Structure for Multi-Post Interview Analysis
+
+#### **Header**
+
+* “Tech Interview Insights Report — October 2025”
+* Quick overview (e.g., “Analyzing 4 companies, 100 posts, 450 user experiences”)
+* Interactive filters: timeframe, company, interview stage.
+
+---
+
+#### **1. Executive Summary**
+
+💬 Narrative:
+
+> “Based on 100 recent posts from Google, Amazon, Apple, and TikTok, we identified consistent pain points in system design rounds and notable sentiment differences across companies. Amazon interviews generate the most stress mentions, while Google posts show more positive preparation sentiment.”
+
+🎨 Visualization:
+
+* KPI cards:
+
+  * Avg. Sentiment Score
+  * Total Posts Analyzed
+  * Avg. Interview Length
+  * Overall Success Rate
+
+---
+
+#### **2. Topic Breakdown**
+
+💬 Narrative:
+
+> “Most discussions center around coding and system design challenges, while behavioral interviews are less frequently discussed but carry strong emotional tones.”
+
+🎨 Visualization:
+
+* Interactive pie chart: topic distribution (Coding, Behavioral, Design, etc.)
+* Stack bar by company (e.g., Google → 60% coding, Amazon → 45% design)
+
+---
+
+#### **3. Sentiment & Outcome Metrics**
+
+💬 Narrative:
+
+> “Only 15% of analyzed interview experiences resulted in offers, with frustration peaking after system design rounds. Positive sentiment correlated strongly with structured preparation.”
+
+🎨 Visualization:
+
+* Donut: success/failure/unknown distribution
+* Sentiment over time (line chart)
+* Hover tooltips with example post snippets
+
+---
+
+#### **4. Difficulty & Emotion Analysis**
+
+💬 Narrative:
+
+> “Apple and TikTok interviews are perceived as the hardest, but also yield the highest ‘learning satisfaction.’ Common emotional keywords: *nervous, overwhelmed, motivated*.”
+
+🎨 Visualization:
+
+* Word cloud of emotion keywords
+* Difficulty radar chart (by company)
+
+---
+
+#### **5. Best Practices (Narrative Insight)**
+
+💬 Narrative:
+
+> “Candidates who reported success typically practiced mock interviews twice as often and mentioned ‘feedback reflection’ more frequently. These factors may be strong predictors of positive outcomes.”
+
+🎨 Visualization:
+
+* Comparison bar: successful vs. unsuccessful candidates’ preparation strategies
+
+---
+
+#### **6. Company Deep Dives (Expandable Cards)**
+
+* Google → sentiment timeline, sample quotes, topic focus
+* Amazon → unique preparation trends
+* Apple → difficulty heatmap
+* TikTok → standout candidate experiences
+
+💡 Interactive elements:
+
+* Accordion or tabs per company
+* Hover over post quotes to see metadata (“Posted on Oct 20, avg sentiment +0.8”)
+
+---
+
+#### **7. Closing Summary**
+
+> “Across all analyzed posts, the most common barrier to success is inadequate system design preparation. Behavioral questions are less frequent but emotionally intense. Consistent feedback loops significantly improve success rates.”
+
+🎯 Optional call-to-action:
+“Explore similar posts” or “Generate custom report by company.”
+
+---
+
+### ⚙️ 3. Under the Hood (How It Works)
+
+Here’s what happens technically:
+
+1. **You have 4 seed posts** (Google, Amazon, Apple, TikTok).
+2. **You query your RAG database** for *related posts* using:
+
+   * Company name, topic tags (e.g. “system design,” “coding interview”)
+   * Semantic similarity embedding search.
+     → That gives you 50–100 *contextually similar posts*.
+3. Then you perform **quantitative analysis**:
+
+   * Sentiment scoring
+   * Topic classification
+   * Outcome tagging (success/failure/unknown)
+   * Keyword clustering
+4. Finally, the model **writes the narrative summary** based on those insights.
+
+So yes — it’s an *extension* of those 4 posts, expanded with *data context* from your knowledge base.
+
+---
+

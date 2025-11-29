@@ -1,0 +1,14 @@
+{
+  "actorSpecification": 1,
+  "name": "redcube-reddit-scraper-enhanced",
+  "title": "RedCube Enhanced Reddit Interview Scraper",
+  "description": "Scrapes interview experience posts from multiple Reddit subreddits with deep comment scraping and metadata extraction support. Optimized for career intelligence and ML training data.",
+  "version": "2.0",
+  "meta": {
+    "templateId": "project-empty-js"
+  },
+  "input": "./INPUT_SCHEMA.json",
+  "dockerfile": "./Dockerfile",
+  "readme": "./README.md",
+  "categories": ["ENTERTAINMENT"]
+}

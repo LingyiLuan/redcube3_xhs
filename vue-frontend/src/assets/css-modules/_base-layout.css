@@ -1,0 +1,240 @@
+/* ===== McKinsey Report - Base Layout Styles ===== */
+/* Container, sections, columns, and structural elements */
+
+/* Main Container */
+.mckinsey-report {
+  position: relative;
+  background-color: var(--color-bg-primary);
+  min-height: 100vh;
+  font-family: var(--font-sans);
+}
+
+/* Header Layout */
+.report-header {
+  background-color: var(--color-bg-primary);
+  padding: var(--spacing-12) 64px var(--spacing-8);
+  border-bottom: 1px solid var(--color-border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.header-content {
+  flex: 1;
+}
+
+.report-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  font-size: var(--font-size-md);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--spacing-6);
+}
+
+.meta-divider {
+  color: var(--color-border-base);
+}
+
+/* Filters Row */
+.filters-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-4);
+  margin-top: var(--spacing-6);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.view-controls {
+  display: flex;
+  gap: var(--spacing-2);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  border: 1px solid var(--color-border-light);
+}
+
+/* Report Body */
+.report-body {
+  padding: 64px 80px;
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  background-color: var(--color-bg-primary);
+}
+
+.report-section {
+  margin-bottom: 80px;
+  padding-bottom: var(--spacing-10);
+  border-bottom: 1px solid var(--color-border-dark);
+}
+
+.report-section:last-child {
+  border-bottom: none;
+}
+
+/* Two-Column Layout (60% / 40%) */
+.two-column-layout {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: var(--spacing-12);
+  align-items: start;
+}
+
+.narrative-column {
+  padding-right: var(--spacing-6);
+}
+
+.metrics-column {
+  padding-left: var(--spacing-6);
+  border-left: 1px solid var(--color-border-light);
+}
+
+/* Narrative Block */
+.narrative-block {
+  margin-bottom: var(--spacing-8);
+}
+
+/* Dual Chart Layout */
+.dual-chart-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-12);
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.dual-chart-layout > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Sentiment Layout */
+.sentiment-layout {
+  display: flex;
+  gap: var(--spacing-12);
+  align-items: start;
+}
+
+.outcome-stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+/* Knowledge Gaps Layout */
+.knowledge-gaps-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+/* Skill Combinations Grid */
+.skill-combinations-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-6);
+  margin-top: var(--spacing-6);
+}
+
+/* Dual Bar Layout */
+.dual-bar-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 120px;
+  gap: var(--spacing-4);
+  align-items: center;
+}
+
+.metric-bar-group {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
+.bar-container {
+  position: relative;
+  height: 24px;
+  background: var(--color-bg-quaternary);
+  border-radius: var(--radius-base);
+  overflow: hidden;
+}
+
+.metric-bar {
+  height: 100%;
+  transition: width var(--transition-slow);
+  border-radius: var(--radius-base);
+}
+
+.demand-bar {
+  background: var(--color-primary);
+}
+
+.impact-bar {
+  background: var(--color-success);
+}
+
+.priority-badge-col {
+  text-align: center;
+}
+
+/* Skill Bar Labels */
+.skill-bar-labels {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 52px 20px 35px 0;
+  pointer-events: none;
+}
+
+.skill-label-row {
+  height: calc(100% / 10);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Legend Row */
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  margin-top: 20px;
+  justify-content: center;
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--color-border-dark);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-sm);
+}
+
+.legend-dot.critical {
+  background-color: var(--color-primary-light);
+}
+
+.legend-dot.important {
+  background-color: var(--color-accent-blue-dark);
+}
+
+.legend-dot.common {
+  background-color: var(--color-accent-blue);
+}

@@ -17,16 +17,47 @@ async function saveLearningMap(learningMapData) {
     analysis_count = 0,
     analysis_ids = [],
     user_goals = {},
-    personalization_score = 0
+    personalization_score = 0,
+    // NEW: Enhanced fields for redesigned learning maps
+    source_report_id = null,
+    foundation_posts = null,
+    data_coverage = null,
+    avg_prep_weeks = null,
+    company_tracks = [],
+    analytics = {},
+    // NEW: LLM-generated fields (Migration 26)
+    skills_roadmap = {},
+    knowledge_gaps = {},
+    curated_resources = [],
+    timeline = {},
+    expected_outcomes = [],
+    // NEW: Database-first sections (Migration 28)
+    common_pitfalls = null,
+    readiness_checklist = null,
+    success_factors = [],
+    database_resources = [],
+    timeline_statistics = null,
+    // NEW: Synthesized narrative fields (Migration 29)
+    pitfalls_narrative = null,
+    improvement_areas = null,
+    resource_recommendations = null,
+    preparation_expectations = null
   } = learningMapData;
 
   const query = `
     INSERT INTO learning_maps_history (
       user_id, title, summary, difficulty, timeline_weeks, is_crazy_plan,
       milestones, outcomes, next_steps, analysis_count, analysis_ids,
-      user_goals, personalization_score, status, progress, last_viewed_at
+      user_goals, personalization_score, status, progress, last_viewed_at,
+      source_report_id, foundation_posts, data_coverage, avg_prep_weeks,
+      company_tracks, analytics,
+      skills_roadmap, knowledge_gaps, curated_resources, timeline, expected_outcomes,
+      common_pitfalls, readiness_checklist, success_factors, database_resources, timeline_statistics,
+      pitfalls_narrative, improvement_areas, resource_recommendations, preparation_expectations
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'active', 0, NOW())
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'active', 0, NOW(),
+            $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
+            $25, $26, $27, $28, $29, $30, $31, $32, $33)
     RETURNING *
   `;
 
@@ -43,7 +74,31 @@ async function saveLearningMap(learningMapData) {
     analysis_count,
     JSON.stringify(analysis_ids),
     JSON.stringify(user_goals),
-    personalization_score
+    personalization_score,
+    // NEW: Enhanced fields
+    source_report_id,
+    foundation_posts,
+    data_coverage,
+    avg_prep_weeks,
+    JSON.stringify(company_tracks),
+    JSON.stringify(analytics),
+    // NEW: LLM-generated fields
+    JSON.stringify(skills_roadmap),
+    JSON.stringify(knowledge_gaps),
+    JSON.stringify(curated_resources),
+    JSON.stringify(timeline),
+    JSON.stringify(expected_outcomes),
+    // NEW: Database-first sections
+    common_pitfalls ? JSON.stringify(common_pitfalls) : null,
+    readiness_checklist ? JSON.stringify(readiness_checklist) : null,
+    JSON.stringify(success_factors),
+    JSON.stringify(database_resources),
+    timeline_statistics ? JSON.stringify(timeline_statistics) : null,
+    // NEW: Synthesized narrative fields
+    pitfalls_narrative ? JSON.stringify(pitfalls_narrative) : null,
+    improvement_areas ? JSON.stringify(improvement_areas) : null,
+    resource_recommendations ? JSON.stringify(resource_recommendations) : null,
+    preparation_expectations ? JSON.stringify(preparation_expectations) : null
   ];
 
   const result = await pool.query(query, values);
@@ -61,11 +116,10 @@ async function getUserLearningMaps(userId, options = {}) {
     offset = 0
   } = options;
 
+  // ✅ CRITICAL FIX: Select ALL columns including milestones, company_tracks, analytics
+  // These fields contain the actual learning map data needed for visualization
   let query = `
-    SELECT
-      id, user_id, title, summary, difficulty, timeline_weeks, is_crazy_plan,
-      analysis_count, personalization_score, status, progress,
-      created_at, updated_at, last_viewed_at
+    SELECT *
     FROM learning_maps_history
     WHERE user_id = $1
   `;

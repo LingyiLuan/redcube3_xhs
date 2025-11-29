@@ -1,10 +1,10 @@
 version: '3.8'
 
 services:
-  # Frontend (React App)
+  # Frontend (Vue 3 App)
   frontend:
     build:
-      context: ./frontend
+      context: ./vue-frontend
       dockerfile: Dockerfile
     ports:
       - "3001:80"
@@ -31,6 +31,7 @@ services:
     build:
       context: ./services/user-service
       dockerfile: Dockerfile
+    # Port removed - accessed internally via nginx only
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -41,8 +42,14 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
+      - LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID}
+      - LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET}
+      - LINKEDIN_CALLBACK_URL=${LINKEDIN_CALLBACK_URL}
       - SESSION_SECRET=${SESSION_SECRET}
       - FRONTEND_URL=${FRONTEND_URL}
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}
+      - SMTP_PORT=${SMTP_PORT}
     depends_on:
       - postgres
       - redis
@@ -82,14 +89,25 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
       - NODE_ENV=development
       - ENABLE_SCHEDULER=${ENABLE_SCHEDULER:-true}
+      - SCRAPER_MODE=reddit
       - APIFY_API_TOKEN=${APIFY_API_TOKEN}
       - APIFY_ACTOR_ID=${APIFY_ACTOR_ID}
       - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID}
       - REDDIT_SECRET=${REDDIT_SECRET}
       - REDDIT_USER=${REDDIT_USER}
       - REDDIT_PASS=${REDDIT_PASS}
+      - ENABLE_AUTO_SCRAPING=true
+      - LEMON_SQUEEZY_API_KEY=${LEMON_SQUEEZY_API_KEY}
+      - LEMON_SQUEEZY_STORE_ID=${LEMON_SQUEEZY_STORE_ID}
+      - LS_VARIANT_PRO_MONTHLY=${LS_VARIANT_PRO_MONTHLY}
+      - LS_VARIANT_PRO_ANNUAL=${LS_VARIANT_PRO_ANNUAL}
+      - LS_VARIANT_PREMIUM_MONTHLY=${LS_VARIANT_PREMIUM_MONTHLY}
+      - LS_VARIANT_PREMIUM_ANNUAL=${LS_VARIANT_PREMIUM_ANNUAL}
+      - LEMON_SQUEEZY_WEBHOOK_SECRET=${LEMON_SQUEEZY_WEBHOOK_SECRET}
+      - TRIAL_PERIOD_DAYS=${TRIAL_PERIOD_DAYS:-14}
     depends_on:
       - postgres
       - redis
@@ -132,9 +150,11 @@ services:
     networks:
       - redcube-network
 
-  # PostgreSQL Database
+  # PostgreSQL Database with pgvector
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-bullseye
+    container_name: redcube_postgres
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -144,6 +164,10 @@ services:
       - ./shared/database/init:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
+    command: >
+      bash -c "apt-get update &&
+               apt-get install -y postgresql-16-pgvector &&
+               docker-entrypoint.sh postgres"
     networks:
       - redcube-network
 
@@ -179,11 +203,47 @@ services:
     networks:
       - redcube-network
 
+  # Local BGE Embedding Server (ARM64 compatible)
+  # Python-based server for Mac M1/M2/M3
+  embedding-server:
+    build:
+      context: ./services/embedding-server
+      dockerfile: Dockerfile
+    container_name: redcube_embeddings
+    ports:
+      - "8081:5000"
+    environment:
+      - MODEL_NAME=BAAI/bge-small-en-v1.5
+      - PORT=5000
+    volumes:
+      - embedding_model_cache:/root/.cache/huggingface
+    networks:
+      - redcube-network
+    restart: unless-stopped
+
+  # NER Service for metadata extraction (Hugging Face transformers)
+  ner-service:
+    build:
+      context: ./services/ner-service
+      dockerfile: Dockerfile
+    container_name: redcube_ner
+    ports:
+      - "8082:8000"
+    environment:
+      - MODEL_NAME=dslim/bert-base-NER
+    volumes:
+      - /Users/luan02/Desktop/models/dslim-bert-base-NER:/app/models/bert-base-NER:ro
+    networks:
+      - redcube-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
   prometheus_data:
   grafana_data:
+  embedding_model_cache:
+  ner_model_cache:
 
 networks:
   redcube-network:

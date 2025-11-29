@@ -1,0 +1,187 @@
+/* ===== McKinsey Report - Card Styles ===== */
+/* Card components including insight callouts, outcome cards, gap cards, role cards */
+
+/* Insight Callout - Minimal Style */
+.insight-callout {
+  background-color: var(--color-bg-secondary);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  padding: 20px var(--spacing-6);
+  margin: var(--spacing-6) 0;
+}
+
+/* Outcome Card */
+.outcome-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: 20px var(--spacing-6);
+  border: 1px solid var(--color-border-light);
+  background-color: var(--color-bg-primary);
+}
+
+.outcome-data {
+  flex: 1;
+}
+
+/* Gap Cards */
+.gap-card {
+  padding: 20px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-primary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.gap-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.08);
+  transform: translateY(-2px);
+}
+
+.gap-topic {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-2);
+}
+
+.gap-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-base);
+  color: var(--color-text-tertiary);
+}
+
+/* Role Cards - Clean Style */
+.role-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-6);
+}
+
+.role-card {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.role-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.08);
+  transform: translateY(-2px);
+}
+
+.role-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-4);
+  padding-bottom: var(--spacing-3);
+  border-bottom: 1px solid var(--color-border-dark);
+}
+
+.role-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.role-count {
+  font-size: var(--font-size-base);
+  color: var(--color-text-tertiary);
+}
+
+.role-skills {
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--color-border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skill-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 50px;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
+/* Combination Cards */
+.combination-card {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-light);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  cursor: pointer;
+}
+
+.combination-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.combo-skills {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.combo-skill {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  padding: 6px 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-base);
+}
+
+.combo-plus {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-quaternary);
+}
+
+.combo-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.combo-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Knowledge Gap Item */
+.knowledge-gap-item {
+  padding: var(--spacing-4);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-3);
+  transition: all var(--transition-fast);
+}
+
+.knowledge-gap-item:hover {
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.knowledge-gap-item:last-child {
+  margin-bottom: 0;
+}

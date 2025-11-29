@@ -1,0 +1,169 @@
+/* ===== McKinsey Report - Chart Styles ===== */
+/* Chart containers, wrappers, and chart-specific elements */
+
+/* Chart Wrapper - McKinsey Clean Style */
+.chart-wrapper {
+  background-color: var(--color-bg-primary);
+  padding: var(--spacing-8);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  margin-top: var(--spacing-6);
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+}
+
+.chart-wrapper:hover {
+  box-shadow: var(--shadow-base);
+  border-color: var(--color-border-base);
+}
+
+/* Chart Header with Title and Hover Instruction */
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-6);
+  gap: var(--spacing-6);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--color-border-dark);
+}
+
+.header-text {
+  flex: 1;
+}
+
+/* Hover Instruction Box */
+.hover-instruction {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) 14px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cursor-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* Chart Container Sizes */
+.chart-container {
+  position: relative;
+  height: 400px;
+  background-color: var(--color-bg-primary);
+}
+
+.chart-container.medium {
+  height: 320px;
+}
+
+.chart-container.small {
+  height: 280px;
+}
+
+/* Skill Chart with Percentage Labels - McKinsey Style */
+.chart-container-with-labels {
+  position: relative;
+  height: 400px;
+}
+
+/* Small Multiples Grid */
+.small-multiples-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-6);
+  margin-top: var(--spacing-6);
+}
+
+.small-multiple-chart {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  transition: box-shadow var(--transition-base);
+}
+
+.small-multiple-chart:hover {
+  box-shadow: var(--shadow-base);
+}
+
+.small-chart-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-4);
+  padding-bottom: var(--spacing-3);
+  border-bottom: 1px solid var(--color-border-dark);
+}
+
+.small-chart-container {
+  height: 200px;
+  position: relative;
+}
+
+/* Heatmap Container */
+.heatmap-container {
+  overflow-x: auto;
+  margin-top: var(--spacing-6);
+  padding: var(--spacing-4);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+}
+
+.heatmap-container-small {
+  max-width: 100%;
+  overflow-x: scroll;
+}
+
+/* Scatter Plot Container */
+.scatter-plot-container {
+  position: relative;
+  height: 400px;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  margin-top: var(--spacing-6);
+}
+
+.scatter-plot-container:hover {
+  box-shadow: var(--shadow-scatter);
+}
+
+/* Chart Loading State */
+.chart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-lg);
+}
+
+/* Chart Empty State */
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-quaternary);
+  font-size: var(--font-size-lg);
+  text-align: center;
+}
+
+/* Chart Tooltip Override (if needed) */
+.chart-tooltip {
+  background-color: var(--color-bg-primary) !important;
+  border: 1px solid var(--color-border-light) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+  padding: var(--spacing-3) !important;
+  font-size: var(--font-size-base) !important;
+}

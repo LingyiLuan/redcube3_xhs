@@ -4,7 +4,7 @@
  */
 
 const agentService = require('../services/agentService');
-const scheduler = require('../services/scheduler');
+const schedulerService = require('../services/schedulerService');
 
 /**
  * GET /api/content/agent/status
@@ -12,7 +12,7 @@ const scheduler = require('../services/scheduler');
  */
 async function getAgentStatus(req, res) {
   try {
-    const jobsStatus = scheduler.getJobsStatus();
+    const jobsStatus = schedulerService.getSchedulerStatus();
 
     res.json({
       success: true,
@@ -35,12 +35,31 @@ async function getAgentStatus(req, res) {
 
 /**
  * POST /api/content/agent/scrape
- * Manually trigger a scraping job
+ * Manually trigger a scraping job or directly ingest posts (for testing)
  */
 async function triggerManualScrape(req, res) {
   try {
-    const { subreddit = 'cscareerquestions', numberOfPosts = 25 } = req.body;
+    const { subreddit = 'cscareerquestions', numberOfPosts = 25, scrapedPosts } = req.body;
 
+    // If scrapedPosts are provided directly, use them (for testing)
+    if (scrapedPosts && Array.isArray(scrapedPosts)) {
+      console.log(`🧪 [API] Direct post ingestion: ${scrapedPosts.length} posts`);
+
+      const savedCount = await agentService.saveScrapedData(scrapedPosts);
+
+      return res.json({
+        success: true,
+        message: 'Posts ingested successfully',
+        data: {
+          scraped: scrapedPosts.length,
+          saved: savedCount,
+          subreddit,
+          numberOfPosts: scrapedPosts.length
+        }
+      });
+    }
+
+    // Otherwise, run normal scrape via Apify
     console.log(`🔧 [API] Manual scrape triggered: r/${subreddit}, ${numberOfPosts} posts`);
 
     const result = await agentService.runManualScrape(subreddit, numberOfPosts);
@@ -128,6 +147,54 @@ async function getUserBriefings(req, res) {
 }
 
 /**
+ * GET /api/content/posts/recent
+ * Get recent posts with enhanced metadata (Phase 5.1)
+ */
+async function getRecentPosts(req, res) {
+  try {
+    const {
+      limit = 10,
+      offset = 0
+    } = req.query;
+
+    const pool = require('../config/database');
+
+    const query = `
+      SELECT
+        id, post_id, title, author, created_at, url,
+        potential_outcome, confidence_score, subreddit,
+        word_count, scraped_at,
+        -- Phase 5.1 enhanced metadata
+        role_type, role_category, level, level_label, experience_years,
+        metadata->>'company' as company,
+        interview_stage, outcome, tech_stack, primary_language,
+        interview_topics, preparation,
+        jsonb_array_length(COALESCE(comments, '[]'::jsonb)) as comment_count
+      FROM scraped_posts
+      ORDER BY scraped_at DESC
+      LIMIT $1 OFFSET $2
+    `;
+
+    const result = await pool.query(query, [limit, offset]);
+
+    res.json({
+      success: true,
+      data: {
+        posts: result.rows,
+        count: result.rows.length
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching recent posts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch recent posts',
+      message: error.message
+    });
+  }
+}
+
+/**
  * GET /api/content/agent/scraped-posts
  * Get scraped posts with filtering
  */
@@ -146,7 +213,10 @@ async function getScrapedPosts(req, res) {
     let query = `
       SELECT id, post_id, title, author, created_at, url,
              potential_outcome, confidence_score, subreddit,
-             metadata, word_count, scraped_at
+             metadata, word_count, scraped_at,
+             role_type, role_category, level, level_label, experience_years,
+             metadata->>'company' as company,
+             interview_stage, outcome, tech_stack, primary_language
       FROM scraped_posts
       WHERE 1=1
     `;
@@ -232,7 +302,8 @@ async function getScraperStats(req, res) {
         COUNT(CASE WHEN potential_outcome = 'negative' THEN 1 END) as negative_count,
         COUNT(CASE WHEN potential_outcome = 'unknown' THEN 1 END) as unknown_count,
         AVG(confidence_score) as avg_confidence,
-        MAX(scraped_at) as last_scrape
+        MAX(scraped_at) as last_scrape,
+        COUNT(CASE WHEN embedding IS NOT NULL THEN 1 END) as posts_with_embeddings
       FROM scraped_posts
     `;
 
@@ -261,11 +332,35 @@ async function getScraperStats(req, res) {
 
     const recentResult = await pool.query(recentQuery);
 
+    // Get company coverage
+    const companyQuery = `
+      SELECT
+        metadata->>'company' as company,
+        COUNT(*) as count
+      FROM scraped_posts
+      WHERE metadata->>'company' IS NOT NULL
+      GROUP BY metadata->>'company'
+      ORDER BY count DESC
+      LIMIT 20
+    `;
+
+    const companyResult = await pool.query(companyQuery);
+
+    // Get posts collected today
+    const todayQuery = `
+      SELECT COUNT(*) as today_count
+      FROM scraped_posts
+      WHERE DATE(scraped_at) = CURRENT_DATE
+    `;
+
+    const todayResult = await pool.query(todayQuery);
+
     res.json({
       success: true,
       data: {
         overall: {
           totalPosts: parseInt(stats.total_posts),
+          postsWithEmbeddings: parseInt(stats.posts_with_embeddings),
           totalSubreddits: parseInt(stats.total_subreddits),
           outcomes: {
             positive: parseInt(stats.positive_count),
@@ -273,10 +368,14 @@ async function getScraperStats(req, res) {
             unknown: parseInt(stats.unknown_count)
           },
           avgConfidence: parseFloat(stats.avg_confidence).toFixed(2),
-          lastScrape: stats.last_scrape
+          lastScrape: stats.last_scrape,
+          todayCount: parseInt(todayResult.rows[0].today_count)
         },
         bySubreddit: subredditResult.rows,
-        recentActivity: recentResult.rows
+        recentActivity: recentResult.rows,
+        companyCoverage: companyResult.rows,
+        scraperMode: process.env.SCRAPER_MODE || 'reddit',
+        autoScrapingEnabled: process.env.ENABLE_AUTO_SCRAPING === 'true'
       }
     });
   } catch (error) {
@@ -289,11 +388,69 @@ async function getScraperStats(req, res) {
   }
 }
 
+/**
+ * POST /api/content/agent/scrape/companies
+ * Trigger company-targeted scraping (FAANG, Finance, Startups)
+ */
+async function scrapeCompanies(req, res) {
+  try {
+    const { companies, postsPerCompany = 50 } = req.body;
+
+    console.log(`🎯 [API] Company-targeted scraping: ${companies?.length || 0} companies`);
+
+    const result = await agentService.scrapeCompanyTargeted({
+      companies,
+      postsPerCompany
+    });
+
+    res.json({
+      success: result.success,
+      message: result.success ? 'Company scraping completed' : 'Company scraping failed',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error in company scraping:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Company scraping failed',
+      message: error.message
+    });
+  }
+}
+
+/**
+ * GET /api/content/agent/test-reddit
+ * Test Reddit API connection
+ */
+async function testRedditApi(req, res) {
+  try {
+    console.log('🧪 [API] Testing Reddit API connection...');
+
+    const result = await agentService.testRedditConnection();
+
+    res.json({
+      success: result.success,
+      message: result.success ? 'Reddit API connection successful' : 'Reddit API connection failed',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error testing Reddit API:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Reddit API test failed',
+      message: error.message
+    });
+  }
+}
+
 module.exports = {
   getAgentStatus,
   triggerManualScrape,
   triggerBriefings,
   getUserBriefings,
   getScrapedPosts,
-  getScraperStats
+  getScraperStats,
+  getRecentPosts,
+  scrapeCompanies,
+  testRedditApi
 };

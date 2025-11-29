@@ -5,6 +5,7 @@ const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const passport = require('./config/passport');
 const authRoutes = require('./routes/authRoutes');
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
 
 require('dotenv').config();
 
@@ -22,8 +23,10 @@ app.use(helmet({
 // CORS configuration
 app.use(cors({
   origin: [
-    'http://localhost:3001', // Container frontend
-    'http://localhost:3002', // Local dev frontend
+    'http://localhost:8080', // API Gateway / Production frontend
+    'http://localhost:5173', // Vue dev server
+    'http://localhost:3001', // Container frontend (legacy)
+    'http://localhost:3002', // Local dev frontend (legacy)
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true,
@@ -40,12 +43,13 @@ app.use(cookieParser());
 app.use(session({
   secret: process.env.SESSION_SECRET || 'redcube-session-secret-change-in-production',
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true, // IMPORTANT: Must be true for OAuth state to persist
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Allow cookies over HTTP in development
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    sameSite: 'lax', // Allow cookies on top-level navigation (required for OAuth callbacks)
+    path: '/' // Cookie available for all paths
   },
   name: 'redcube.sid'
 }));
@@ -66,14 +70,19 @@ app.use((req, res, next) => {
 // Routes
 app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/users', subscriptionRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+  const features = ['Google OAuth', 'Session Management', 'User Profiles'];
+  if (process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_CLIENT_SECRET) {
+    features.push('LinkedIn OAuth');
+  }
   res.json({
     status: 'OK',
     service: 'user-service',
     timestamp: new Date().toISOString(),
-    features: ['Google OAuth', 'Session Management', 'User Profiles']
+    features
   });
 });
 

@@ -1,0 +1,200 @@
+You are an expert senior UI/UX engineer and front-end architect with deep experience in modern workflow-based design, AI product UX, and modular front-end architecture.
+You will refactor and expand the existing app UI into a professional, functional, and scalable workflow-canvas platform.
+
+---
+
+🎯 GOAL
+Refactor the current simple UI into a modular, elegant, and extensible workflow-based interface — like OpenAI’s Agent Builder or n8n — with a white-canvas aesthetic.
+
+The product (RedCube) analyzes interview experience posts from sources like Reddit or Xiaohongshu, runs analysis, and outputs insights and predictions. 
+Users can input content manually, fetch scraped data, or query an AI assistant powered by a **RAG (Retrieval-Augmented Generation)** domain knowledge base.
+
+---
+
+🧠 FUNCTIONAL REQUIREMENTS
+
+1. **Canvas Workflow System**
+   - Central canvas (white, grid background).
+   - Draggable, connectable nodes representing tasks:
+     - Input (manual or from AI assistant)
+     - Analyze (sentiment, skills, trend, etc.)
+     - Output (Intel Report, Email, Dashboard)
+   - Each node: square card with header, icons, and “+” link point.
+   - Batch analysis supported (user can add multiple input nodes).
+   - Zoom, pan, and mini-map features.
+
+2. **AI Assistant Panel (RAG-Powered)**
+   - Docked panel or floating drawer (on the right or bottom).
+   - User can chat or type queries (e.g. “I want to apply to Google SWE”).
+   - The assistant uses a **RAG knowledge base** built from scraped Reddit posts and domain content.
+   - When the assistant surfaces relevant posts, the user can:
+     - Preview retrieved posts.
+     - Click “Add to Canvas” → Automatically creates a node on the canvas with that content.
+   - The assistant can also generate workflow suggestions (“Do you want to analyze this?” → creates a connected analysis node automatically).
+
+3. **Output / Intel Report**
+   - Aggregated results shown in a bottom or side drawer.
+   - Includes trend summary, sentiment distribution, company stats, and predictions.
+   - Clean, structured “intelligence dashboard” layout with modular cards.
+
+4. **Additional Core Features**
+   - User Dashboard (login, profile, settings)
+   - History of past analyses
+   - Learning Map (shows user progress or extracted skill paths)
+   - Data Labeling UI for training future models
+   - Workflow Templates (e.g. “Analyze recent FAANG interview posts”)
+
+---
+
+🎨 DESIGN GUIDELINES
+
+- Style: white canvas, clean grid background, soft shadows, rounded corners, subtle animations.
+- Modular aesthetic like **n8n** or **OpenAI Agent Builder**, but with RedCube’s identity (light sci-fi/tech intelligence feel, subtle green or blue accents).
+- Components should be responsive, consistent, and easy to extend.
+- Focus on clarity, not darkness — no neon-on-black.
+
+---
+
+🧩 COMPONENT STRUCTURE
+
+Refactor into modular components:
+- `TopNav` — app title, controls, user menu
+- `Sidebar` — draggable node library
+- `Canvas` — node-based workflow area (React Flow)
+- `Node` — draggable square (input, analyze, output)
+- `InspectorPanel` — node property editor
+- `OutputDrawer` — shows intel report results
+- `AssistantPanel` — the RAG AI chat interface (chat window, retrieved results list, “Add to Canvas” actions)
+- `Dashboard` — history, user stats
+- `LearningMap` — visual roadmap of skills/topics
+- `LabelingView` — data annotation UI
+- `TemplateGallery` — workflow presets
+
+---
+
+⚙️ TECHNOLOGY STACK
+
+- React + Tailwind + Shadcn UI
+- React Flow (for canvas)
+- Framer Motion (animations)
+- Zustand or Redux (state management)
+- Integration-ready structure for AI Assistant using RAG (OpenAI API + vector DB like Pinecone, Weaviate, or Supabase)
+
+---
+
+📦 OUTPUT EXPECTATION
+
+Claude should:
+1. Refactor existing UI code into the new modular structure.
+2. Create new components for the RAG Assistant, Canvas workflow, and Output drawers.
+3. Suggest a full directory structure for scalability.
+4. Include example code for main layout and component integration.
+5. Suggest placeholder logic or API structure for the RAG assistant (query, retrieval, add-to-canvas action).
+6. Ensure UI/UX is production-grade, clean, and extensible.
+
+---
+
+💡 NOTES
+The AI Assistant and workflow system are **central** to the experience. 
+The app should feel like an interactive “workflow intelligence lab” — where users build and run analysis flows visually, while also being able to talk to an intelligent assistant that helps retrieve, explain, and generate insights.
+
+Be thoughtful, elegant, and practical — this UI should look like something that could be productized by a professional SaaS startup.
+
+
+🧠 Claude UI Refactor Prompt (Full Version)
+
+System Message (if supported)
+You are an expert full-stack and front-end engineer specializing in React, TypeScript, and Tailwind. You have deep experience in designing AI-driven dashboards and workflow builders like OpenAI Builder, n8n, and Kairos.
+Your task is to refactor and extend an existing app’s UI to match a modern hybrid style that merges a data dashboard and a visual workflow builder.
+
+User Message
+
+You are refactoring my app’s UI and component structure.
+The app currently analyzes and predicts insights from job-related content (posts, interview experiences, etc.) — it’s like a “career intelligence platform.”
+Think of it as Kairos for job hunting — users input or scrape posts, the system analyzes them, outputs insights/predictions, and can send summaries via email.
+
+🎨 UI Direction
+
+Refactor the current UI to follow a hybrid layout that combines:
+
+Dashboard Mode (Kairos-inspired)
+
+Clean white/light-gray background
+
+Insight cards, charts, tables, and trend visualizations
+
+AI assistant sidebar for chatting with the domain RAG knowledge base
+
+Modern typography, subtle gradients, glassmorphism
+
+Think: “financial intelligence dashboard but for career analytics”
+
+Workflow Lab Mode (OpenAI Agent Builder / n8n-style canvas)
+
+Node-based visual builder using React Flow
+
+White canvas background
+
+Each “square” represents a process block (e.g. Scrape Posts, Analyze, Generate Insights, Send Email)
+
+A “+” button on each node allows adding new connected nodes dynamically
+
+Users can chain multiple blocks for batch analysis or automation
+
+Navigation & Layout
+
+Sidebar with two tabs: “Dashboard” and “Workflow Lab”
+
+Top bar with search, user avatar, notifications, and theme toggle
+
+Responsive and production-ready layout with smooth transitions
+
+🧩 Functional Components to Include
+
+Please refactor or create the following:
+
+<Dashboard /> – summary cards, charts, insights
+
+<WorkflowCanvas /> – node-based editor (React Flow setup)
+
+<AssistantChat /> – RAG chatbot integrated into sidebar
+
+<InsightCard />, <TrendChart />, <JobPredictionPanel />
+
+<SettingsDrawer />, <UserProfileMenu />, <EmailTriggerModal />
+
+Utility hooks for managing states between dashboard and workflow
+
+Consistent use of Tailwind + Framer Motion for animations
+
+🧠 Behavior and AI Integration
+
+The AssistantChat should use RAG-based responses from the domain knowledge base (career, job, interview data).
+
+When the user interacts with a node in the Workflow Lab, the assistant can provide contextual help or generate next-step nodes via AI suggestions.
+
+Include placeholder APIs or functions like getInsights(), generateWorkflowSuggestions(), fetchUserData().
+
+✅ Goal
+
+Refactor the existing UI and generate:
+
+Clean, modular React code structure
+
+Tailwind CSS styling consistent across components
+
+Proper file organization (/components, /pages, /hooks, /data)
+
+Example data and mock APIs where needed
+
+Ready to integrate real RAG backend later
+
+🗣️ Tone and Style
+
+Keep the design:
+
+White-background, minimal, professional
+
+Interactive and dynamic (smooth transitions, subtle shadows)
+
+Feel like “OpenAI Builder meets Kairos Finance Dashboard”

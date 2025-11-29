@@ -1,0 +1,552 @@
+/* ===== McKinsey Report - Data Visualization Styles ===== */
+/* Heatmaps, correlation matrices, gradients, and data-specific visualizations */
+
+/* Skill Correlation Heatmap */
+.heatmap-container-small {
+  margin-top: var(--spacing-6);
+  overflow-x: auto;
+}
+
+.correlation-heatmap {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-bg-primary);
+  font-size: var(--font-size-base);
+}
+
+.correlation-heatmap thead th {
+  padding: var(--spacing-3) var(--spacing-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-align: center;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  min-width: 70px;
+  max-width: 90px;
+}
+
+.correlation-heatmap thead th:first-child {
+  background: var(--color-bg-tertiary);
+  width: 120px;
+}
+
+.correlation-heatmap tbody th {
+  padding: var(--spacing-3);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-align: left;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  min-width: 120px;
+  position: sticky;
+  left: 0;
+  z-index: var(--z-base);
+}
+
+.correlation-heatmap tbody td {
+  padding: var(--spacing-3) var(--spacing-2);
+  text-align: center;
+  border: 1px solid var(--color-border-light);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-width: 70px;
+  max-width: 90px;
+}
+
+.correlation-heatmap tbody td:hover {
+  border: 2px solid var(--color-primary-light);
+  z-index: var(--z-dropdown);
+  box-shadow: var(--shadow-scatter);
+}
+
+/* Correlation Color Classes */
+.corr-diagonal {
+  background: var(--color-primary);
+  color: var(--color-bg-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.corr-very-high {
+  background: var(--color-primary-light);
+  color: var(--color-bg-primary);
+}
+
+.corr-high {
+  background: var(--color-primary-lighter);
+  color: var(--color-bg-primary);
+}
+
+.corr-medium {
+  background: var(--color-accent-blue);
+  color: var(--color-text-primary);
+}
+
+.corr-low {
+  background: var(--color-accent-blue-light);
+  color: var(--color-text-primary);
+}
+
+.corr-very-low {
+  background: var(--color-accent-blue-pale);
+  color: var(--color-text-tertiary);
+}
+
+/* Heatmap Legend */
+.heatmap-legend-horizontal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-4);
+  margin-top: var(--spacing-6);
+  padding: var(--spacing-4);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-base);
+}
+
+.legend-gradient {
+  width: 200px;
+  height: 20px;
+  background: linear-gradient(
+    to right,
+    var(--color-accent-blue-pale),
+    var(--color-accent-blue-light),
+    var(--color-accent-blue),
+    var(--color-accent-blue-dark),
+    var(--color-primary-lighter),
+    var(--color-primary)
+  );
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+}
+
+.heatmap-legend-horizontal .legend-label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+}
+
+/* Indicator Dots for Data Points */
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+  margin-right: var(--spacing-1);
+}
+
+.indicator-dot.positive {
+  background-color: var(--color-success);
+}
+
+.indicator-dot.negative {
+  background-color: var(--color-error);
+}
+
+.indicator-dot.neutral {
+  background-color: var(--color-text-quaternary);
+}
+
+/* Data Trend Arrows */
+.trend-arrow {
+  display: inline-block;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  margin-left: var(--spacing-1);
+}
+
+.trend-arrow.up {
+  color: var(--color-success);
+}
+
+.trend-arrow.down {
+  color: var(--color-error);
+}
+
+.trend-arrow.stable {
+  color: var(--color-text-tertiary);
+}
+
+/* Data Percentage Badges */
+.percentage-badge {
+  display: inline-block;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  background-color: var(--color-bg-quaternary);
+  color: var(--color-text-secondary);
+}
+
+.percentage-badge.high {
+  background-color: var(--color-success-light);
+  color: var(--color-success-dark);
+}
+
+.percentage-badge.medium {
+  background-color: var(--color-warning-light);
+  color: var(--color-warning-dark);
+}
+
+.percentage-badge.low {
+  background-color: var(--color-error-light);
+  color: var(--color-error-dark);
+}
+
+/* Skill Demand Indicator */
+.demand-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-2);
+  background-color: var(--color-accent-blue-lightest);
+  border: 1px solid var(--color-accent-blue-light);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+.demand-indicator.critical {
+  background-color: var(--color-error-light);
+  border-color: var(--color-border-darker);
+  color: var(--color-error-dark);
+}
+
+.demand-indicator.high {
+  background-color: var(--color-warning-light);
+  border-color: var(--color-border-accent);
+  color: var(--color-warning-dark);
+}
+
+/* Skill Combinations Grid */
+.skill-combinations-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-5);
+  margin-top: var(--spacing-6);
+}
+
+.combination-card {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-light);
+  padding: var(--spacing-5);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  cursor: pointer;
+}
+
+.combination-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+.combo-skills {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.combo-skill {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  padding: 6px var(--spacing-3);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-base);
+}
+
+.combo-plus {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-quaternary);
+}
+
+.combo-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.combo-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.metric-label-small {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.metric-value-combo {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+.metric-value-combo.success {
+  color: var(--color-success);
+}
+
+/* ===== Success Factors Visualizations ===== */
+
+/* Waterfall Chart */
+.waterfall-chart {
+  margin-top: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.waterfall-item {
+  display: grid;
+  grid-template-columns: 200px 1fr 80px;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.waterfall-label {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+.waterfall-bar-container {
+  position: relative;
+  height: 40px;
+  background-color: var(--color-bg-quaternary);
+  border-radius: var(--radius-base);
+  overflow: visible;
+}
+
+.waterfall-bar {
+  position: absolute;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-base);
+  transition: all var(--transition-base);
+}
+
+.waterfall-bar.positive {
+  background: var(--color-success);
+  color: var(--color-bg-primary);
+}
+
+.waterfall-bar.negative {
+  background: var(--color-error);
+  color: var(--color-bg-primary);
+}
+
+.waterfall-bar.total {
+  background: var(--color-primary-light);
+  color: var(--color-bg-primary);
+}
+
+.waterfall-value {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.waterfall-cumulative {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+/* Funnel Chart - Horizontal Row Layout */
+.funnel-chart {
+  display: flex;
+  gap: var(--spacing-10);
+  align-items: flex-start;
+  max-width: 900px;
+  margin: var(--spacing-6) auto 0;
+  padding: var(--spacing-10) var(--spacing-5);
+}
+
+.funnel-bars-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.funnel-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-5);
+}
+
+.stage-bar {
+  background: var(--color-primary-light);
+  color: var(--color-bg-primary);
+  padding: 18px 28px;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-base);
+  white-space: nowrap;
+  min-width: 180px;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.stage-bar:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.stage-pct {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  min-width: 60px;
+}
+
+.funnel-insights {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding-top: 50px;
+}
+
+.insight-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.connector-line {
+  width: 40px;
+  height: 1px;
+  background: var(--color-border-darker);
+  position: relative;
+}
+
+.connector-dot {
+  position: absolute;
+  right: 0;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  background: var(--color-border-darker);
+  border-radius: var(--radius-full);
+}
+
+.insight-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drop-rate {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-error);
+}
+
+.reason {
+  font-size: var(--font-size-base);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Success Indicators - Ranked Horizontal Bars */
+.success-indicators-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  margin-top: var(--spacing-6);
+}
+
+.indicator-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: var(--spacing-4);
+  align-items: center;
+  padding: var(--spacing-4);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.indicator-row:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-hover);
+}
+
+.indicator-rank {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  text-align: center;
+}
+
+.indicator-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 200px;
+}
+
+.indicator-name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.indicator-bar-container {
+  height: 8px;
+  background: var(--color-border-light);
+  border-radius: var(--radius-base);
+  overflow: hidden;
+  max-width: 400px;
+}
+
+.indicator-bar {
+  height: 100%;
+  background: var(--color-primary-light);
+  transition: width var(--transition-slow);
+}
+
+.indicator-metrics {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  white-space: nowrap;
+  font-size: var(--font-size-md);
+}
+
+.correlation-value {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+.arrow {
+  color: var(--color-text-quaternary);
+  font-size: var(--font-size-md);
+}
+
+.success-value {
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-medium);
+}

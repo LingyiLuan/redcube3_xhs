@@ -1,0 +1,75 @@
+{
+  "title": "Enhanced Reddit Interview Scraper Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "subreddits": {
+      "title": "Subreddits to scrape",
+      "type": "array",
+      "description": "List of subreddit names (without r/ prefix). Example: cscareerquestions, ExperiencedDevs",
+      "editor": "stringList",
+      "default": [
+        "cscareerquestions",
+        "ExperiencedDevs",
+        "leetcode",
+        "csMajors"
+      ],
+      "prefill": [
+        "cscareerquestions",
+        "ExperiencedDevs",
+        "leetcode",
+        "csMajors",
+        "webdev",
+        "backend",
+        "MachineLearning",
+        "MLQuestions",
+        "dataengineering",
+        "datascience"
+      ]
+    },
+    "postsPerSubreddit": {
+      "title": "Posts per subreddit",
+      "type": "integer",
+      "description": "Number of posts to scrape from each subreddit",
+      "default": 50,
+      "minimum": 1,
+      "maximum": 100
+    },
+    "sortBy": {
+      "title": "Sort order",
+      "type": "string",
+      "description": "How to sort posts in each subreddit",
+      "default": "new",
+      "enum": ["hot", "new", "top", "rising"],
+      "enumTitles": ["Hot", "New", "Top", "Rising"]
+    },
+    "includeComments": {
+      "title": "Include comments",
+      "type": "boolean",
+      "description": "Fetch top comments for each post (recommended for better metadata extraction)",
+      "default": true
+    },
+    "maxCommentsPerPost": {
+      "title": "Max comments per post",
+      "type": "integer",
+      "description": "Number of top-level comments to fetch per post",
+      "default": 10,
+      "minimum": 0,
+      "maximum": 50
+    },
+    "filterInterviewOnly": {
+      "title": "Filter interview posts only",
+      "type": "boolean",
+      "description": "Only scrape posts that appear to be about interviews (contains keywords: interview, offer, reject, etc.)",
+      "default": true
+    },
+    "minWordCount": {
+      "title": "Minimum word count",
+      "type": "integer",
+      "description": "Skip posts with body text shorter than this (helps filter low-quality posts)",
+      "default": 100,
+      "minimum": 0
+    }
+  },
+  "required": ["subreddits"]
+}
