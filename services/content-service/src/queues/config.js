@@ -7,11 +7,17 @@ const { Queue, Worker } = require('bullmq');
 const IORedis = require('ioredis');
 
 // Redis connection configuration
-const connection = new IORedis({
-  host: process.env.REDIS_HOST || 'redis',
-  port: process.env.REDIS_PORT || 6379,
-  maxRetriesPerRequest: null
-});
+// Use REDIS_URL if available (Railway managed Redis with password)
+// Fallback to REDIS_HOST/REDIS_PORT for local development
+const connection = process.env.REDIS_URL
+  ? new IORedis(process.env.REDIS_URL, {
+      maxRetriesPerRequest: null
+    })
+  : new IORedis({
+      host: process.env.REDIS_HOST || 'redis',
+      port: process.env.REDIS_PORT || 6379,
+      maxRetriesPerRequest: null
+    });
 
 // Default queue options
 const defaultQueueOptions = {
