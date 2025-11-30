@@ -1,7 +1,15 @@
 FROM nginx:alpine
 
-COPY nginx.conf /etc/nginx/nginx.conf
+# Install envsubst (usually already available in alpine)
+RUN apk add --no-cache gettext
+
+# Copy nginx.conf template
+COPY nginx.conf /etc/nginx/templates/nginx.conf.template
+
+# Default PORT if not set (for local development)
+ENV PORT=80
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+# Use envsubst to substitute PORT variable and start nginx
+CMD ["/bin/sh", "-c", "envsubst '$$PORT' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]
