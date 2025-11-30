@@ -6,12 +6,16 @@ RUN apk add --no-cache gettext
 # Copy nginx.conf template
 COPY nginx.conf /etc/nginx/templates/nginx.conf.template
 
-# Default PORT if not set (for local development)
+# Default ports if not set (for local development)
 ENV PORT=80
+ENV USER_SERVICE_PORT=3001
+ENV INTERVIEW_SERVICE_PORT=3002
+ENV CONTENT_SERVICE_PORT=3003
+ENV NOTIFICATION_SERVICE_PORT=3004
 
 EXPOSE 80
 
-# Use envsubst to substitute PORT variable and start nginx
-# $$ in nginx.conf becomes $ after envsubst ($$ escapes to $)
-# Only ${PORT} will be substituted, nginx variables like $$host will become $host
-CMD ["/bin/sh", "-c", "envsubst < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]
+# Use envsubst to substitute only specific environment variables
+# Only PORT and service port variables will be substituted
+# Nginx variables like $host, $scheme remain unchanged
+CMD ["/bin/sh", "-c", "envsubst '$$PORT $$USER_SERVICE_PORT $$INTERVIEW_SERVICE_PORT $$CONTENT_SERVICE_PORT $$NOTIFICATION_SERVICE_PORT' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]
