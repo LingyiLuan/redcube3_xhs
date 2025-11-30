@@ -31,8 +31,10 @@
 
       <!-- Dropdown with Intent-Based Suggestions -->
       <Transition name="dropdown">
+        <!-- ✅ FIX: Include isAnalyzing in container condition to prevent dropdown from disappearing during loading -->
+        <!-- This ensures dropdown stays visible throughout loading → results transition -->
         <div
-          v-if="showDropdown && (hasResults || examplePrompts.length > 0)"
+          v-if="showDropdown && (isAnalyzing || hasResults || examplePrompts.length > 0)"
           class="dropdown"
         >
           <!-- Loading State -->
@@ -42,7 +44,8 @@
           </div>
 
           <!-- Intent Detection Results -->
-          <template v-else-if="intentResult">
+          <!-- ✅ FIX: Check hasResults to ensure results actually exist before showing -->
+          <template v-else-if="intentResult && hasResults">
             <!-- Quick Actions Section -->
             <div v-if="intentResult.quickActions && intentResult.quickActions.length > 0" class="section">
               <div class="section-header">
@@ -80,23 +83,8 @@
               </div>
             </div>
 
-            <!-- Suggestions Section -->
-            <div v-if="intentResult.suggestions && intentResult.suggestions.length > 0" class="section">
-              <div class="section-header">
-                <h4 class="section-title">Suggestions</h4>
-              </div>
-              <div class="section-content">
-                <button
-                  v-for="(suggestion, index) in intentResult.suggestions"
-                  :key="index"
-                  class="suggestion-item"
-                  @click="handleSuggestion(suggestion)"
-                >
-                  <Lightbulb :size="14" class="suggestion-icon" />
-                  <span class="suggestion-text">{{ suggestion }}</span>
-                </button>
-              </div>
-            </div>
+            <!-- ✅ FIX: Removed Suggestions Section - redundant with Quick Actions -->
+            <!-- Suggestions were creating loops and confusion, Quick Actions are clearer -->
           </template>
 
           <!-- Example Prompts (when no query) -->
@@ -118,7 +106,10 @@
           </div>
 
           <!-- No Results -->
-          <div v-if="!isAnalyzing && searchQuery && !hasResults" class="no-results">
+          <!-- ✅ FIX: Changed to v-else-if to make it part of conditional chain -->
+          <!-- This prevents parallel evaluation and race condition with results -->
+          <!-- Only shows when: results processed AND no results AND no intent result -->
+          <div v-else-if="resultsProcessed && !hasResults && !intentResult && searchQuery" class="no-results">
             <AlertCircle :size="20" class="no-results-icon" />
             <p class="no-results-text">No matching content found. Try a different search term.</p>
           </div>
@@ -225,6 +216,30 @@
 // @ts-nocheck
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
+// ✅ FIX: Enhanced debounce utility with cancel support to reduce LLM calls
+// Only triggers analysis after user stops typing for 600ms
+function debounceWithCancel(func: Function, wait: number) {
+  let timeout: ReturnType<typeof setTimeout> | null = null
+  const executedFunction = function(...args: any[]) {
+    const later = () => {
+      timeout = null
+      func(...args)
+    }
+    if (timeout) {
+      clearTimeout(timeout)
+    }
+    timeout = setTimeout(later, wait)
+  }
+  // Add cancel method to allow cancelling pending calls
+  executedFunction.cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout)
+      timeout = null
+    }
+  }
+  return executedFunction
+}
 import {
   Search,
   X,
@@ -252,6 +267,7 @@ const isFocused = ref(false)
 const showDropdown = ref(false)
 const isAnalyzing = ref(false)
 const intentResult = ref<any>(null)
+const resultsProcessed = ref(false) // ✅ FIX: Track when results have been processed to prevent "no results" flash
 const showPostBrowser = ref(false)
 const selectedPostIds = ref<string[]>([])
 const timeFilter = ref('1year') // Default to 1 year
@@ -273,8 +289,8 @@ const examplePrompts = ref([
 const hasResults = computed(() => {
   return intentResult.value && (
     (intentResult.value.quickActions && intentResult.value.quickActions.length > 0) ||
-    (intentResult.value.postsFound && intentResult.value.postsFound > 0) ||
-    (intentResult.value.suggestions && intentResult.value.suggestions.length > 0)
+    (intentResult.value.postsFound && intentResult.value.postsFound > 0)
+    // ✅ FIX: Removed suggestions check - we removed suggestions section
   )
 })
 
@@ -322,19 +338,32 @@ const filteredPosts = computed(() => {
   return posts
 })
 
+// ✅ FIX: Debounced analyzeIntent to reduce LLM calls
+// Only triggers after user stops typing for 600ms (reduces calls by ~80-90%)
+const debouncedAnalyzeIntent = debounceWithCancel(async () => {
+  if (searchQuery.value.length >= 2) {
+    await analyzeIntent()
+  }
+}, 600)
+
 // Methods
 async function handleInput() {
   if (searchQuery.value.length >= 2) {
     showDropdown.value = true
-    await analyzeIntent()
+    // ✅ FIX: Use debounced version instead of immediate call
+    // This reduces LLM calls from ~5 per word to ~1 per search
+    debouncedAnalyzeIntent()
   } else {
     showDropdown.value = false
     intentResult.value = null
+    // Cancel any pending debounced calls when query is too short
+    debouncedAnalyzeIntent.cancel?.()
   }
 }
 
 async function analyzeIntent() {
   isAnalyzing.value = true
+  resultsProcessed.value = false // ✅ FIX: Reset flag when starting new analysis
 
   try {
     const apiUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
@@ -355,6 +384,18 @@ async function analyzeIntent() {
     if (data.success && data.intent) {
       intentResult.value = data.intent
       console.log('[AISearchBar] Intent analyzed:', data.intent)
+      
+      // ✅ FIX: Auto-show dropdown when analysis completes
+      // This ensures results are visible without requiring user to click input again
+      showDropdown.value = true
+      
+      // ✅ FIX: Wait for Vue to render results before hiding loading state
+      // This prevents "no results" flash during transition
+      await nextTick()
+      
+      // ✅ FIX: Only hide loading after results are rendered
+      isAnalyzing.value = false
+      resultsProcessed.value = true
     } else {
       throw new Error(data.error || 'Invalid response from server')
     }
@@ -364,8 +405,8 @@ async function analyzeIntent() {
 
     // Fallback to empty state
     intentResult.value = null
-  } finally {
     isAnalyzing.value = false
+    resultsProcessed.value = true // ✅ FIX: Mark as processed even on error
   }
 }
 
@@ -378,16 +419,31 @@ function handleFocus() {
 
 function handleBlur() {
   isFocused.value = false
-  // Delay to allow click events to fire
+  // ✅ FIX: Don't close dropdown if analysis is in progress or just completed
+  // This prevents dropdown from closing when user clicks outside during/after analysis
   setTimeout(() => {
-    if (!showPostBrowser.value) {
-      // Don't close if post browser is open
+    if (!showPostBrowser.value && !isAnalyzing.value && !intentResult.value && resultsProcessed.value) {
+      // Only close dropdown if:
+      // 1. Post browser is not open
+      // 2. Analysis is not in progress
+      // 3. No intent result (no results to show)
+      // 4. Results have been processed (prevents closing during transition)
+      showDropdown.value = false
     }
   }, 200)
 }
 
-function handleEnter() {
-  if (intentResult.value?.quickActions && intentResult.value.quickActions.length > 0) {
+async function handleEnter() {
+  // ✅ FIX: Cancel any pending debounced calls and analyze immediately on Enter
+  // This ensures user gets results immediately when they press Enter
+  if (debouncedAnalyzeIntent.cancel) {
+    debouncedAnalyzeIntent.cancel()
+  }
+  
+  if (searchQuery.value.length >= 2) {
+    showDropdown.value = true
+    await analyzeIntent() // ✅ Immediate analysis on Enter (no 600ms delay)
+  } else if (intentResult.value?.quickActions && intentResult.value.quickActions.length > 0) {
     handleQuickAction(intentResult.value.quickActions[0])
   }
 }
@@ -404,10 +460,8 @@ function handleQuickAction(action: any) {
   }
 }
 
-function handleSuggestion(suggestion: string) {
-  searchQuery.value = suggestion
-  handleInput()
-}
+// ✅ FIX: Removed handleSuggestion() - suggestions section was removed
+// Suggestions were creating loops and confusion, Quick Actions are clearer
 
 function handleExample(example: any) {
   searchQuery.value = example.text

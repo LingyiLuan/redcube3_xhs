@@ -8,7 +8,9 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 export default defineConfig({
   plugins: [
     vue(),
-    vueDevTools(),
+    // ✅ FIX: Only enable Vue DevTools in development mode
+    // This prevents floating DevTools buttons from appearing in production
+    ...(process.env.NODE_ENV === 'development' ? [vueDevTools()] : []),
   ],
   resolve: {
     alias: {

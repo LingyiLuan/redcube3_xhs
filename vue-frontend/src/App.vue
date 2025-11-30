@@ -5,9 +5,11 @@ import PixelIcons from '@/components/Dashboard/PixelIcons.vue'
 import EmailVerificationBanner from '@/components/EmailVerificationBanner.vue'
 import LoginModal from '@/components/Navigation/LoginModal.vue'
 import { useEventBus } from '@/utils/eventBus'
+import { useAuthStore } from '@/stores/authStore'
 
 const router = useRouter()
 const eventBus = useEventBus()
+const authStore = useAuthStore()
 const isLoginModalOpen = ref(false)
 const isLearningMapLoginModalOpen = ref(false)
 const loginReturnUrl = ref<string | undefined>(undefined)
@@ -36,6 +38,21 @@ function handleLoginSuccess() {
     localStorage.removeItem('oauth_return_url')
   }
 }
+
+// ✅ AUTH FIX: Initialize auth state on app mount (runs on every page load/refresh)
+onMounted(async () => {
+  console.log('[App] Initializing authentication state...')
+  try {
+    await authStore.checkAuthStatus()
+    console.log('[App] Auth state initialized:', {
+      isAuthenticated: authStore.isAuthenticated,
+      userId: authStore.userId,
+      userEmail: authStore.user?.email
+    })
+  } catch (error) {
+    console.error('[App] Failed to initialize auth state:', error)
+  }
+})
 </script>
 
 <template>

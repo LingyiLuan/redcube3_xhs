@@ -189,7 +189,30 @@ const userId = computed(() => user.value?.id || null) // No fallback - real auth
   }
 
   async function checkAuthStatus() {
-    // First, try to check session authentication via API
+    // ✅ AUTH FIX: First, try optimistic restore from localStorage for instant UI update
+    // This prevents the "flash" of "Sign in" messages before API check completes
+    const savedToken = localStorage.getItem('authToken')
+    const savedUser = localStorage.getItem('authUser')
+    
+    if (savedToken && savedUser) {
+      try {
+        const userData = JSON.parse(savedUser)
+        // Optimistically restore auth state (will be verified by API call below)
+        user.value = userData
+        token.value = savedToken
+        console.log('[AuthStore] Optimistically restored auth from localStorage:', {
+          userId: userData.id,
+          email: userData.email
+        })
+      } catch (error) {
+        console.error('[AuthStore] Failed to parse saved user data:', error)
+        // Clear invalid data
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('authUser')
+      }
+    }
+
+    // Then, verify session authentication via API (this is the source of truth)
     try {
       const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
       const response = await fetch(`${apiGatewayUrl}/api/auth/me`, {
@@ -216,45 +239,33 @@ const userId = computed(() => user.value?.id || null) // No fallback - real auth
         user.value = userData
         token.value = 'session-auth-' + Date.now()
 
-        // Optionally save to localStorage for faster subsequent checks
+        // Update localStorage with verified data
         localStorage.setItem('authToken', token.value)
         localStorage.setItem('authUser', JSON.stringify(userData))
 
-        console.log('[AuthStore] Session auth verified:', {
+        console.log('[AuthStore] Session auth verified via API:', {
           userId: userData.id,
           email: userData.email,
           hasAvatar: !!userData.avatarUrl
         })
         return
+      } else {
+        // API says not authenticated - clear state
+        console.log('[AuthStore] API returned non-OK status, clearing auth state')
+        user.value = null
+        token.value = null
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('authUser')
       }
     } catch (error) {
-      console.log('[AuthStore] Session check failed, trying localStorage:', error)
-    }
-
-    // Fallback: Check if we have saved auth data in localStorage
-    const savedToken = localStorage.getItem('authToken')
-    const savedUser = localStorage.getItem('authUser')
-
-    console.log('[AuthStore] checkAuthStatus - savedToken:', savedToken ? 'EXISTS' : 'MISSING')
-    console.log('[AuthStore] checkAuthStatus - savedUser:', savedUser ? savedUser : 'MISSING')
-
-    if (savedToken && savedUser) {
-      try {
-        const userData = JSON.parse(savedUser)
-        user.value = userData
-        token.value = savedToken
-
-        console.log('[AuthStore] Auth restored from localStorage:', {
-          userId: userData.id,
-          email: userData.email,
-          hasAvatar: !!userData.avatarUrl
-        })
-      } catch (error) {
-        console.error('[AuthStore] Failed to restore auth:', error)
-        await logout()
+      console.log('[AuthStore] Session check failed:', error)
+      // If API check fails but we have localStorage data, keep it (offline mode)
+      // The optimistic restore above already set the state
+      if (!savedToken || !savedUser) {
+        // No localStorage data either - clear state
+        user.value = null
+        token.value = null
       }
-    } else {
-      console.log('[AuthStore] No saved auth data in localStorage or session')
     }
   }
 

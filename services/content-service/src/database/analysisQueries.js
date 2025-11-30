@@ -55,18 +55,16 @@ async function getAnalysisHistory(userId, limit = 10, batchId = null) {
   let values = [];
   let whereConditions = [];
 
-  // Note: batch_analysis_cache doesn't have user_id column
-  // For now, return all batch analyses (can filter client-side or add user_id column later)
+  // ✅ SECURITY FIX: Filter by user_id to prevent cross-user data access
+  whereConditions.push(`user_id = $${values.length + 1}`);
+  values.push(userId);
 
   if (batchId) {
     whereConditions.push(`batch_id = $${values.length + 1}`);
     values.push(batchId);
   }
 
-  if (whereConditions.length > 0) {
-    query += ' WHERE ' + whereConditions.join(' AND ');
-  }
-
+  query += ' WHERE ' + whereConditions.join(' AND ');
   query += ` ORDER BY cached_at DESC LIMIT $${values.length + 1}`;
   values.push(limit);
 

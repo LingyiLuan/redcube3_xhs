@@ -760,7 +760,8 @@ async function analyzeBatchPosts(req, res) {
         'BAAI/bge-small-en-v1.5',
         enhancedIntelligence,
         posts.length, // user_posts_count
-        ragPosts?.length || 0 // rag_similar_posts_count
+        ragPosts?.length || 0, // rag_similar_posts_count
+        userId // ✅ SECURITY FIX: Pass userId to saveBatchCache
       );
       console.timeEnd('⏱️  STEP 6: Save Cache');
     }
@@ -2850,13 +2851,24 @@ async function getCachedBatchData(batchId) {
 /**
  * Save batch analysis data to cache
  */
-async function saveBatchCache(batchId, userPostEmbeddings, patternAnalysis, embeddingModel, enhancedIntelligence = null, userPostsCount = 0, ragSimilarPostsCount = 0) {
+async function saveBatchCache(batchId, userPostEmbeddings, patternAnalysis, embeddingModel, enhancedIntelligence = null, userPostsCount = 0, ragSimilarPostsCount = 0, userId = null) {
   try {
     const foundationPoolSize = userPostsCount + ragSimilarPostsCount;
+
+    // ✅ SECURITY FIX: Extract userId from batchId if not provided
+    // batchId format: batch_${userId}_${contentHash}
+    let extractedUserId = userId;
+    if (!extractedUserId && batchId) {
+      const match = batchId.match(/^batch_(\d+)_/);
+      if (match) {
+        extractedUserId = parseInt(match[1]);
+      }
+    }
 
     await pool.query(`
       INSERT INTO batch_analysis_cache (
         batch_id,
+        user_id,
         user_post_embeddings,
         pattern_analysis,
         embedding_model,
@@ -2865,8 +2877,9 @@ async function saveBatchCache(batchId, userPostEmbeddings, patternAnalysis, embe
         user_posts_count,
         rag_similar_posts_count
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       ON CONFLICT (batch_id) DO UPDATE SET
+        user_id = EXCLUDED.user_id,
         user_post_embeddings = EXCLUDED.user_post_embeddings,
         pattern_analysis = EXCLUDED.pattern_analysis,
         embedding_model = EXCLUDED.embedding_model,
@@ -2877,6 +2890,7 @@ async function saveBatchCache(batchId, userPostEmbeddings, patternAnalysis, embe
         cached_at = CURRENT_TIMESTAMP
     `, [
       batchId,
+      extractedUserId,
       JSON.stringify(userPostEmbeddings),
       JSON.stringify(patternAnalysis),
       embeddingModel,
@@ -2930,11 +2944,15 @@ async function retrieveSimilarPostsWithCachedEmbeddings(userPostEmbeddings, simi
  */
 async function getSingleAnalysisHistory(req, res) {
   try {
-    const userId = req.user?.id || req.query.userId;
+    // ✅ SECURITY FIX: Use authenticated user ID from session, not query param
+    const userId = req.user?.id;
     const limit = parseInt(req.query.limit) || 100;
 
     if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Authentication required'
+      });
     }
 
     logger.info(`[Single Analysis History] Fetching single analyses for user ${userId}, limit ${limit}`);

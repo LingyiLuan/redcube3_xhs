@@ -1,0 +1,36 @@
+{
+  "buildCommand": "cd vue-frontend && npm install && npm run build",
+  "outputDirectory": "vue-frontend/dist",
+  "devCommand": "cd vue-frontend && npm run dev",
+  "installCommand": "cd vue-frontend && npm install",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://api.labzero.io/api/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ],
+  "env": {
+    "VITE_API_GATEWAY_URL": "https://api.labzero.io"
+  }
+}
+

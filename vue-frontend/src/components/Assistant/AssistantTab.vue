@@ -115,6 +115,7 @@ const eventBus = useEventBus()
 
 const userInput = ref('')
 const isLoading = ref(false)
+const isExecutingWorkflow = ref(false) // ✅ FIX: Separate loading state for workflow execution
 const scrollableContent = ref<HTMLElement | null>(null)
 const showHistoryModal = ref(false)
 
@@ -256,8 +257,11 @@ async function handleSendMessage(prompt?: string) {
       // Don't return here - still show the response even if save fails
     }
 
+    // ✅ FIX: Don't await workflow execution - fire and forget so input button can reset
     if (data.actions && data.actions.length > 0) {
-      await handleActions(data.actions, data.type || 'general')
+      handleActions(data.actions, data.type || 'general').catch(error => {
+        console.error('[AssistantTab] Error executing workflow action:', error)
+      })
     }
   } catch (error: any) {
     console.error('[AssistantTab] Failed to send message:', error)
@@ -282,10 +286,16 @@ async function handleSendMessage(prompt?: string) {
 async function handleActions(actions: any[], type: string) {
   console.log('[AssistantTab] Handling actions:', actions, 'Type:', type)
 
-  for (const action of actions) {
-    if (action.type === 'execute_workflow') {
-      await executeWorkflow(action.data)
+  isExecutingWorkflow.value = true
+
+  try {
+    for (const action of actions) {
+      if (action.type === 'execute_workflow') {
+        await executeWorkflow(action.data)
+      }
     }
+  } finally {
+    isExecutingWorkflow.value = false
   }
 }
 
@@ -383,10 +393,17 @@ async function executeWorkflow(workflowData: any) {
     workflowStore.updateNodeData(analysisNodeId, { status: 'analyzing' })
 
     try {
-      const result = await workflowStore.executeBatchAnalysis(addedNodes)
+      const result = await workflowStore.executeBatchAnalysis(addedNodes, analysisNodeId)
 
       if (!result) {
         console.warn('[AssistantTab] Analysis was cancelled or returned null')
+        return
+      }
+
+      // ✅ FIX: Check if analysis was cancelled before creating results node
+      const analysisNode = workflowStore.nodes.find(n => n.id === analysisNodeId)
+      if (analysisNode?.data.status === 'cancelled') {
+        console.log('[AssistantTab] Analysis was cancelled, not creating results node')
         return
       }
 
@@ -394,6 +411,13 @@ async function executeWorkflow(workflowData: any) {
         status: 'completed',
         analysisResult: result
       })
+
+      // ✅ FIX: Double-check cancellation before creating results node (defense in depth)
+      const analysisNodeAfterUpdate = workflowStore.nodes.find(n => n.id === analysisNodeId)
+      if (analysisNodeAfterUpdate?.data.status === 'cancelled') {
+        console.log('[AssistantTab] Analysis was cancelled after update, not creating results node')
+        return
+      }
 
       workflowStore.createResultsNode(analysisNodeId, result)
       uiStore.showToast('Analysis complete!', 'success')

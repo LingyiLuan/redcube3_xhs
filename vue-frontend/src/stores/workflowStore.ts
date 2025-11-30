@@ -569,7 +569,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     }
   }
 
-  async function executeBatchAnalysis(inputNodes: WorkflowNode[]) {
+  async function executeBatchAnalysis(inputNodes: WorkflowNode[], analysisNodeId?: string) {
     const authStore = useAuthStore()
     const uiStore = useUIStore()
 
@@ -578,6 +578,11 @@ export const useWorkflowStore = defineStore('workflow', () => {
     // Create a single abort controller for the entire batch
     const batchId = `batch-${Date.now()}`
     const controller = createAbortController(batchId)
+
+    // ✅ FIX: Store batchId in analysis node data so it can be aborted later
+    if (analysisNodeId) {
+      updateNodeData(analysisNodeId, { batchId })
+    }
 
     // Mark all nodes as analyzing
     for (const node of inputNodes) {

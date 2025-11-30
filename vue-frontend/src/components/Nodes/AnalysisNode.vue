@@ -120,7 +120,19 @@ async function handleRunAnalysis(event: Event) {
     if (analysisMode.value === 'batch') {
       // Execute batch analysis
       console.log('[AnalysisNode] Starting batch analysis for', validNodes.length, 'nodes')
-      const result = await workflowStore.executeBatchAnalysis(validNodes)
+      const result = await workflowStore.executeBatchAnalysis(validNodes, props.id)
+
+      if (!result) {
+        console.warn('[AnalysisNode] Analysis was cancelled or returned null')
+        return
+      }
+
+      // ✅ FIX: Check if analysis was cancelled before updating status
+      const currentNode = workflowStore.nodes.find(n => n.id === props.id)
+      if (currentNode?.data.status === 'cancelled') {
+        console.log('[AnalysisNode] Analysis was cancelled, not updating status or creating results')
+        return
+      }
 
       console.log('[AnalysisNode] Batch analysis completed! Result:', result)
 
@@ -284,7 +296,14 @@ function handleStopAnalysis(event: Event) {
     return
   }
 
-  // Abort analysis for all source nodes
+  // ✅ FIX: Abort batch analysis controller if batchId is stored
+  const batchId = props.data.batchId
+  if (batchId) {
+    console.log('[AnalysisNode] Aborting batch analysis with batchId:', batchId)
+    workflowStore.abortAnalysis(batchId)
+  }
+
+  // Abort analysis for all source nodes (for single analysis mode)
   const sourceNodes = workflowStore.nodes.filter(n =>
     sourceNodeIds.value.includes(n.id)
   )

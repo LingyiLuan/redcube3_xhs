@@ -180,7 +180,7 @@ router.get('/batch/report/:batchId', getCachedBatchReport);
 
 // Data retrieval endpoints
 router.get('/history', requireAuth, getHistory);  // ✅ SECURITY FIX: Require authentication
-router.get('/single-analysis/history', optionalAuth, getSingleAnalysisHistory);  // Get single analysis history for user
+router.get('/single-analysis/history', requireAuth, getSingleAnalysisHistory);  // ✅ SECURITY FIX: Require authentication
 router.get('/analytics', getAnalytics);
 
 // Trends and intelligence endpoints
