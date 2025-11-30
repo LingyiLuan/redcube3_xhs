@@ -73,6 +73,22 @@ router.get('/google/callback', (req, res, next) => {
       returnUrl: returnUrl || 'none'
     });
 
+    // Ensure cookie is set with correct attributes before redirect
+    if (req.session && req.session.cookie) {
+      req.session.cookie.secure = process.env.SESSION_COOKIE_SECURE === 'true';
+      req.session.cookie.sameSite = 'none';
+      req.session.cookie.path = '/';
+      if (process.env.SESSION_COOKIE_DOMAIN) {
+        req.session.cookie.domain = process.env.SESSION_COOKIE_DOMAIN;
+      }
+      // Save session to ensure cookie is set with new attributes
+      req.session.save((err) => {
+        if (err) {
+          console.error('[OAuth] Error saving session:', err);
+        }
+      });
+    }
+
     // Redirect to returnUrl if provided, otherwise to landing page
     const redirectUrl = returnUrl ? `${frontendUrl}${returnUrl}` : `${frontendUrl}/`;
     res.redirect(redirectUrl);
@@ -659,6 +675,22 @@ router.post('/login', async (req, res) => {
           success: false,
           error: 'Login failed',
           message: 'Authentication successful but session creation failed'
+        });
+      }
+
+      // Ensure cookie is set with correct attributes
+      if (req.session && req.session.cookie) {
+        req.session.cookie.secure = process.env.SESSION_COOKIE_SECURE === 'true';
+        req.session.cookie.sameSite = 'none';
+        req.session.cookie.path = '/';
+        if (process.env.SESSION_COOKIE_DOMAIN) {
+          req.session.cookie.domain = process.env.SESSION_COOKIE_DOMAIN;
+        }
+        // Save session to ensure cookie is set with new attributes
+        req.session.save((err) => {
+          if (err) {
+            console.error('[Login] Error saving session:', err);
+          }
         });
       }
 

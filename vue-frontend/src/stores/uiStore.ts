@@ -27,6 +27,9 @@ export const useUIStore = defineStore('ui', () => {
   // Content area state - manages what's displayed in main canvas area
   const contentView = ref<ContentView>('workflow')
   const activeContentId = ref<string | null>(null)
+  
+  // Reports filter state
+  const reportFilter = ref<'all' | 'unread' | 'batch' | 'single'>('all')
 
   // Console state
   const consoleOpen = ref(false)
@@ -208,6 +211,10 @@ export const useUIStore = defineStore('ui', () => {
     activeContentId.value = mapId
   }
 
+  function setReportFilter(filter: 'all' | 'unread' | 'batch' | 'single') {
+    reportFilter.value = filter
+  }
+
   // ===== RETURN PUBLIC API =====
 
   return {
@@ -221,6 +228,7 @@ export const useUIStore = defineStore('ui', () => {
     toasts,
     consoleOpen,
     consoleHeight,
+    reportFilter,
     contentView,
     activeContentId,
 
@@ -249,6 +257,7 @@ export const useUIStore = defineStore('ui', () => {
     showReportsList,
     showLearningMapsList,
     showReportDetail,
-    showLearningMapDetail
+    showLearningMapDetail,
+    setReportFilter
   }
 })

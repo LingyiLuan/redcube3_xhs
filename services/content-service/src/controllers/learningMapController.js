@@ -281,12 +281,13 @@ async function updateLearningProgress(req, res) {
 async function getLearningMap(req, res) {
   try {
     const { mapId } = req.params;
-    const { userId } = req.query;
+    // ✅ SECURITY FIX: Use authenticated user ID from session, not query param
+    const userId = req.user?.id;
 
     if (!userId) {
-      return res.status(400).json({
-        error: 'Invalid request',
-        message: 'userId is required'
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Authentication required'
       });
     }
 
@@ -298,6 +299,14 @@ async function getLearningMap(req, res) {
       return res.status(404).json({
         error: 'Not found',
         message: 'Learning map not found'
+      });
+    }
+
+    // ✅ SECURITY FIX: Double-check ownership (defense in depth)
+    if (learningMap.user_id !== userId) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'You do not have access to this learning map'
       });
     }
 
@@ -322,14 +331,17 @@ async function getLearningMap(req, res) {
  */
 async function getLearningMapsHistory(req, res) {
   try {
-    const { userId, status, isCrazyPlan, limit, offset } = req.query;
+    // ✅ SECURITY FIX: Use authenticated user ID from session, not query param
+    const userId = req.user?.id;
 
     if (!userId) {
-      return res.status(400).json({
-        error: 'Invalid request',
-        message: 'userId is required'
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Authentication required'
       });
     }
+
+    const { status, isCrazyPlan, limit, offset } = req.query;
 
     console.log('Getting learning maps history for user:', userId);
 

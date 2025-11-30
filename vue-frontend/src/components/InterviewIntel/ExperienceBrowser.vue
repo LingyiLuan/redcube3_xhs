@@ -49,12 +49,27 @@
 
     <!-- Experiences Grid -->
     <div v-if="!loading && !error" class="experiences-grid">
-      <ExperienceCard
-        v-for="experience in experiences"
-        :key="experience.id"
-        :experience="experience"
-        @view="$emit('view-experience', experience.id)"
-      />
+      <template v-for="(experience, index) in experiences" :key="experience.id">
+        <ExperienceCard
+          :experience="experience"
+          @view="$emit('view-experience', experience.id)"
+        />
+        <!-- Inline UGC CTA Card - appears after every 6th card -->
+        <div
+          v-if="(index + 1) % 6 === 0 && experiences.length >= 6"
+          class="ugc-cta-card"
+        >
+          <p class="cta-text">
+            This page is powered by {{ totalExperiencesCount.toLocaleString() }} real interview experiences.
+          </p>
+          <p class="cta-subtext">
+            Share yours to help the next candidate.
+          </p>
+          <button @click="handleShareClick" class="cta-button">
+            Share Your Experience →
+          </button>
+        </div>
+      </template>
     </div>
 
     <!-- Empty State -->
@@ -91,7 +106,7 @@ import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import ExperienceCard from './ExperienceCard.vue'
 
-const emit = defineEmits(['view-experience'])
+const emit = defineEmits(['view-experience', 'go-to-share'])
 
 const experiences = ref([])
 const loading = ref(false)
@@ -117,6 +132,14 @@ const hasActiveFilters = computed(() => {
   return searchQuery.value || filters.value.company || filters.value.role ||
          filters.value.difficulty || filters.value.outcome
 })
+
+const totalExperiencesCount = computed(() => {
+  return pagination.value.totalCount || 0
+})
+
+function handleShareClick() {
+  emit('go-to-share')
+}
 
 onMounted(() => {
   fetchExperiences()
@@ -371,6 +394,48 @@ function clearAllFilters() {
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 24px;
   margin-bottom: 48px;
+}
+
+/* UGC CTA Card - Inline in grid */
+.ugc-cta-card {
+  grid-column: 1 / -1; /* Span full width */
+  background: #FAFAFA;
+  border: 2px solid #000000;
+  padding: 32px;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+}
+
+.cta-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0 0 8px 0;
+}
+
+.cta-subtext {
+  font-size: 14px;
+  color: #666666;
+  margin: 0 0 24px 0;
+}
+
+.cta-button {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 12px 32px;
+  background: #1E3A8A;
+  color: #FFFFFF;
+  border: 2px solid #1E3A8A;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+
+.cta-button:hover {
+  background: #FFFFFF;
+  color: #1E3A8A;
 }
 
 .pagination {

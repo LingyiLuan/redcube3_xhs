@@ -1,0 +1,15 @@
+tunnel: 1901f64d-9731-450b-a0dc-ff0cffcb043f
+credentials-file: /Users/luan02/.cloudflared/1901f64d-9731-450b-a0dc-ff0cffcb043f.json
+
+ingress:
+  # Frontend (Vue app) - Main domain (Vite dev server)
+  - hostname: labzero.io
+    service: http://localhost:5173
+  
+  # API Gateway - API subdomain
+  - hostname: api.labzero.io
+    service: http://localhost:8080
+  
+  # Catch-all (404 for unmatched routes)
+  - service: http_status:404
+

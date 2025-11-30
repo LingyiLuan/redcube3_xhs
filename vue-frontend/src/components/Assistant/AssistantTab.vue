@@ -119,6 +119,7 @@ const scrollableContent = ref<HTMLElement | null>(null)
 const showHistoryModal = ref(false)
 
 const suggestedPrompts = [
+  'Compare Google SWE and Amazon SWE',
   'Show me Amazon SWE interviews',
   'How do I create a learning map?',
   'What are the best Google interview prep tips?',
@@ -186,40 +187,92 @@ async function selectChatFromModal(chatId: number) {
 }
 
 // Send message
-async function handleSendMessage() {
+async function handleSendMessage(prompt?: string) {
+  // ✅ UX FIX: Better authentication check with clear error message
   if (!isAuthenticated.value) {
+    console.warn('[AssistantTab] User not authenticated, opening login modal')
+    uiStore.showToast('Please sign in to use the AI Assistant', 'warning')
     openLoginModal()
     return
   }
 
-  if (!userInput.value.trim() || isLoading.value) return
+  // ✅ UX FIX: Validate auth store state
+  if (!authStore.userId) {
+    console.error('[AssistantTab] Authentication state invalid - userId missing')
+    uiStore.showToast('Authentication error. Please sign in again.', 'error')
+    // Force logout to clear invalid state
+    await authStore.logout()
+    openLoginModal()
+    return
+  }
 
-  const userContent = userInput.value.trim()
-  userInput.value = ''
+  // Use provided prompt or fall back to userInput.value
+  const content = prompt ? prompt.trim() : userInput.value.trim()
+  
+  if (!content || isLoading.value) return
 
-  await assistantChatStore.appendMessage('user', userContent)
-  scrollToBottom()
+  // Clear input only if we used userInput.value (not a direct prompt)
+  if (!prompt) {
+    userInput.value = ''
+  }
+  
+  const userContent = content
 
   isLoading.value = true
+  
   try {
+    // Add user message first - wrap in try-catch to handle errors
+    try {
+      await assistantChatStore.appendMessage('user', userContent)
+      scrollToBottom()
+    } catch (appendError: any) {
+      console.error('[AssistantTab] Failed to add user message:', appendError)
+      // ✅ UX FIX: More specific error messages
+      if (appendError?.message?.includes('Authentication') || appendError?.response?.status === 401) {
+        uiStore.showToast('Session expired. Please sign in again.', 'error')
+        await authStore.logout()
+        openLoginModal()
+      } else {
+        uiStore.showToast('Failed to save message. Please try again.', 'error')
+      }
+      isLoading.value = false
+      return
+    }
+
+    // Query assistant
     const data = await assistantService.query(userContent)
 
     const assistantText = data.response || data.message || 'Sorry, I encountered an error. Please try again.'
-    await assistantChatStore.appendMessage('assistant', assistantText, {
-      actions: data.actions,
-      type: data.type
-    })
-    scrollToBottom()
+    
+    // Add assistant response
+    try {
+      await assistantChatStore.appendMessage('assistant', assistantText, {
+        actions: data.actions,
+        type: data.type
+      })
+      scrollToBottom()
+    } catch (appendError: any) {
+      console.error('[AssistantTab] Failed to add assistant message:', appendError)
+      // Don't return here - still show the response even if save fails
+    }
 
     if (data.actions && data.actions.length > 0) {
       await handleActions(data.actions, data.type || 'general')
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('[AssistantTab] Failed to send message:', error)
-    await assistantChatStore.appendMessage(
-      'assistant',
-      'Sorry, I encountered an error connecting to the assistant. Please try again.'
-    )
+    
+    // Add error message to chat
+    try {
+      await assistantChatStore.appendMessage(
+        'assistant',
+        'Sorry, I encountered an error connecting to the assistant. Please try again.'
+      )
+      scrollToBottom()
+    } catch (appendError: any) {
+      console.error('[AssistantTab] Failed to add error message:', appendError)
+      uiStore.showToast('Failed to connect to assistant. Please try again.', 'error')
+    }
   } finally {
     isLoading.value = false
   }
@@ -356,8 +409,8 @@ async function executeWorkflow(workflowData: any) {
 }
 
 function sendMessage(prompt: string) {
-  userInput.value = prompt
-  handleSendMessage()
+  // Pass prompt directly to handleSendMessage to avoid reactivity timing issues
+  handleSendMessage(prompt)
 }
 
 async function scrollToBottom() {
@@ -404,7 +457,7 @@ function formatTimestamp(timestamp: string) {
 /* Header */
 .assistant-header {
   flex-shrink: 0;
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid #E5E7EB;
   background: #F9FAFB;
   display: flex;
@@ -414,7 +467,7 @@ function formatTimestamp(timestamp: string) {
 
 .assistant-header h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: #1F2937;
 }
@@ -578,7 +631,7 @@ function formatTimestamp(timestamp: string) {
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 16px;
   min-height: 0;
   background: #FFFFFF;
 }
@@ -635,7 +688,7 @@ function formatTimestamp(timestamp: string) {
 /* Input Section */
 .input-section {
   flex-shrink: 0;
-  padding: 16px 20px;
+  padding: 8px 12px;
   border-top: 1px solid #E5E7EB;
   background: #F9FAFB;
 }

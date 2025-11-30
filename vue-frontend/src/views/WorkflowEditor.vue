@@ -18,6 +18,7 @@ import CanvasSideToolbar from '@/components/Canvas/CanvasSideToolbar.vue'
 import SelectionToolbar from '@/components/Toolbar/SelectionToolbar.vue'
 import NodeInspector from '@/components/Inspector/NodeInspector.vue'
 import UpgradeModal from '@/components/Landing/UpgradeModal.vue'
+import ResultsPanel from '@/components/ResultsPanel/ResultsPanel.vue'
 
 const route = useRoute()
 const workflowStore = useWorkflowStore()
@@ -45,47 +46,6 @@ function closeUpgradeModal() {
   showUpgradeModal.value = false
 }
 
-// Handle posts selected from AI Search Bar
-function handlePostsSelected(posts: any[]) {
-  console.log('[WorkflowEditor] Handling selected posts:', posts)
-
-  // Store current selection to restore after adding nodes
-  const previousSelection = workflowStore.selectedNodeId
-
-  // Calculate staggered positions for multiple nodes
-  const baseX = 200
-  const baseY = 200
-  const offsetX = 100
-  const offsetY = 80
-
-  // Create a node for each selected post
-  posts.forEach((post, index) => {
-    const position = {
-      x: baseX + (index % 3) * offsetX, // 3 nodes per row
-      y: baseY + Math.floor(index / 3) * offsetY
-    }
-
-    workflowStore.addNode({
-      type: 'input',
-      position,
-      data: {
-        label: post.title || 'Reddit Post',
-        content: post.body_text || post.title || '', // Use full post body_text
-        redditUrl: post.url || `https://reddit.com/r/cscareerquestions/comments/${post.post_id}`,
-        postId: post.post_id,
-        company: post.company,
-        role: post.role_type,
-        level: post.level,
-        outcome: post.outcome
-      }
-    })
-  })
-
-  // Restore previous selection (or clear if none) to prevent inspector from opening
-  workflowStore.selectedNodeId = previousSelection
-
-  // Note: Toast notification is handled by AISearchBar component
-}
 
 // Keyboard shortcuts
 const { isMac } = useKeyboardShortcuts([
@@ -510,7 +470,6 @@ onMounted(async () => {
         <!-- AI Search Bar (Bottom Center) - only show in workflow view -->
         <AISearchBar
           v-if="uiStore.contentView === 'workflow'"
-          @postsSelected="handlePostsSelected"
         />
 
         <!-- Floating Selection Toolbar - only show in workflow view -->
@@ -532,6 +491,9 @@ onMounted(async () => {
         <button @click="uiStore.removeToast(toast.id)" class="toast-close">×</button>
       </div>
     </div>
+
+    <!-- Results Panel (Modal) - Always rendered -->
+    <ResultsPanel />
 
     <!-- Node Inspector (Right Sidebar) -->
     <NodeInspector />

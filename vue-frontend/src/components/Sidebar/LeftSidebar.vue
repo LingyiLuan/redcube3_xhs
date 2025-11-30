@@ -26,7 +26,7 @@
         @click="selectTab(tab.id)"
         :title="tab.label"
       >
-        <component :is="tab.icon" :size="20" />
+        <component :is="tab.icon" :size="18" />
       </button>
     </div>
 
@@ -448,23 +448,23 @@ function formatDate(dateString?: string) {
 .tab-nav {
   display: flex;
   flex-direction: column;
-  padding: 12px;
-  gap: 4px;
+  padding: 8px;
+  gap: 2px;
   border-bottom: 1px solid #E5E7EB;
 }
 
 .tab-btn {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 8px 12px;
   background: transparent;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   color: #6B7280;
   font-family: 'Inter', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   transition: all 0.2s ease;
   text-align: left;
 }

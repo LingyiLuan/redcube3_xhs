@@ -794,7 +794,17 @@ async function analyzeBatchPosts(req, res) {
  */
 async function getHistory(req, res) {
   try {
-    const { userId, limit = 10, batchId } = req.query;
+    // ✅ SECURITY FIX: Use authenticated user ID from session, not query param
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Authentication required'
+      });
+    }
+    
+    const { limit = 10, batchId } = req.query;
     const history = await getAnalysisHistory(userId, limit, batchId);
     res.json(history);
   } catch (error) {

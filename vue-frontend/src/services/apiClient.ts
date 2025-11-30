@@ -1,8 +1,10 @@
 import axios from 'axios'
 
 // API base configuration
+// Use full API Gateway URL to ensure cookies are sent to the correct domain (api.labzero.io)
+const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
 const apiClient = axios.create({
-  baseURL: '/api/content',
+  baseURL: `${apiGatewayUrl}/api/content`,
   timeout: 300000, // 5 minutes for batch analysis with RAG
   withCredentials: true,
   headers: {

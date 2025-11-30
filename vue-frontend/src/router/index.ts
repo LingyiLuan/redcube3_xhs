@@ -109,6 +109,54 @@ const router = createRouter({
       component: () => import('../pages/PricingPage.vue'),
       meta: { requiresAuth: false }
     },
+    {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('../pages/PrivacyPolicyPage.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/terms',
+      name: 'terms',
+      component: () => import('../pages/TermsOfServicePage.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/security',
+      name: 'security',
+      component: () => import('../pages/SecurityPage.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/cookies',
+      name: 'cookies',
+      component: () => import('../pages/CookiePolicyPage.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/status',
+      name: 'status',
+      component: () => import('../pages/StatusPage.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/docs',
+      name: 'docs',
+      component: () => import('../pages/DocsPage.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/changelog',
+      name: 'changelog',
+      component: () => import('../pages/ChangelogPage.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('../pages/NotFoundPage.vue'),
+      meta: { requiresAuth: false }
+    },
   ],
 })
 

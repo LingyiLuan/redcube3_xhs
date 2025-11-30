@@ -129,7 +129,7 @@
     <!-- Post Browser Modal (positioned like dropdown) -->
     <Transition name="modal">
       <div v-if="showPostBrowser" class="post-browser-modal">
-        <div class="modal-container" @click.stop="(e) => e.preventDefault()">
+        <div class="modal-container" @click.stop>
           <div class="modal-header">
             <div class="modal-header-left">
               <h3 class="modal-title">Select Posts to Analyze</h3>
@@ -214,13 +214,6 @@
             >
               Analyze Selected ({{ selectedPostIds.length }})
             </button>
-            <button
-              class="footer-btn footer-btn-primary"
-              :disabled="selectedPostIds.length === 0"
-              @click="addToCanvas"
-            >
-              Add to Canvas ({{ selectedPostIds.length }})
-            </button>
           </div>
         </div>
       </div>
@@ -230,7 +223,8 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   Search,
   X,
@@ -246,13 +240,10 @@ import {
 import { useWorkflowStore } from '@/stores/workflowStore'
 import { useUIStore } from '@/stores/uiStore'
 
+const route = useRoute()
+const router = useRouter()
 const workflowStore = useWorkflowStore()
 const uiStore = useUIStore()
-
-// Define emits
-const emit = defineEmits<{
-  postsSelected: [posts: any[]]
-}>()
 
 // State
 const searchInput = ref<HTMLInputElement | null>(null)
@@ -346,7 +337,8 @@ async function analyzeIntent() {
   isAnalyzing.value = true
 
   try {
-    const response = await fetch('http://localhost:8080/api/content/workflow/parse-intent', {
+    const apiUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+    const response = await fetch(`${apiUrl}/api/content/workflow/parse-intent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -451,7 +443,8 @@ async function fetchPosts() {
     console.log('[AISearchBar] Original query:', searchQuery.value)
     console.log('[AISearchBar] Searching with:', queryToSearch)
 
-    const response = await fetch('http://localhost:8080/api/content/workflow/search-posts', {
+    const apiUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+    const response = await fetch(`${apiUrl}/api/content/workflow/search-posts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -496,21 +489,10 @@ function togglePostSelection(postId: string) {
 
 function selectTopPosts() {
   const topPosts = filteredPosts.value.slice(0, 5)
-  selectedPostIds.value = topPosts.map(p => p.id)
+  selectedPostIds.value = topPosts.map(p => p.post_id)
 }
 
-function analyzeSelectedPosts() {
-  if (selectedPostIds.value.length === 0) return
-
-  // TODO: Create workflow nodes from selected posts
-  console.log('[AISearchBar] Analyzing posts:', selectedPostIds.value)
-
-  uiStore.showToast(`Creating workflow with ${selectedPostIds.value.length} posts`, 'success')
-  closePostBrowser()
-  clearSearch()
-}
-
-function addToCanvas() {
+async function analyzeSelectedPosts() {
   if (selectedPostIds.value.length === 0) return
 
   // Get full post objects for selected posts
@@ -518,18 +500,116 @@ function addToCanvas() {
     selectedPostIds.value.includes(post.post_id)
   )
 
-  console.log('[AISearchBar] Adding posts to canvas:', selectedPosts)
+  if (selectedPosts.length === 0) {
+    uiStore.showToast('No posts selected', 'error')
+    return
+  }
 
-  // Emit event to parent component with selected posts
-  emit('postsSelected', selectedPosts)
+  console.log('[AISearchBar] Analyzing posts:', selectedPosts)
 
-  // Show success toast
-  uiStore.showToast(`Added ${selectedPosts.length} ${selectedPosts.length === 1 ? 'post' : 'posts'} to canvas`, 'success')
+  try {
+    // Store current selection to restore after adding nodes
+    const previousSelection = workflowStore.selectedNodeId
 
-  // Keep selections and modal open so user can add more posts or analyze
-  // Don't clear: selectedPostIds.value = []
-  // Don't close: closePostBrowser()
+    // Calculate staggered positions for multiple nodes
+    const baseX = 200
+    const baseY = 200
+    const offsetX = 150
+    const offsetY = 100
+
+    // Create input nodes for each selected post
+    const inputNodes: any[] = []
+    selectedPosts.forEach((post, index) => {
+      const position = {
+        x: baseX + (index % 3) * offsetX, // 3 nodes per row
+        y: baseY + Math.floor(index / 3) * offsetY
+      }
+
+      const inputNode = workflowStore.addNode({
+        type: 'input',
+        position,
+        data: {
+          label: post.title || 'Reddit Post',
+          content: post.body_text || post.title || '',
+          redditUrl: post.url || `https://reddit.com/r/cscareerquestions/comments/${post.post_id}`,
+          postId: post.post_id,
+          company: post.company,
+          role: post.role_type,
+          level: post.level,
+          outcome: post.outcome
+        }
+      })
+
+      inputNodes.push(inputNode)
+    })
+
+    // Create analysis node (positioned to the right of input nodes)
+    const analysisX = baseX + Math.max(2, Math.ceil(selectedPosts.length / 3)) * offsetX + 200
+    const analysisY = baseY + (Math.floor((selectedPosts.length - 1) / 3) * offsetY) / 2
+
+    const analysisNode = workflowStore.addNode({
+      type: 'analysis',
+      position: { x: analysisX, y: analysisY },
+      data: {
+        label: selectedPosts.length > 1 ? 'Batch Analysis' : 'Single Analysis',
+        status: 'idle'
+      }
+    })
+
+    // Connect all input nodes to analysis node
+    inputNodes.forEach(inputNode => {
+      workflowStore.addEdge({
+        source: inputNode.id,
+        target: analysisNode.id,
+        sourceHandle: 'right',
+        targetHandle: 'left'
+      })
+    })
+
+    // Create report node (positioned to the right of analysis node)
+    const reportNode = workflowStore.addNode({
+      type: 'report',
+      position: { x: analysisX + 300, y: analysisY },
+      data: {
+        label: 'Analysis Report',
+        status: 'idle'
+      }
+    })
+
+    // Connect analysis node to report node
+    workflowStore.addEdge({
+      source: analysisNode.id,
+      target: reportNode.id,
+      sourceHandle: 'right',
+      targetHandle: 'left'
+    })
+
+    // Restore previous selection
+    workflowStore.selectedNodeId = previousSelection
+
+    // Close modal and clear search
+    closePostBrowser()
+    clearSearch()
+
+    // Trigger workflow execution
+    uiStore.showToast(`Creating workflow with ${selectedPosts.length} post${selectedPosts.length > 1 ? 's' : ''}...`, 'info')
+    
+    // Wait a bit for nodes to render, then execute
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    try {
+      await workflowStore.executeWorkflow()
+      uiStore.showToast('Analysis started!', 'success')
+    } catch (error: any) {
+      console.error('[AISearchBar] Workflow execution failed:', error)
+      uiStore.showToast(`Analysis failed: ${error.message}`, 'error')
+    }
+  } catch (error: any) {
+    console.error('[AISearchBar] Failed to create workflow:', error)
+    uiStore.showToast(`Failed to create workflow: ${error.message}`, 'error')
+  }
 }
+
 
 function clearSearch() {
   searchQuery.value = ''
@@ -598,6 +678,36 @@ watch([showDropdown, showPostBrowser], ([dropdownOpen, modalOpen]) => {
     }, 0)
   } else {
     document.removeEventListener('click', handleClickOutside)
+  }
+})
+
+// Pre-populate search bar from URL query parameter
+onMounted(async () => {
+  const queryParam = route.query.q as string | undefined
+  
+  if (queryParam && queryParam.trim()) {
+    console.log('[AISearchBar] Pre-populating search from URL query:', queryParam)
+    
+    // Set the search query
+    searchQuery.value = queryParam.trim()
+    
+    // Wait for component to be fully rendered
+    await nextTick()
+    
+    // Auto-trigger intent analysis (like user typed it)
+    if (searchQuery.value.length >= 2) {
+      showDropdown.value = true
+      await analyzeIntent()
+    }
+    
+    // Clean URL by removing query parameter (optional - keeps URL clean)
+    // This prevents the query param from staying in the URL after processing
+    const newQuery = { ...route.query }
+    delete newQuery.q
+    router.replace({ 
+      path: route.path,
+      query: newQuery
+    })
   }
 })
 </script>

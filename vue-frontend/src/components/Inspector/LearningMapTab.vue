@@ -147,6 +147,18 @@ function handleLogin() {
 }
 
 function getReportSummary(report: any) {
+  const reportType = report.result?.type || 'batch'
+
+  // Handle single analysis reports
+  if (reportType === 'single') {
+    const company = report.result?.overview?.company || report.result?.company || 'Unknown Company'
+    const role = report.result?.overview?.role || report.result?.role
+    return role
+      ? `Single Analysis (${company} - ${role})`
+      : `Single Analysis (${company})`
+  }
+
+  // Handle batch reports
   // Extract from individual_analyses (user's actual analyzed posts)
   if (report.result?.individual_analyses && Array.isArray(report.result.individual_analyses)) {
     const companies = [...new Set(
@@ -164,36 +176,34 @@ function getReportSummary(report: any) {
     }
   }
 
-  // Fallback
-  return `Batch Report - ${report.result?.foundation?.total_posts_analyzed || 0} posts`
+  // Fallback: Try similar_posts length (RAG posts)
+  if (report.result?.similar_posts && Array.isArray(report.result.similar_posts)) {
+    const postsCount = report.result.similar_posts.length
+    if (postsCount > 0) {
+      return `Batch Report - ${postsCount} posts`
+    }
+  }
+
+  // Last fallback
+  return 'Batch Report - 0 posts'
 }
 </script>
 
 <template>
   <div class="learning-map-tab">
     <template v-if="isAuthenticated">
-      <!-- Header -->
+      <!-- Header with inline RAG status -->
       <div class="tab-header">
         <div class="header-content">
           <Network :size="20" />
           <h3 class="tab-title">Generate Learning Map</h3>
         </div>
-      </div>
-
-      <!-- RAG Status Indicator -->
-      <div class="rag-status">
-        <div class="status-indicator" :class="{ 'active': ragStatus.enabled }">
-          <div class="status-dot"></div>
-          <span class="status-label">RAG {{ ragStatus.enabled ? 'Enabled' : 'Disabled' }}</span>
+        <div class="header-status">
+          <span class="rag-badge" :class="{ 'active': ragStatus.enabled }">
+            <span class="rag-dot"></span>
+            RAG {{ ragStatus.coverage }}%
+          </span>
         </div>
-        <span class="coverage-badge">{{ ragStatus.coverage }}% Coverage</span>
-      </div>
-
-      <!-- Instructions -->
-      <div class="instructions">
-        <p class="instruction-text">
-          Select one analysis report to generate a personalized learning map
-        </p>
       </div>
 
       <!-- Report Selection Section -->
@@ -228,7 +238,7 @@ function getReportSummary(report: any) {
         </div>
       </div>
 
-      <!-- Generate Button -->
+      <!-- Generate Button (Sticky Footer) -->
       <div class="generate-section">
         <button
           @click="handleGenerateLearningMap"
@@ -240,10 +250,6 @@ function getReportSummary(report: any) {
           <span v-if="learningMapStore.isGenerating">Generating...</span>
           <span v-else>Generate Learning Map</span>
         </button>
-
-        <p v-if="selectedReportIds.length !== 1" class="help-text">
-          Select exactly one report to generate a learning map
-        </p>
       </div>
     </template>
 
@@ -259,13 +265,15 @@ function getReportSummary(report: any) {
 
 <style scoped>
 .learning-map-tab {
-  @apply flex flex-col h-full overflow-y-auto;
+  @apply flex flex-col h-full;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  overflow: hidden; /* Prevent outer scrolling */
 }
 
-/* Header */
+/* Header with inline RAG status */
 .tab-header {
-  @apply p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900;
+  @apply flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900;
+  flex-shrink: 0;
 }
 
 .header-content {
@@ -276,43 +284,26 @@ function getReportSummary(report: any) {
   @apply text-base font-semibold text-gray-900 dark:text-gray-100;
 }
 
-/* RAG Status Indicator */
-.rag-status {
-  @apply flex items-center justify-between px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800;
+.header-status {
+  @apply flex items-center;
 }
 
-.status-indicator {
-  @apply flex items-center gap-2;
+.rag-badge {
+  @apply flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400;
 }
 
-.status-dot {
-  @apply w-2 h-2 rounded-full bg-gray-400;
+.rag-dot {
+  @apply w-1.5 h-1.5 rounded-full bg-gray-400;
 }
 
-.status-indicator.active .status-dot {
-  @apply bg-green-500 animate-pulse;
+.rag-badge.active .rag-dot {
+  @apply bg-green-500;
 }
 
-.status-label {
-  @apply text-sm font-medium text-gray-700 dark:text-gray-300;
-}
-
-.coverage-badge {
-  @apply px-2 py-1 text-xs font-semibold bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 rounded;
-}
-
-/* Instructions */
-.instructions {
-  @apply px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700;
-}
-
-.instruction-text {
-  @apply text-sm text-gray-600 dark:text-gray-400;
-}
-
-/* Reports Section */
+/* Reports Section - Scrollable */
 .reports-section {
   @apply flex-1 overflow-y-auto p-4;
+  min-height: 0; /* Critical for flex scrolling */
 }
 
 /* Empty State */
@@ -373,9 +364,10 @@ function getReportSummary(report: any) {
   @apply text-xs text-gray-500 dark:text-gray-400;
 }
 
-/* Generate Section */
+/* Generate Section - Sticky Footer */
 .generate-section {
-  @apply p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900;
+  @apply p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800;
+  flex-shrink: 0; /* Prevent shrinking, keep at bottom */
 }
 
 .generate-btn {
@@ -388,10 +380,6 @@ function getReportSummary(report: any) {
 
 .generate-btn.generating {
   @apply bg-blue-500 cursor-wait;
-}
-
-.help-text {
-  @apply mt-2 text-xs text-center text-gray-500 dark:text-gray-400;
 }
 
 .auth-empty-state {

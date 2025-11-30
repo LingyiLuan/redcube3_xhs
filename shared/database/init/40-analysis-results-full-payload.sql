@@ -10,3 +10,4 @@ CREATE INDEX IF NOT EXISTS idx_analysis_results_full_result
   USING gin (full_result);
 
 
+

@@ -4,8 +4,8 @@
       <h2 class="description-title">What Is This Platform?</h2>
       <div class="description-content">
         <p class="description-text">
-          We transform thousands of real interview experiences from Reddit and LeetCode into
-          actionable career intelligence. Our AI-powered platform analyzes technical interview posts,
+          We transform thousands of real tech industry interview experiences from Reddit and LeetCode into
+          actionable career intelligence. Our AI-powered platform analyzes technical interview posts across all tech roles,
           extracts patterns, and generates personalized learning roadmaps tailored to your target role
           and company.
         </p>

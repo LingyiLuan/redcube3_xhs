@@ -1,97 +1,150 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { FileBarChart, Clock, CheckCircle, Trash2, Eye } from 'lucide-vue-next'
+import { FileBarChart, Clock } from 'lucide-vue-next'
 import AuthEmptyState from '@/components/common/AuthEmptyState.vue'
 import { useReportsStore } from '@/stores/reportsStore'
 import { useUIStore } from '@/stores/uiStore'
-import { useResultsPanelStore } from '@/stores/resultsPanelStore'
 import { useAuthStore } from '@/stores/authStore'
-import { useEventBus } from '@/utils/eventBus'
+import {
+  getReportCompany,
+  getReportRole,
+  formatReportDate
+} from '@/utils/reportHelpers'
+import type { AnalysisReport } from '@/types/reports'
 
 const reportsStore = useReportsStore()
 const uiStore = useUIStore()
-const resultsPanelStore = useResultsPanelStore()
 const authStore = useAuthStore()
-const eventBus = useEventBus()
 
-const sortedReports = computed(() => reportsStore.sortedReports)
 const isAuthenticated = computed(() => !!authStore.userId)
+const sortedReports = computed(() => reportsStore.sortedReports)
+const unreadCount = computed(() => reportsStore.unreadReportsCount)
 
-function handleViewReport(reportId: string) {
-  // Open the ResultsPanel with this report
-  resultsPanelStore.openReport(reportId)
-  // Mark as read
+// Filter counts
+const allCount = computed(() => sortedReports.value.length)
+const unreadReports = computed(() => sortedReports.value.filter(r => !r.isRead))
+const batchReports = computed(() => sortedReports.value.filter(r => r.result?.type === 'batch'))
+const singleReports = computed(() => sortedReports.value.filter(r => r.result?.type === 'single'))
+
+// Recent reports (last 5)
+const recentReports = computed(() => sortedReports.value.slice(0, 5))
+
+// Stats
+const thisWeekCount = computed(() => {
+  const oneWeekAgo = new Date()
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+  return sortedReports.value.filter(r => new Date(r.timestamp) >= oneWeekAgo).length
+})
+
+// Current filter
+const currentFilter = computed(() => uiStore.reportFilter)
+
+function handleFilterClick(filter: 'all' | 'unread' | 'batch' | 'single') {
+  uiStore.setReportFilter(filter)
+  uiStore.showReportsList()
+}
+
+function handleRecentReportClick(reportId: string) {
+  uiStore.showReportDetail(reportId)
   reportsStore.markAsRead(reportId)
 }
 
-function handleDeleteReport(reportId: string) {
-  if (confirm('Delete this report?')) {
-    reportsStore.deleteReport(reportId)
-    uiStore.showToast('Report deleted', 'info')
-  }
-}
+function formatRelativeTime(timestamp: Date | string): string {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffHours / 24)
 
-function formatDate(timestamp: Date | string) {
-  return new Date(timestamp).toLocaleString()
+  if (diffHours < 1) {
+    const diffMins = Math.floor(diffMs / (1000 * 60))
+    return diffMins < 1 ? 'Just now' : `${diffMins}m ago`
+  } else if (diffHours < 24) {
+    return `${diffHours}h ago`
+  } else if (diffDays === 1) {
+    return '1d ago'
+  } else if (diffDays < 7) {
+    return `${diffDays}d ago`
+  } else {
+    return formatReportDate(timestamp)
+  }
 }
 </script>
 
 <template>
   <div class="reports-tab">
     <template v-if="isAuthenticated">
-      <!-- Reports List -->
-      <div class="reports-list">
-        <!-- Header -->
-        <div class="reports-header">
-          <h3 class="reports-title">Analysis Reports</h3>
+      <!-- Header -->
+      <div class="reports-header">
+        <h3 class="reports-title">Analysis Reports</h3>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-section">
+        <button
+          :class="['filter-btn', { active: currentFilter === 'all' }]"
+          @click="handleFilterClick('all')"
+        >
+          All Reports
+          <span class="filter-count">({{ allCount }})</span>
+        </button>
+        <button
+          :class="['filter-btn', { active: currentFilter === 'unread' }]"
+          @click="handleFilterClick('unread')"
+        >
+          Unread
+          <span class="filter-count">({{ unreadCount }})</span>
+        </button>
+        <button
+          :class="['filter-btn', { active: currentFilter === 'batch' }]"
+          @click="handleFilterClick('batch')"
+        >
+          Batch
+          <span class="filter-count">({{ batchReports.length }})</span>
+        </button>
+        <button
+          :class="['filter-btn', { active: currentFilter === 'single' }]"
+          @click="handleFilterClick('single')"
+        >
+          Single
+          <span class="filter-count">({{ singleReports.length }})</span>
+        </button>
+      </div>
+
+      <!-- Recent Reports -->
+      <div v-if="recentReports.length > 0" class="recent-section">
+        <h4 class="section-title">Recent</h4>
+        <div class="recent-list">
           <button
-            v-if="sortedReports.length > 0"
-            @click="reportsStore.markAllAsRead"
-            class="mark-all-read-btn"
+            v-for="report in recentReports"
+            :key="report.id"
+            class="recent-item"
+            @click="handleRecentReportClick(report.id)"
           >
-            <CheckCircle :size="16" />
-            Mark All Read
+            <div class="recent-item-content">
+              <p class="recent-company">{{ getReportCompany(report) }}</p>
+              <p class="recent-role">{{ getReportRole(report) }}</p>
+            </div>
+            <span class="recent-time">{{ formatRelativeTime(report.timestamp) }}</span>
           </button>
         </div>
+      </div>
 
-        <!-- Empty State -->
-        <div v-if="sortedReports.length === 0" class="empty-state">
-          <FileBarChart :size="48" class="empty-icon" />
-          <h4 class="empty-title">No Reports Yet</h4>
-          <p class="empty-description">
-            Analyze a node to generate your first report
-          </p>
-        </div>
-
-        <!-- Reports List -->
-        <div v-else class="reports-items">
-          <div
-            v-for="report in sortedReports"
-            :key="report.id"
-            :class="['report-card', { unread: !report.isRead }]"
-          >
-            <div class="report-card-header">
-              <div class="report-badge" :class="{ 'badge-unread': !report.isRead }">
-                <FileBarChart :size="16" />
-              </div>
-              <div class="report-meta">
-                <p class="report-node-label">Node: {{ report.nodeId }}</p>
-                <p class="report-time">
-                  <Clock :size="14" />
-                  {{ formatDate(report.timestamp) }}
-                </p>
-              </div>
-            </div>
-
-            <div class="report-card-actions">
-              <button @click="handleViewReport(report.id)" class="view-btn">
-                <Eye :size="16" />
-                View
-              </button>
-              <button @click="handleDeleteReport(report.id)" class="delete-btn">
-                <Trash2 :size="16" />
-              </button>
-            </div>
+      <!-- Stats -->
+      <div class="stats-section">
+        <h4 class="section-title">Stats</h4>
+        <div class="stats-list">
+          <div class="stat-item">
+            <span class="stat-label">Total:</span>
+            <span class="stat-value">{{ allCount }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Unread:</span>
+            <span class="stat-value">{{ unreadCount }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">This week:</span>
+            <span class="stat-value">{{ thisWeekCount }}</span>
           </div>
         </div>
       </div>
@@ -112,118 +165,119 @@ function formatDate(timestamp: Date | string) {
   @apply flex flex-col h-full;
 }
 
-/* Active Report View */
-.active-report-view {
-  @apply flex flex-col h-full;
-}
-
-.report-header {
-  @apply flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900;
-}
-
-.report-header-content {
-  @apply flex items-center gap-3;
-}
-
-.report-title {
-  @apply text-base font-semibold text-gray-900 dark:text-gray-100;
-}
-
-.report-timestamp {
-  @apply text-xs text-gray-500 dark:text-gray-400;
-}
-
-.close-report-btn {
-  @apply px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded transition-colors;
-}
-
-.report-content {
-  @apply flex-1 overflow-y-auto p-4;
-}
-
-/* Reports List */
-.reports-list {
-  @apply flex flex-col h-full;
-}
-
+/* Header */
 .reports-header {
-  @apply flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900;
+  @apply flex items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900;
+  flex-shrink: 0;
 }
 
 .reports-title {
   @apply text-base font-semibold text-gray-900 dark:text-gray-100;
 }
 
-.mark-all-read-btn {
-  @apply flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors;
+/* Filters Section */
+.filters-section {
+  @apply flex flex-col p-4 border-b border-gray-200 dark:border-gray-700;
+  flex-shrink: 0;
+  gap: 4px;
 }
 
-/* Empty State */
-.empty-state {
-  @apply flex flex-col items-center justify-center p-8 text-center min-h-[300px];
+.filter-btn {
+  @apply flex items-center justify-between px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 rounded transition-all;
+  font-family: 'Inter', sans-serif;
+  background: transparent;
+  border: none;
+  cursor: pointer;
 }
 
-.empty-icon {
-  @apply text-gray-400 dark:text-gray-600 mb-3;
+.filter-btn:hover {
+  @apply bg-gray-100 dark:bg-gray-800;
 }
 
-.empty-title {
-  @apply text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2;
+.filter-btn.active {
+  @apply bg-gray-200 dark:bg-gray-700 font-semibold text-gray-900 dark:text-gray-100;
 }
 
-.empty-description {
-  @apply text-sm text-gray-600 dark:text-gray-400;
+.filter-count {
+  @apply text-xs text-gray-500 dark:text-gray-400;
 }
 
-/* Reports Items */
-.reports-items {
-  @apply flex-1 overflow-y-auto p-4 space-y-3;
+.filter-btn.active .filter-count {
+  @apply text-gray-700 dark:text-gray-300;
 }
 
-.report-card {
-  @apply p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow;
+/* Recent Section */
+.recent-section {
+  @apply flex flex-col p-4 border-b border-gray-200 dark:border-gray-700;
+  flex-shrink: 0;
 }
 
-.report-card.unread {
-  @apply border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20;
+.section-title {
+  @apply text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3;
+  font-family: 'Inter', sans-serif;
 }
 
-.report-card-header {
-  @apply flex items-start gap-3 mb-3;
+.recent-list {
+  @apply flex flex-col gap-2;
 }
 
-.report-badge {
-  @apply flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400;
+.recent-item {
+  @apply flex items-center justify-between px-2 py-1.5 rounded transition-all;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
 }
 
-.badge-unread {
-  @apply bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400;
+.recent-item:hover {
+  @apply bg-gray-100 dark:bg-gray-800;
 }
 
-.report-meta {
-  @apply flex-1;
+.recent-item-content {
+  @apply flex flex-col gap-0.5 flex-1 min-w-0;
 }
 
-.report-node-label {
-  @apply text-sm font-medium text-gray-900 dark:text-gray-100 mb-1;
+.recent-company {
+  @apply text-sm font-medium text-gray-900 dark:text-gray-100 truncate;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
 }
 
-.report-time {
-  @apply flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400;
+.recent-role {
+  @apply text-xs text-gray-600 dark:text-gray-400 truncate;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
 }
 
-.report-card-actions {
-  @apply flex items-center gap-2;
+.recent-time {
+  @apply text-xs text-gray-500 dark:text-gray-500 ml-2 flex-shrink-0;
+  font-family: 'Inter', sans-serif;
 }
 
-.view-btn {
-  @apply flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors;
+/* Stats Section */
+.stats-section {
+  @apply flex flex-col p-4;
+  flex-shrink: 0;
 }
 
-.delete-btn {
-  @apply flex items-center justify-center p-1.5 bg-red-500 hover:bg-red-600 text-white rounded transition-colors;
+.stats-list {
+  @apply flex flex-col gap-2;
 }
 
+.stat-item {
+  @apply flex items-center justify-between text-sm;
+  font-family: 'Inter', sans-serif;
+}
+
+.stat-label {
+  @apply text-gray-600 dark:text-gray-400;
+}
+
+.stat-value {
+  @apply font-semibold text-gray-900 dark:text-gray-100;
+}
+
+/* Auth Empty State */
 .auth-empty-state {
   @apply flex flex-col items-center justify-center p-8 text-center gap-4 h-full border border-dashed border-gray-300 dark:border-gray-700 rounded-lg mx-4 my-6;
 }

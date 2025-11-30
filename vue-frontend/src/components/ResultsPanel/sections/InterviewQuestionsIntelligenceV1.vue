@@ -25,8 +25,9 @@
           <button
             @click="switchTab('question-bank')"
             :class="{ active: activeTab === 'question-bank' }"
-            class="tab-btn">
+            class="tab-btn tab-btn-question-bank">
             Question Bank
+            <span v-if="fullQuestionBank.length > 0" class="tab-badge">{{ fullQuestionBank.length }}</span>
           </button>
         </div>
 
@@ -1113,7 +1114,7 @@ function getDifficultyStars(difficulty: string): string {
 
 .tab-btn {
   padding: 10px 20px;
-  background: transparent;
+  background: #F9FAFB;
   border: none;
   border-bottom: 3px solid transparent;
   color: #6B7280;
@@ -1123,17 +1124,52 @@ function getDifficultyStars(difficulty: string): string {
   transition: all 0.2s ease;
   position: relative;
   bottom: -2px;
+  border-radius: 6px 6px 0 0;
 }
 
 .tab-btn:hover {
-  color: var(--color-navy);
+  color: #374151;
   background: #F3F4F6;
 }
 
 .tab-btn.active {
   color: var(--color-navy);
   border-bottom-color: var(--color-navy);
-  background: transparent;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-bottom: 3px solid var(--color-navy);
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.02);
+}
+
+/* Question Bank Tab - Subtle Differentiation */
+.tab-btn-question-bank {
+  position: relative;
+}
+
+.tab-btn-question-bank:not(.active) {
+  border-left: 2px solid var(--color-navy);
+  padding-left: 18px;
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--color-navy);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 10px;
+  margin-left: 8px;
+  font-family: 'Inter', sans-serif;
+}
+
+.tab-btn-question-bank.active .tab-badge {
+  background: var(--color-navy);
+  color: #FFFFFF;
 }
 
 /* Tab Content */

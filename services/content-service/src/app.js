@@ -26,9 +26,19 @@ if (process.env.ENABLE_SCHEDULER !== 'false') {
 app.use(helmet());
 
 // CORS configuration
+// Must use specific origins (not wildcard) when credentials: true
+// Browser blocks wildcard '*' with credentials for security
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  credentials: true
+  origin: [
+    'http://localhost:8080', // API Gateway / Production frontend
+    'http://localhost:5173', // Vue dev server
+    'http://localhost:3001', // Container frontend (legacy)
+    'http://localhost:3002', // Local dev frontend (legacy)
+    process.env.FRONTEND_URL || 'https://labzero.io' // Production frontend
+  ].filter(Boolean),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
 
 // Body parsing middleware

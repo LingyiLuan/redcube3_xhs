@@ -31,3 +31,4 @@ CREATE TRIGGER trg_user_workflows_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_user_workflows_updated_at();
 
+

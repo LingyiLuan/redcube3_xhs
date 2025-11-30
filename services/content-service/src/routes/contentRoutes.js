@@ -179,7 +179,7 @@ router.post('/analyze/batch', optionalAuth, checkUsageLimit('batch_analysis'), r
 router.get('/batch/report/:batchId', getCachedBatchReport);
 
 // Data retrieval endpoints
-router.get('/history', getHistory);
+router.get('/history', requireAuth, getHistory);  // ✅ SECURITY FIX: Require authentication
 router.get('/single-analysis/history', optionalAuth, getSingleAnalysisHistory);  // Get single analysis history for user
 router.get('/analytics', getAnalytics);
 
@@ -191,8 +191,8 @@ router.get('/trends/recommendations', getRecommendations);
 // Learning map endpoints
 router.post('/learning-map', checkUsageLimit('learning_map'), recordUsage('learning_map'), generateLearningMap);
 router.post('/learning-map/backfill-resources', backfillResources);
-router.get('/learning-map/:mapId', getLearningMap);
-router.get('/learning-maps/history', getLearningMapsHistory);
+router.get('/learning-map/:mapId', requireAuth, getLearningMap);  // ✅ SECURITY FIX: Require authentication
+router.get('/learning-maps/history', requireAuth, getLearningMapsHistory);  // ✅ SECURITY FIX: Require authentication
 router.get('/learning-recommendations', getLearningRecommendations);
 router.put('/learning-map/:mapId/progress', updateMapProgress);
 router.put('/learning-map/:mapId/status', updateMapStatus);

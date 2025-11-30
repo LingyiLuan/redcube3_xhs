@@ -5,7 +5,11 @@
     <div class="page-container">
       <!-- Header Section -->
       <header class="page-header">
-        <h1 class="page-title">INTERVIEW INTEL</h1>
+        <h1 class="page-title">
+          <span class="title-text">
+            <span class="title-lab">Lab</span><span class="title-zero">Zero</span>
+          </span>
+        </h1>
         <p class="page-subtitle">Share your interview experiences and learn from others' journeys</p>
       </header>
 
@@ -43,6 +47,7 @@
         <ExperienceBrowser
           v-if="activeTab === 'browse'"
           @view-experience="viewExperience"
+          @go-to-share="activeTab = 'share'"
         />
         <ShareExperienceForm
           v-else-if="activeTab === 'share'"
@@ -124,8 +129,19 @@ function handleExperienceCreated(experience) {
   font-size: 48px;
   font-weight: 700;
   letter-spacing: 2px;
-  color: #000000;
   margin: 0 0 16px 0;
+}
+
+.title-text {
+  display: inline-block;
+}
+
+.title-lab {
+  color: #000000;
+}
+
+.title-zero {
+  color: #1E3A8A;
 }
 
 .page-subtitle {

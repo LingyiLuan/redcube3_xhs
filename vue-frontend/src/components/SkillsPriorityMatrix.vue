@@ -257,13 +257,13 @@
               <td class="col-demand">
                 <div class="bar-container">
                   <div class="bar bar-demand" :style="{ width: `${skill.demand}%` }"></div>
-                  <span class="bar-label">{{ skill.demand }}%</span>
+                  <span class="bar-label">{{ typeof skill.demand === 'number' ? skill.demand.toFixed(1) : skill.demand }}%</span>
                 </div>
               </td>
               <td class="col-impact">
                 <div class="bar-container">
                   <div class="bar bar-impact" :style="{ width: `${skill.impact}%` }"></div>
-                  <span class="bar-label">{{ skill.impact }}%</span>
+                  <span class="bar-label">{{ typeof skill.impact === 'number' ? skill.impact.toFixed(1) : skill.impact }}%</span>
                 </div>
               </td>
               <td class="col-priority">

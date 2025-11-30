@@ -92,9 +92,9 @@ watch(() => props.modelValue, () => {
 .input-field {
   flex: 1;
   min-width: 0;
-  min-height: 48px;
+  min-height: 40px;
   max-height: 200px;
-  padding: 12px 16px;
+  padding: 8px 12px;
   border: 1px solid #E5E7EB;
   border-radius: 12px;
   font-size: 14px;
@@ -123,8 +123,8 @@ watch(() => props.modelValue, () => {
 }
 
 .send-btn {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
   border: none;
   border-radius: 12px;

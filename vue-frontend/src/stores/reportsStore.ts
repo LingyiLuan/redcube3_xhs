@@ -254,10 +254,15 @@ export const useReportsStore = defineStore('reports', () => {
     console.log('[ReportsStore] Fetching reports from backend for user:', authStore.userId)
 
     try {
+      // ✅ SECURITY FIX: Remove userId from query params - backend uses authenticated session
       // Fetch BOTH batch and single analyses in parallel
       const [batchResponse, singleResponse] = await Promise.all([
-        fetch(`/api/content/history?userId=${authStore.userId}&limit=100`),
-        fetch(`/api/content/single-analysis/history?userId=${authStore.userId}&limit=100`)
+        fetch(`/api/content/history?limit=100`, {
+          credentials: 'include'  // Sends session cookie
+        }),
+        fetch(`/api/content/single-analysis/history?userId=${authStore.userId}&limit=100`, {
+          credentials: 'include'  // Sends session cookie
+        })
       ])
 
       if (!batchResponse.ok) {

@@ -16,6 +16,12 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0', // Allow external connections
+    allowedHosts: [
+      'labzero.io',
+      'www.labzero.io',
+      'localhost'
+    ],
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

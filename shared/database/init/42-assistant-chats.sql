@@ -40,3 +40,4 @@ CREATE TRIGGER trg_assistant_conversations_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_assistant_conversations_updated_at();
 
+

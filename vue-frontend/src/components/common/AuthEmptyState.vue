@@ -8,7 +8,7 @@
 </template>
 
 <script setup lang="ts">
-import { useEventBus } from '@/utils/eventBus'
+import { useRouter, useRoute } from 'vue-router'
 
 defineProps<{
   icon: any
@@ -16,10 +16,16 @@ defineProps<{
   description: string
 }>()
 
-const eventBus = useEventBus()
+const router = useRouter()
+const route = useRoute()
 
 function handleLogin() {
-  eventBus.emit('open-login-modal', { returnUrl: '/workflow' })
+  // Navigate to industrial login page with returnUrl
+  const returnUrl = route.path || '/workflow'
+  router.push({
+    path: '/login',
+    query: { returnUrl }
+  })
 }
 </script>
 

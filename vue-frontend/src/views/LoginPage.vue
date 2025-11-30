@@ -81,10 +81,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const email = ref('')
@@ -92,12 +93,19 @@ const password = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
 
+// Get returnUrl from query parameter, default to /workflow
+const getReturnUrl = () => {
+  const returnUrl = route.query.returnUrl as string | undefined
+  return returnUrl || '/workflow'
+}
+
 async function handleGoogleLogin() {
   isLoading.value = true
   errorMessage.value = ''
 
   try {
-    await authStore.loginWithGoogle()
+    const returnUrl = getReturnUrl()
+    await authStore.loginWithGoogle(returnUrl)
     // User will be redirected to Google OAuth
   } catch (error: any) {
     console.error('[LoginPage] Google login failed:', error)
@@ -112,8 +120,9 @@ async function handleEmailLogin() {
 
   try {
     await authStore.loginWithEmail(email.value, password.value)
-    console.log('[LoginPage] Login successful, redirecting to landing page')
-    router.push({ name: 'landing' })
+    console.log('[LoginPage] Login successful, redirecting to returnUrl')
+    const returnUrl = getReturnUrl()
+    router.push(returnUrl)
   } catch (error: any) {
     console.error('[LoginPage] Email login failed:', error)
     errorMessage.value = error.message || 'Failed to sign in'

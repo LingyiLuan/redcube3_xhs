@@ -14,7 +14,25 @@ import {
 const reportsStore = useReportsStore()
 const uiStore = useUIStore()
 
-const sortedReports = computed(() => reportsStore.sortedReports)
+// Filter reports based on current filter
+const filteredReports = computed(() => {
+  const allReports = reportsStore.sortedReports
+  const filter = uiStore.reportFilter
+
+  switch (filter) {
+    case 'unread':
+      return allReports.filter(r => !r.isRead)
+    case 'batch':
+      return allReports.filter(r => r.result?.type === 'batch')
+    case 'single':
+      return allReports.filter(r => r.result?.type === 'single')
+    case 'all':
+    default:
+      return allReports
+  }
+})
+
+const sortedReports = computed(() => filteredReports.value)
 
 function handleViewReport(reportId: string) {
   uiStore.showReportDetail(reportId)

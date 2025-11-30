@@ -3,7 +3,9 @@
     <div class="nav-container">
       <!-- Logo -->
       <router-link to="/" class="nav-logo">
-        INTERVIEW INTEL
+        <span class="logo-text">
+          <span class="logo-lab">Lab</span><span class="logo-zero">Zero</span>
+        </span>
         <span class="beta-badge">BETA</span>
       </router-link>
 
@@ -54,13 +56,11 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useReportsStore } from '@/stores/reportsStore'
 import { useLearningMapStore } from '@/stores/learningMapStore'
-import { useEventBus } from '@/utils/eventBus'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const reportsStore = useReportsStore()
 const learningMapStore = useLearningMapStore()
-const eventBus = useEventBus()
 const isDropdownOpen = ref(false)
 
 const userInitial = computed(() => {
@@ -96,7 +96,7 @@ onUnmounted(() => {
 })
 
 function handleSignIn() {
-  eventBus.emit('open-login-modal')
+  router.push('/login')
 }
 
 async function handleLogout() {
@@ -134,7 +134,6 @@ async function handleLogout() {
   font-family: 'Space Grotesk', 'Inter', sans-serif;
   font-size: 18px;
   font-weight: 700;
-  color: #000000;
   letter-spacing: 0.5px;
   text-decoration: none;
   cursor: pointer;
@@ -142,6 +141,18 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.logo-text {
+  display: inline-block;
+}
+
+.logo-lab {
+  color: #000000;
+}
+
+.logo-zero {
+  color: #1E3A8A;
 }
 
 .nav-logo:hover {

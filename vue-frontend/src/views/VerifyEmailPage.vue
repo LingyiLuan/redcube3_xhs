@@ -12,7 +12,11 @@
             </svg>
             MAIN STATION
           </div>
-          <h1>INTERVIEW INTEL</h1>
+          <h1>
+            <span class="verify-logo-text">
+              <span class="verify-logo-lab">Lab</span><span class="verify-logo-zero">Zero</span>
+            </span>
+          </h1>
           <p>Email Verification</p>
         </div>
 
@@ -264,10 +268,20 @@ onMounted(() => {
 .verify-email-header h1 {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--industrial-text-primary);
   margin: 0 0 0.5rem;
-  text-transform: uppercase;
   letter-spacing: -0.02em;
+}
+
+.verify-logo-text {
+  display: inline-block;
+}
+
+.verify-logo-lab {
+  color: var(--industrial-text-primary);
+}
+
+.verify-logo-zero {
+  color: #1E3A8A;
 }
 
 .verify-email-header p {

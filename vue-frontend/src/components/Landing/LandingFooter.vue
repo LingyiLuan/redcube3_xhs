@@ -6,9 +6,12 @@
         <div class="footer-content">
           <!-- Logo Column -->
           <div class="footer-col footer-col-logo">
-            <div class="footer-logo">INTERVIEW INTEL</div>
-            <p class="footer-tagline">Built for serious interview prep</p>
-            <p class="footer-copyright">© 2025 Interview Intel. All rights reserved.</p>
+            <div class="footer-logo">
+              <span class="footer-logo-text">
+                <span class="footer-logo-lab">Lab</span><span class="footer-logo-zero">Zero</span>
+              </span>
+            </div>
+            <p class="footer-copyright">© 2025 LabZero. All rights reserved.</p>
           </div>
 
           <!-- Product Column -->
@@ -32,7 +35,7 @@
           <!-- Support Column -->
           <div class="footer-col">
             <h4 class="footer-heading">SUPPORT</h4>
-            <a href="mailto:contact@redcube.dev" class="footer-link">Contact Us</a>
+            <a href="mailto:lingyi.luan01@gmail.com" class="footer-link">Contact Us</a>
             <a href="/status" class="footer-link">Status Page</a>
             <a href="/bugs" class="footer-link">Bug Reports</a>
             <a href="/feature-requests" class="footer-link">Feature Requests</a>
@@ -95,8 +98,19 @@
   font-family: 'Space Grotesk', 'Inter', sans-serif;
   font-size: 20px;
   font-weight: 700;
-  color: #FFFFFF;
   margin-bottom: 4px;
+}
+
+.footer-logo-text {
+  display: inline-block;
+}
+
+.footer-logo-lab {
+  color: #FFFFFF;
+}
+
+.footer-logo-zero {
+  color: #1E3A8A;
 }
 
 .footer-tagline {

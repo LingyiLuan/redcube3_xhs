@@ -229,7 +229,8 @@ const topSkillCombinations = computed(() => {
       id: `combo-${idx}`,
       skill1: pair.skill1 || pair.skills?.[0] || 'Unknown',
       skill2: pair.skill2 || pair.skills?.[1] || 'Unknown',
-      frequency: Math.round(pair.frequency || pair.co_occurrence || 0),
+      // ✅ FIX: Only use frequency (percentage), never co_occurrence (count) as percentage
+      frequency: typeof pair.frequency === 'number' ? Math.round(pair.frequency) : 0,
       successRate: Math.round(pair.success_rate || pair.successRate || 0)
     }))
   }

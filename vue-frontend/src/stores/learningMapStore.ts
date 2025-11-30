@@ -104,9 +104,11 @@ export const useLearningMapStore = defineStore('learningMap', () => {
     console.log('[LearningMapStore] Fetching learning maps for user:', authStore.userId)
 
     try {
-      const response = await fetch(`/api/content/learning-maps/history?userId=${authStore.userId}&limit=100`, {
+      // ✅ SECURITY FIX: Remove userId from query params - backend uses authenticated session
+      const response = await fetch(`/api/content/learning-maps/history?limit=100`, {
+        credentials: 'include',  // Sends session cookie
         headers: {
-          'Authorization': `Bearer ${authStore.token}`
+          'Content-Type': 'application/json'
         }
       })
 

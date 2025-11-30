@@ -462,7 +462,8 @@ async function saveScrapedData(scrapedPosts) {
   }
 
   // AUTOMATIC LLM EXTRACTION: Process all newly saved is_relevant=true posts
-  await processRelevantPostsWithLLM();
+  // DISABLED: Commented out to prevent automatic LLM extraction (can be manually reactivated later)
+  // await processRelevantPostsWithLLM();
 
   return savedCount;
 }
