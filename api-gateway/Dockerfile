@@ -12,5 +12,6 @@ ENV PORT=80
 EXPOSE 80
 
 # Use envsubst to substitute PORT variable and start nginx
-# envsubst without specifying variables will substitute all ${VAR} patterns
+# $$ in nginx.conf becomes $ after envsubst ($$ escapes to $)
+# Only ${PORT} will be substituted, nginx variables like $$host will become $host
 CMD ["/bin/sh", "-c", "envsubst < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]
