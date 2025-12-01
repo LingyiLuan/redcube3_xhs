@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-# Railway uses repo root as build context, so use full path
+# Railway uses repo root as build context, so use full path from repo root
 COPY services/ner-service/requirements.txt .
 
 # Install Python dependencies

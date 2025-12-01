@@ -3,7 +3,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install dependencies
-# Railway uses repo root as build context, so use full path
+# Railway uses repo root as build context, so use full path from repo root
 COPY services/embedding-server/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
