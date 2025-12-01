@@ -6,6 +6,8 @@ const cookieParser = require('cookie-parser');
 const passport = require('./config/passport');
 const authRoutes = require('./routes/authRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
+const redis = require('redis');
+const RedisStore = require('connect-redis').default;
 
 require('dotenv').config();
 
@@ -49,12 +51,68 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Redis client for session store (production-ready)
+let redisClient = null;
+let sessionStore = null;
+
+// Initialize Redis client for session storage
+if (process.env.REDIS_URL) {
+  try {
+    redisClient = redis.createClient({
+      url: process.env.REDIS_URL,
+      socket: {
+        reconnectStrategy: (retries) => {
+          if (retries > 10) {
+            console.error('[Session] Redis reconnection failed after 10 retries');
+            return false; // Stop reconnecting
+          }
+          return Math.min(retries * 100, 3000); // Exponential backoff, max 3s
+        }
+      }
+    });
+
+    redisClient.on('error', (err) => {
+      console.error('[Session] Redis client error:', err);
+    });
+
+    redisClient.on('connect', () => {
+      console.log('[Session] ✅ Redis connected for session storage');
+    });
+
+    redisClient.on('ready', () => {
+      console.log('[Session] ✅ Redis ready for session storage');
+    });
+
+    // Connect Redis client (async, but we'll handle it)
+    redisClient.connect().catch((err) => {
+      console.error('[Session] ❌ Failed to connect to Redis:', err);
+      console.warn('[Session] ⚠️  Sessions will use MemoryStore until Redis connects');
+    });
+
+    // Create Redis session store
+    sessionStore = new RedisStore({
+      client: redisClient,
+      prefix: 'redcube:sess:'
+    });
+
+    console.log('[Session] ✅ Using Redis session store (production-ready)');
+  } catch (error) {
+    console.error('[Session] ❌ Failed to initialize Redis session store:', error);
+    console.warn('[Session] ⚠️  Falling back to MemoryStore (not recommended for production)');
+    redisClient = null;
+    sessionStore = null;
+  }
+} else {
+  console.warn('[Session] ⚠️  REDIS_URL not set, using MemoryStore (not recommended for production)');
+}
+
 // Session configuration
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'redcube-session-secret-change-in-production',
   resave: false,
   saveUninitialized: true, // IMPORTANT: Must be true for OAuth state to persist
   name: 'redcube.sid',
+  store: sessionStore || undefined, // Use Redis store if available, otherwise default to MemoryStore
   cookie: {
     secure: process.env.SESSION_COOKIE_SECURE === 'true', // Must be true for HTTPS
     httpOnly: true,

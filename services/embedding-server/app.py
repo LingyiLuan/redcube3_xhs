@@ -11,6 +11,7 @@ import numpy as np
 
 # Configuration
 MODEL_NAME = os.getenv('MODEL_NAME', 'BAAI/bge-small-en-v1.5')
+# Railway sets PORT automatically, fallback to 5000 for local development
 PORT = int(os.getenv('PORT', 5000))
 
 # Setup logging

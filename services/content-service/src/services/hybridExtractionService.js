@@ -13,7 +13,11 @@ const { findCompanyInText } = require('../config/companyMappings');
 const { analyzeText } = require('./aiService');
 const logger = require('../utils/logger');
 
-const NER_SERVICE_URL = process.env.NER_SERVICE_URL || 'http://ner-service:8000';
+// Use Railway internal service discovery: http://ner-service:${PORT}
+// Or use explicit URL if provided (for external services)
+// Falls back to Docker service name for local development
+const NER_SERVICE_PORT = process.env.NER_SERVICE_PORT || '8000';
+const NER_SERVICE_URL = process.env.NER_SERVICE_URL || `http://ner-service:${NER_SERVICE_PORT}`;
 const NER_TIMEOUT = 3000; // 3 seconds
 
 /**

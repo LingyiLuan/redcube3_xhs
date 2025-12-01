@@ -21,10 +21,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Load NER model from local directory (mounted from host)
-logger.info("Loading NER model from /app/models/bert-base-NER...")
-ner_pipeline = pipeline("ner", model="/app/models/bert-base-NER", aggregation_strategy="simple")
-logger.info("✅ NER model loaded successfully from local directory")
+# Load NER model - try local directory first, fallback to HuggingFace
+import os
+model_path = os.getenv('NER_MODEL_PATH', '/app/models/bert-base-NER')
+if os.path.exists(model_path):
+    logger.info(f"Loading NER model from local directory: {model_path}...")
+    ner_pipeline = pipeline("ner", model=model_path, aggregation_strategy="simple")
+    logger.info("✅ NER model loaded successfully from local directory")
+else:
+    logger.info("Local model not found, loading from HuggingFace: dslim/bert-base-NER...")
+    ner_pipeline = pipeline("ner", model="dslim/bert-base-NER", aggregation_strategy="simple")
+    logger.info("✅ NER model loaded successfully from HuggingFace")
 
 # Request/Response models
 class ExtractRequest(BaseModel):

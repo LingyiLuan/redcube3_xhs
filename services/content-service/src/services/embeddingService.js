@@ -23,7 +23,11 @@ const HF_API_URL = `https://api-inference.huggingface.co/models/${EMBEDDING_MODE
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY || 'hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
 
 // Local server (for future use)
-const LOCAL_EMBEDDING_URL = 'http://embedding-server:5000'; // Docker internal network
+// Use Railway internal service discovery: http://embedding-server:${PORT}
+// Or use explicit URL if provided (for external services)
+// Falls back to Docker service name for local development
+const EMBEDDING_SERVER_PORT = process.env.EMBEDDING_SERVICE_PORT || '5000';
+const LOCAL_EMBEDDING_URL = process.env.EMBEDDING_SERVER_URL || `http://embedding-server:${EMBEDDING_SERVER_PORT}`;
 
 // Configuration
 const BATCH_SIZE = 100; // Process 100 posts at a time

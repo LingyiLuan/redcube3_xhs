@@ -291,7 +291,10 @@ async function saveScrapedData(scrapedPosts) {
       // Step 2: Check with NER service for boost (if score is borderline)
       if (relevanceScore >= 20 && relevanceScore <= 70) {
         try {
-          const nerResponse = await axios.post('http://ner-service:8000/extract-metadata', {
+          // Use Railway internal service discovery
+          const nerServicePort = process.env.NER_SERVICE_PORT || '8000';
+          const nerServiceUrl = process.env.NER_SERVICE_URL || `http://ner-service:${nerServicePort}`;
+          const nerResponse = await axios.post(`${nerServiceUrl}/extract-metadata`, {
             text: `${post.title} ${post.bodyText || ''}`.substring(0, 2000)
           }, { timeout: 3000 });
 
