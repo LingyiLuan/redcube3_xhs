@@ -1096,7 +1096,7 @@ router.post('/forgot-password', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'If an account exists with this email, a password reset link has been sent.'
+      message: 'If an account exists with this email, a password reset link has been sent. Please check your inbox and spam folder. If you don\'t receive an email within a few minutes, the email address may not be registered with us.'
     });
 
   } catch (error) {

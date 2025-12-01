@@ -27,14 +27,15 @@
             </div>
             <h2>CHECK YOUR EMAIL</h2>
             <p class="success-message">
-              If an account exists with <strong>{{ submittedEmail }}</strong> and your account is active, a password reset link has been sent.
+              If an account exists with <strong>{{ submittedEmail }}</strong>, a password reset link has been sent.
             </p>
             <p class="info-message">
               <strong>What to do next:</strong><br>
-              • Check your inbox (and spam folder) for the reset email<br>
+              • Check your inbox and spam folder for the reset email<br>
               • Click the link in the email to reset your password<br>
               • The link will expire in 24 hours<br>
-              • If you don't receive an email, your account may be inactive or the email may not be registered
+              <br>
+              <strong>Note:</strong> For security, we send the same message whether the email exists or not. If you receive an email, your account exists. If you don't receive an email within a few minutes, check your spam folder or the email address may not be registered with us.
             </p>
             <div class="action-buttons">
               <router-link to="/login" class="primary-btn">BACK TO LOGIN</router-link>
@@ -44,7 +45,7 @@
           <!-- Form State -->
           <form v-else @submit.prevent="handleSubmit" class="forgot-password-form">
             <p class="form-description">
-              Enter your email address and we'll send you a link to reset your password.
+              Enter your email address and we'll send you a link to reset your password. For security, we'll send the same message whether the email exists or not.
             </p>
 
             <div class="form-group">

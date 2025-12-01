@@ -77,8 +77,11 @@
             </button>
 
             <!-- Helpful hint for password reset -->
-            <div v-if="errorMessage && (errorMessage.includes('reset') || errorMessage.includes('inactive') || errorMessage.includes('Google sign-in'))" class="helpful-hint">
-              <router-link to="/forgot-password" class="hint-link">
+            <div v-if="errorMessage && (errorMessage.includes('reset') || errorMessage.includes('inactive') || errorMessage.includes('Google sign-in') || errorMessage.includes('Not sure if this email'))" class="helpful-hint">
+              <router-link v-if="errorMessage.includes('Not sure if this email')" to="/forgot-password" class="hint-link">
+                Try "Forgot password" to check if your email is registered
+              </router-link>
+              <router-link v-else to="/forgot-password" class="hint-link">
                 {{ errorMessage.includes('inactive') ? 'Reset password to reactivate account' : errorMessage.includes('Google') ? 'Reset password to add one' : 'Forgot your password? Reset it here' }}
               </router-link>
             </div>
@@ -162,6 +165,8 @@ async function handleEmailLogin() {
       // Generic "invalid email or password" - show on both fields
       emailError.value = 'Invalid email or password'
       passwordError.value = 'Invalid email or password'
+      // Add helpful hint about checking if email is registered
+      errorMessage.value = 'Not sure if this email is registered? Try "Forgot password" - if you receive an email, your account exists and you may have entered the wrong password.'
       // Check if message includes hint about reset password
       if (lowerMessage.includes('reset') || lowerMessage.includes('new password')) {
         errorMessage.value = 'Did you recently reset your password? Make sure you\'re using the NEW password.'
