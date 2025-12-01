@@ -34,6 +34,11 @@
 
           <!-- Email/Password Form -->
           <form @submit.prevent="handleEmailLogin" class="login-form">
+            <!-- Generic error message at top of form -->
+            <div v-if="errorMessage" class="error-message">
+              {{ errorMessage }}
+            </div>
+
             <div class="form-group">
               <label for="email">EMAIL</label>
               <input
@@ -43,7 +48,10 @@
                 placeholder="your@email.com"
                 required
                 :disabled="isLoading"
+                :class="{ 'input-error': emailError }"
+                @input="emailError = ''; errorMessage = ''"
               />
+              <p v-if="emailError" class="field-error">{{ emailError }}</p>
             </div>
 
             <div class="form-group">
@@ -55,7 +63,10 @@
                 placeholder="••••••••"
                 required
                 :disabled="isLoading"
+                :class="{ 'input-error': passwordError }"
+                @input="passwordError = ''; errorMessage = ''"
               />
+              <p v-if="passwordError" class="field-error">{{ passwordError }}</p>
               <router-link to="/forgot-password" class="forgot-password-link">
                 Forgot password?
               </router-link>
@@ -64,11 +75,14 @@
             <button type="submit" class="email-login-btn" :disabled="isLoading">
               {{ isLoading ? 'SIGNING IN...' : 'SIGN IN WITH EMAIL' }}
             </button>
-          </form>
 
-          <div v-if="errorMessage" class="error-message">
-            {{ errorMessage }}
-          </div>
+            <!-- Helpful hint for password reset -->
+            <div v-if="errorMessage && (errorMessage.includes('reset') || errorMessage.includes('inactive') || errorMessage.includes('Google sign-in'))" class="helpful-hint">
+              <router-link to="/forgot-password" class="hint-link">
+                {{ errorMessage.includes('inactive') ? 'Reset password to reactivate account' : errorMessage.includes('Google') ? 'Reset password to add one' : 'Forgot your password? Reset it here' }}
+              </router-link>
+            </div>
+          </form>
         </div>
 
         <div class="login-footer">
@@ -92,6 +106,8 @@ const email = ref('')
 const password = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
+const emailError = ref('')
+const passwordError = ref('')
 
 // Get returnUrl from query parameter, default to /workflow
 const getReturnUrl = () => {
@@ -117,6 +133,8 @@ async function handleGoogleLogin() {
 async function handleEmailLogin() {
   isLoading.value = true
   errorMessage.value = ''
+  emailError.value = ''
+  passwordError.value = ''
 
   try {
     await authStore.loginWithEmail(email.value, password.value)
@@ -125,7 +143,42 @@ async function handleEmailLogin() {
     router.push(returnUrl)
   } catch (error: any) {
     console.error('[LoginPage] Email login failed:', error)
-    errorMessage.value = error.message || 'Failed to sign in'
+    const message = error.message || 'Invalid email or password'
+    const lowerMessage = message.toLowerCase()
+
+    // Parse error message and assign to appropriate fields
+    // Check for account inactive first
+    if (lowerMessage.includes('account is inactive') || lowerMessage.includes('inactive')) {
+      errorMessage.value = message
+      // Add link to forgot password
+      emailError.value = 'Account is inactive'
+      passwordError.value = 'Reset password to reactivate'
+    } else if (lowerMessage.includes('google sign-in') || lowerMessage.includes('no password set')) {
+      // OAuth-only account
+      errorMessage.value = message
+      emailError.value = 'This account uses Google sign-in'
+      passwordError.value = 'Reset password to add one'
+    } else if (lowerMessage.includes('invalid email or password') || (lowerMessage.includes('invalid email') && lowerMessage.includes('password'))) {
+      // Generic "invalid email or password" - show on both fields
+      emailError.value = 'Invalid email or password'
+      passwordError.value = 'Invalid email or password'
+      // Check if message includes hint about reset password
+      if (lowerMessage.includes('reset') || lowerMessage.includes('new password')) {
+        errorMessage.value = 'Did you recently reset your password? Make sure you\'re using the NEW password.'
+      }
+    } else if (lowerMessage.includes('password') && !lowerMessage.includes('email')) {
+      // Password-specific error
+      passwordError.value = 'Invalid password'
+      if (lowerMessage.includes('reset') || lowerMessage.includes('new password')) {
+        errorMessage.value = 'Make sure you\'re using the NEW password after resetting.'
+      }
+    } else if (lowerMessage.includes('email') || (lowerMessage.includes('invalid') && !lowerMessage.includes('password'))) {
+      // Email-specific error
+      emailError.value = 'Invalid email address'
+    } else {
+      // Other errors - show as generic message
+      errorMessage.value = message
+    }
   } finally {
     isLoading.value = false
   }
@@ -302,6 +355,42 @@ async function handleEmailLogin() {
   opacity: 0.5;
 }
 
+.form-group input.input-error {
+  border-color: #ff6b6b;
+}
+
+.form-group input.input-error:focus {
+  border-color: #ff6b6b;
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
+}
+
+.field-error {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  color: #ff6b6b;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.helpful-hint {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.hint-link {
+  color: var(--industrial-text-secondary);
+  font-size: 0.8125rem;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+  display: inline-block;
+}
+
+.hint-link:hover {
+  color: var(--industrial-text-primary);
+  text-decoration: underline;
+}
+
 .forgot-password-link {
   display: inline-block;
   margin-top: 0.5rem;
@@ -343,14 +432,15 @@ async function handleEmailLogin() {
 }
 
 .error-message {
-  margin-top: 1rem;
+  margin-bottom: 1rem;
   padding: 0.75rem 1rem;
-  background: var(--industrial-bg-page);
-  border: 1px solid var(--industrial-text-primary);
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid #ff6b6b;
   border-radius: var(--radius-sm);
-  color: var(--industrial-text-primary);
+  color: #ff6b6b;
   font-size: 0.8125rem;
   text-align: center;
+  font-weight: 500;
 }
 
 .login-footer {

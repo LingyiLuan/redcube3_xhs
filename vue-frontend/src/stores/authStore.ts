@@ -63,7 +63,10 @@ const userId = computed(() => user.value?.id || null) // No fallback - real auth
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.message || 'Login failed')
+        // Include hint in error message if available
+        const errorMessage = error.message || 'Login failed'
+        const errorWithHint = error.hint ? `${errorMessage} ${error.hint}` : errorMessage
+        throw new Error(errorWithHint)
       }
 
       const data = await response.json()

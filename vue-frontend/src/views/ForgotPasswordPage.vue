@@ -27,10 +27,14 @@
             </div>
             <h2>CHECK YOUR EMAIL</h2>
             <p class="success-message">
-              If an account exists with <strong>{{ submittedEmail }}</strong>, a password reset link has been sent.
+              If an account exists with <strong>{{ submittedEmail }}</strong> and your account is active, a password reset link has been sent.
             </p>
             <p class="info-message">
-              Please check your inbox and follow the instructions to reset your password. The link will expire in 24 hours.
+              <strong>What to do next:</strong><br>
+              • Check your inbox (and spam folder) for the reset email<br>
+              • Click the link in the email to reset your password<br>
+              • The link will expire in 24 hours<br>
+              • If you don't receive an email, your account may be inactive or the email may not be registered
             </p>
             <div class="action-buttons">
               <router-link to="/login" class="primary-btn">BACK TO LOGIN</router-link>

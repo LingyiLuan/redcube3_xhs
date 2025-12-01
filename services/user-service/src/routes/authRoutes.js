@@ -630,8 +630,10 @@ router.post('/login', async (req, res) => {
     // Sanitize email
     const sanitizedEmail = sanitizeEmail(email);
 
-    // Find user
-    const user = await verifyUserCredentials(sanitizedEmail);
+    // Find user (check both active and inactive to provide better error messages)
+    const { findUserByEmail } = require('../database/userQueries');
+    const user = await findUserByEmail(sanitizedEmail);
+    
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -640,12 +642,23 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // Check if account is active
+    if (!user.is_active) {
+      return res.status(401).json({
+        success: false,
+        error: 'ACCOUNT_INACTIVE',
+        message: 'Your account is inactive. Please reset your password to reactivate your account.',
+        hint: 'Use the "Forgot password" link to reset your password and reactivate your account.'
+      });
+    }
+
     // Check if user has a password set
     if (!user.password_hash) {
       return res.status(401).json({
         success: false,
         error: 'NO_PASSWORD_SET',
-        message: 'This account uses Google sign-in. Please sign in with Google or add a password to your account.'
+        message: 'This account uses Google sign-in. Please sign in with Google or reset your password to add one.',
+        hint: 'You can add a password by using the "Forgot password" link.'
       });
     }
 
@@ -655,7 +668,8 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({
         success: false,
         error: 'INVALID_CREDENTIALS',
-        message: 'Invalid email or password'
+        message: 'Invalid email or password',
+        hint: 'Did you recently reset your password? Make sure you\'re using the NEW password. If you forgot your password, use the "Forgot password" link.'
       });
     }
 
@@ -1054,13 +1068,11 @@ router.post('/forgot-password', async (req, res) => {
     }
 
     // Check if user is active
+    // For inactive accounts, we still allow password reset to reactivate the account
+    // This helps users who were deactivated but want to regain access
     if (!user.is_active) {
-      console.log('[Forgot Password] User account is inactive:', user.id);
-      // Still return success to prevent account enumeration
-      return res.json({
-        success: true,
-        message: 'If an account exists with this email, a password reset link has been sent.'
-      });
+      console.log('[Forgot Password] User account is inactive, but allowing reset to reactivate:', user.id);
+      // Continue with password reset flow - resetting password will reactivate account
     }
 
     // Generate password reset token
@@ -1219,8 +1231,19 @@ router.post('/reset-password', async (req, res) => {
     try {
       await client.query('BEGIN');
 
-      // Update user's password
-      await updateUser(userId, { password_hash: passwordHash }, client);
+      // Get user details to check if account is inactive
+      const { findUserById } = require('../database/userQueries');
+      const currentUser = await findUserById(userId);
+
+      // Update user's password and reactivate account if it was inactive
+      const updates = { password_hash: passwordHash };
+      if (currentUser && !currentUser.is_active) {
+        // Reactivate account when password is reset
+        updates.is_active = true;
+        console.log('[Reset Password] Reactivating inactive account:', userId);
+      }
+
+      await updateUser(userId, updates, client);
 
       // Delete the used token (single-use)
       await deletePasswordResetToken(userId);
