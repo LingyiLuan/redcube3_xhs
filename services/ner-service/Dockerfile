@@ -8,18 +8,16 @@ RUN apt-get update && apt-get install -y \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-# Railway uses repo root as build context, so use full path from repo root
-COPY services/ner-service/requirements.txt .
-
-# Install Python dependencies
+# Copy Python dependencies
+# Railway build context will be the service directory (services/ner-service)
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Download NER model during build (saves time on first request)
 RUN python -c "from transformers import pipeline; pipeline('ner', model='dslim/bert-base-NER')"
 
-# Copy application code
-COPY services/ner-service/ .
+# Copy service code
+COPY . .
 
 # Expose port
 EXPOSE 8000

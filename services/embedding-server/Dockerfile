@@ -3,12 +3,12 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install dependencies
-# Railway uses repo root as build context, so use full path from repo root
-COPY services/embedding-server/requirements.txt .
+# Railway build context will be the service directory (services/embedding-server)
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY services/embedding-server/app.py .
+COPY . .
 
 # Expose port
 EXPOSE 5000
