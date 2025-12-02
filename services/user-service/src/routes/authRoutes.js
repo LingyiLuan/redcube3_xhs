@@ -42,6 +42,18 @@ router.get('/google', (req, res, next) => {
  * GET /auth/google/callback
  */
 router.get('/google/callback', (req, res, next) => {
+  // Prevent duplicate callback processing (OAuth codes can only be used once)
+  if (req.session && req.session.oauthProcessing) {
+    console.log('[OAuth] Duplicate callback detected, redirecting to frontend');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    return res.redirect(frontendUrl);
+  }
+
+  // Mark that we're processing OAuth
+  if (req.session) {
+    req.session.oauthProcessing = true;
+  }
+
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     return res.status(503).json({
       error: 'Google OAuth not configured',
@@ -52,14 +64,14 @@ router.get('/google/callback', (req, res, next) => {
   passport.authenticate('google', {
     failureRedirect: (process.env.FRONTEND_URL || 'http://localhost:5173') + '/login?error=auth_failed'
   })(req, res, (err) => {
-    if (err) return next(err);
-    // Successful authentication, redirect to Vue frontend
+    if (err) {
+      if (req.session) req.session.oauthProcessing = false;
+      return next(err);
+    }
+
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    
-    // Get returnUrl from session (set during OAuth initiation)
     const returnUrl = req.session?.oauthReturnUrl;
-    
-    // Clear the returnUrl from session
+
     if (req.session) {
       delete req.session.oauthReturnUrl;
     }
@@ -73,7 +85,6 @@ router.get('/google/callback', (req, res, next) => {
       returnUrl: returnUrl || 'none'
     });
 
-    // Ensure cookie is set with correct attributes before redirect
     if (req.session && req.session.cookie) {
       req.session.cookie.secure = process.env.SESSION_COOKIE_SECURE === 'true';
       req.session.cookie.sameSite = 'none';
@@ -83,15 +94,15 @@ router.get('/google/callback', (req, res, next) => {
       }
     }
 
-    // Redirect to returnUrl if provided, otherwise to landing page
     const redirectUrl = returnUrl ? `${frontendUrl}${returnUrl}` : `${frontendUrl}/`;
 
-    // IMPORTANT: Save session and wait for completion before redirecting
     req.session.save((err) => {
       if (err) {
         console.error('[OAuth] Error saving session:', err);
+        req.session.oauthProcessing = false;
         return res.status(500).json({ error: 'Failed to save session' });
       }
+      delete req.session.oauthProcessing;
       console.log('[OAuth] Session saved successfully, redirecting to:', redirectUrl);
       res.redirect(redirectUrl);
     });
