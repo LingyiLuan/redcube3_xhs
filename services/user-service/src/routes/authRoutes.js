@@ -73,6 +73,9 @@ router.get('/google/callback', (req, res, next) => {
       returnUrl: returnUrl || 'none'
     });
 
+    // Redirect to returnUrl if provided, otherwise to landing page
+    const redirectUrl = returnUrl ? `${frontendUrl}${returnUrl}` : `${frontendUrl}/`;
+
     // Ensure cookie is set with correct attributes before redirect
     if (req.session && req.session.cookie) {
       req.session.cookie.secure = process.env.SESSION_COOKIE_SECURE === 'true';
@@ -81,17 +84,19 @@ router.get('/google/callback', (req, res, next) => {
       if (process.env.SESSION_COOKIE_DOMAIN) {
         req.session.cookie.domain = process.env.SESSION_COOKIE_DOMAIN;
       }
-      // Save session to ensure cookie is set with new attributes
+      // Save session and WAIT for it to complete before redirecting
       req.session.save((err) => {
         if (err) {
           console.error('[OAuth] Error saving session:', err);
+          return res.status(500).json({ error: 'Session save failed' });
         }
+        console.log('[OAuth] Session saved, redirecting to:', redirectUrl);
+        res.redirect(redirectUrl);
       });
+    } else {
+      // No session to save, redirect immediately
+      res.redirect(redirectUrl);
     }
-
-    // Redirect to returnUrl if provided, otherwise to landing page
-    const redirectUrl = returnUrl ? `${frontendUrl}${returnUrl}` : `${frontendUrl}/`;
-    res.redirect(redirectUrl);
   });
 });
 
