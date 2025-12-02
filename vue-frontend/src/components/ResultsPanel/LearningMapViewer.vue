@@ -188,8 +188,27 @@
                   </div>
                 </div>
 
-                <!-- Daily Breakdown Section (Detailed day-by-day schedule) -->
-                <div v-if="week.daily_plan && week.daily_plan.length > 0" class="content-section">
+                <!-- NEW: Detailed Time-Slotted Daily Schedule -->
+                <div v-if="week.detailed_daily_schedules && week.detailed_daily_schedules.length > 0" class="content-section">
+                  <div class="section-header-with-meta">
+                    <h5 class="section-label">DETAILED DAILY SCHEDULE</h5>
+                    <div v-if="week.week_summary" class="week-summary-badges">
+                      <span class="summary-badge problems">{{ week.week_summary.totalProblems }} problems</span>
+                      <span class="summary-badge hours">{{ week.week_summary.totalHours }}h total</span>
+                    </div>
+                  </div>
+                  <div class="detailed-schedules-list">
+                    <DetailedDailySchedule
+                      v-for="(daySchedule, dayIdx) in week.detailed_daily_schedules"
+                      :key="dayIdx"
+                      :schedule="daySchedule"
+                      :compact="false"
+                    />
+                  </div>
+                </div>
+
+                <!-- LEGACY: Old Daily Breakdown Section (fallback for old data) -->
+                <div v-else-if="week.daily_plan && week.daily_plan.length > 0" class="content-section">
                   <h5 class="section-label">DAILY SCHEDULE</h5>
                   <div class="daily-schedule-grid">
                     <div
@@ -736,6 +755,7 @@ import LearningMapHeader from '@/components/LearningMap/LearningMapHeader.vue'
 import MilestoneCard from '@/components/LearningMap/MilestoneCard.vue'
 import SkillModule from '@/components/LearningMap/SkillModule.vue'
 import SourcePostsModal from '@/components/LearningMap/SourcePostsModal.vue'
+import DetailedDailySchedule from '@/components/LearningMap/DetailedDailySchedule.vue'
 
 interface Props {
   mapId: string
@@ -2684,7 +2704,53 @@ function downloadICS() {
   margin-left: auto;
 }
 
-/* Daily Schedule Grid */
+/* NEW: Detailed Daily Schedules */
+.section-header-with-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.week-summary-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.summary-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.summary-badge.problems {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.summary-badge.hours {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.dark .summary-badge.problems {
+  background: rgba(22, 101, 52, 0.2);
+  color: #86EFAC;
+}
+
+.dark .summary-badge.hours {
+  background: rgba(30, 64, 175, 0.2);
+  color: #93C5FD;
+}
+
+.detailed-schedules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Daily Schedule Grid (Legacy) */
 .daily-schedule-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));

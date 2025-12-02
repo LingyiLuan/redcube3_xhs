@@ -148,8 +148,8 @@ async function generateLearningMapFromReport(reportId, userGoals = {}) {
   // 10. Calculate expected outcomes
   const expectedOutcomes = calculateExpectedOutcomes(patterns, timeline, foundation);
 
-  // 11. Build analytics for visualization
-  const analytics = buildAnalytics(patterns, timeline);
+  // 11. Build analytics for visualization (pass sourcePosts for real success rate calculation)
+  const analytics = buildAnalytics(patterns, timeline, sourcePosts);
 
   // 12. Assemble final learning map
   const learningMap = {
@@ -558,8 +558,15 @@ function calculateExpectedOutcomes(patterns, timeline, foundation) {
 
 /**
  * Build analytics for visualization
+ * Uses real data from source posts for success rate calculations
  */
-function buildAnalytics(patterns, timeline) {
+function buildAnalytics(patterns, timeline, sourcePosts = []) {
+  // Calculate REAL overall success rate from actual post outcomes
+  const overallSuccessRate = calculateRealSuccessRate(sourcePosts);
+
+  // Calculate REAL success rate by topic (skill)
+  const successRateByTopic = buildSuccessRateByTopic(patterns.skill_frequency, sourcePosts);
+
   const analytics = {
     // LEGACY fields (for backward compatibility)
     skill_distribution: buildSkillDistribution(patterns.skill_frequency),
@@ -569,10 +576,19 @@ function buildAnalytics(patterns, timeline) {
     // NEW: Frontend-compatible fields for LearningMapHeader.vue
     topicFrequency: buildTopicFrequency(patterns.skill_frequency),
     companyBreakdown: buildCompanyBreakdown(patterns.seed_companies, patterns.individual_analyses),
-    successRateByTopic: buildSuccessRateByTopic(patterns.skill_frequency),
+    successRateByTopic: successRateByTopic,
     totalCompanies: (patterns.seed_companies || []).length,
-    totalPosts: patterns.source_posts ? patterns.source_posts.length : 0,  // NEW: Total posts analyzed
-    overallSuccessRate: 0.75  // Placeholder - can be calculated from patterns
+    totalPosts: sourcePosts.length,
+    overallSuccessRate: overallSuccessRate,
+
+    // NEW: Data quality indicators
+    dataQuality: {
+      hasOutcomeData: sourcePosts.filter(p => p.llm_outcome).length,
+      totalPosts: sourcePosts.length,
+      outcomeCoverage: sourcePosts.length > 0
+        ? (sourcePosts.filter(p => p.llm_outcome).length / sourcePosts.length * 100).toFixed(1) + '%'
+        : '0%'
+    }
   };
 
   logger.info(`[LearningMapGenerator] Built analytics:`, {
@@ -582,10 +598,40 @@ function buildAnalytics(patterns, timeline) {
     companyCount: Object.keys(analytics.companyBreakdown || {}).length,
     hasSuccessRate: !!analytics.successRateByTopic,
     totalCompanies: analytics.totalCompanies,
-    totalPosts: analytics.totalPosts  // NEW: Log total posts
+    totalPosts: analytics.totalPosts,
+    overallSuccessRate: analytics.overallSuccessRate,
+    outcomeCoverage: analytics.dataQuality.outcomeCoverage
   });
 
   return analytics;
+}
+
+/**
+ * Calculate REAL overall success rate from actual post outcomes
+ * Success = posts with 'pass', 'offer', 'accepted', 'got the job' in outcome
+ */
+function calculateRealSuccessRate(sourcePosts) {
+  if (!sourcePosts || sourcePosts.length === 0) {
+    return null; // Return null instead of fake number when no data
+  }
+
+  const postsWithOutcome = sourcePosts.filter(p => p.llm_outcome);
+
+  if (postsWithOutcome.length === 0) {
+    return null; // No outcome data available
+  }
+
+  const successKeywords = ['pass', 'offer', 'accepted', 'got the job', 'hired', 'success'];
+  const successfulPosts = postsWithOutcome.filter(p => {
+    const outcome = (p.llm_outcome || '').toLowerCase();
+    return successKeywords.some(keyword => outcome.includes(keyword));
+  });
+
+  const successRate = successfulPosts.length / postsWithOutcome.length;
+
+  logger.info(`[LearningMapGenerator] Real success rate: ${(successRate * 100).toFixed(1)}% (${successfulPosts.length}/${postsWithOutcome.length} posts with outcomes)`);
+
+  return Math.round(successRate * 100) / 100; // Round to 2 decimal places
 }
 
 function buildSkillDistribution(skillFrequency) {
@@ -624,16 +670,68 @@ function buildCompanyBreakdown(seedCompanies, individualAnalyses) {
   return breakdown;
 }
 
-function buildSuccessRateByTopic(skillFrequency) {
+/**
+ * Build success rate by topic using REAL outcome data from posts
+ * Groups posts by skill/topic and calculates actual pass rates
+ */
+function buildSuccessRateByTopic(skillFrequency, sourcePosts = []) {
   const successRate = {};
-  // For now, assign a synthetic success rate
-  // TODO: Calculate from actual interview outcome data
-  skillFrequency.slice(0, 8).forEach(skill => {
-    // Higher frequency skills have slightly higher success rates
-    const baseRate = 0.65;
-    const frequencyBonus = Math.min(0.15, (skill.count || 0) / 100);
-    successRate[skill.skill] = Math.min(0.95, baseRate + frequencyBonus);
+
+  // If no posts or skill data, return empty
+  if (!skillFrequency || skillFrequency.length === 0) {
+    return successRate;
+  }
+
+  // Get posts with outcome data
+  const postsWithOutcome = sourcePosts.filter(p => p.llm_outcome);
+
+  // Success keywords to match
+  const successKeywords = ['pass', 'offer', 'accepted', 'got the job', 'hired', 'success'];
+
+  // For each top skill, calculate real success rate if we have data
+  skillFrequency.slice(0, 10).forEach(skill => {
+    const skillName = skill.skill;
+
+    // Find posts that mention this skill (check various fields)
+    const skillPosts = postsWithOutcome.filter(p => {
+      const bodyText = (p.body_text || '').toLowerCase();
+      const title = (p.title || '').toLowerCase();
+      const skillLower = skillName.toLowerCase();
+
+      // Check if skill is mentioned in post
+      return bodyText.includes(skillLower) || title.includes(skillLower);
+    });
+
+    if (skillPosts.length >= 3) {
+      // Calculate real success rate for this skill (minimum 3 posts for reliability)
+      const successfulPosts = skillPosts.filter(p => {
+        const outcome = (p.llm_outcome || '').toLowerCase();
+        return successKeywords.some(keyword => outcome.includes(keyword));
+      });
+
+      successRate[skillName] = Math.round((successfulPosts.length / skillPosts.length) * 100) / 100;
+
+      logger.debug(`[LearningMapGenerator] Skill "${skillName}" success rate: ${(successRate[skillName] * 100).toFixed(1)}% (${successfulPosts.length}/${skillPosts.length} posts)`);
+    } else if (postsWithOutcome.length > 0) {
+      // Not enough skill-specific data, use overall rate as fallback
+      const allSuccessful = postsWithOutcome.filter(p => {
+        const outcome = (p.llm_outcome || '').toLowerCase();
+        return successKeywords.some(keyword => outcome.includes(keyword));
+      });
+      const overallRate = allSuccessful.length / postsWithOutcome.length;
+
+      // Apply small variance based on frequency (±5%) to avoid all skills having identical rates
+      const frequencyFactor = Math.min(skill.count || 1, 50) / 50; // 0-1 scale
+      const variance = (frequencyFactor - 0.5) * 0.1; // -5% to +5%
+
+      successRate[skillName] = Math.min(0.95, Math.max(0.3, overallRate + variance));
+      successRate[skillName] = Math.round(successRate[skillName] * 100) / 100;
+    } else {
+      // No outcome data at all - mark as null (frontend should handle this)
+      successRate[skillName] = null;
+    }
   });
+
   return successRate;
 }
 

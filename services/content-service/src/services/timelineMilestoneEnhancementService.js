@@ -13,6 +13,7 @@
 const logger = require('../utils/logger');
 const { analyzeWithOpenRouter, extractJsonFromString } = require('./aiService');
 const pool = require('../config/database');
+const { generateWeeklyDetailedSchedule, enhanceScheduleWithLLM } = require('./dailyScheduleGeneratorService');
 
 /**
  * Generate enhanced weekly timeline with daily breakdowns
@@ -367,11 +368,11 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
     // Calculate token budget: ~800 tokens per week (7 days × ~100 tokens/day + structure)
     const estimatedTokens = Math.max(6000, totalWeeks * 800);
     const response = await analyzeWithOpenRouter(prompt, { max_tokens: estimatedTokens, temperature: 0.7 });
-    const weeks = extractJsonFromString(response);
+    let weeks = extractJsonFromString(response);
 
     if (!weeks || weeks.length === 0) {
       logger.warn(`[TimelineEnhancement] LLM returned no weeks, using fallback`);
-      return generateFallbackWeeks(totalWeeks, allProblems, totalPosts);
+      weeks = generateFallbackWeeks(totalWeeks, allProblems, totalPosts);
     }
 
     logger.info(`[TimelineEnhancement] Generated ${weeks.length} weeks successfully (requested: ${totalWeeks})`);
@@ -384,13 +385,18 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
       fallbackWeeks.forEach((w, i) => {
         w.week = weeks.length + i + 1;
       });
-      return [...weeks, ...fallbackWeeks];
+      weeks = [...weeks, ...fallbackWeeks];
     }
 
-    return weeks;
+    // Enhance each week with detailed daily schedules
+    logger.info(`[TimelineEnhancement] Enhancing weeks with detailed daily schedules...`);
+    const enhancedWeeks = await enhanceWeeksWithDetailedSchedules(weeks, allProblems);
+
+    return enhancedWeeks;
   } catch (error) {
     logger.error('[TimelineEnhancement] LLM generation failed, using fallback:', error);
-    return generateFallbackWeeks(totalWeeks, allProblems, totalPosts);
+    const fallbackWeeks = generateFallbackWeeks(totalWeeks, allProblems, totalPosts);
+    return enhanceWeeksWithDetailedSchedules(fallbackWeeks, allProblems);
   }
 }
 
@@ -458,6 +464,169 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
 }
 
 // ============================================================================
+// DETAILED SCHEDULE ENHANCEMENT
+// ============================================================================
+
+/**
+ * Enhance weeks with detailed daily schedules
+ * Adds time-slotted schedules with specific activities and problems
+ * Uses LLM enhancement with caching (Hybrid approach)
+ *
+ * @param {Array} weeks - Basic week structures from LLM
+ * @param {Array} allProblems - All available problems
+ * @param {number} availableHours - Hours per day (default 6)
+ * @param {boolean} enableLLMEnhancement - Whether to add LLM educational content (default true)
+ * @returns {Array} Enhanced weeks with detailed_daily_schedules
+ */
+async function enhanceWeeksWithDetailedSchedules(weeks, allProblems, availableHours = 6, enableLLMEnhancement = true) {
+  logger.info(`[TimelineEnhancement] Enhancing ${weeks.length} weeks with detailed schedules (LLM: ${enableLLMEnhancement})`);
+
+  const enhancedWeeks = [];
+  const problemsPerWeek = Math.ceil(allProblems.length / weeks.length);
+
+  for (const week of weeks) {
+    // Get problems for this week based on skills covered
+    const weekProblems = selectProblemsForWeek(allProblems, week, problemsPerWeek);
+
+    // Determine focus area from week title, skills, or problems
+    const focusArea = extractFocusArea(week, allProblems);
+
+    try {
+      // Generate detailed daily schedule for this week
+      const detailedSchedule = await generateWeeklyDetailedSchedule({
+        weekNumber: week.week,
+        availableHours,
+        problems: weekProblems,
+        focusArea,
+        userGoals: {}
+      });
+
+      // Apply LLM enhancement to each daily schedule (uses cache for speed)
+      let enhancedDailySchedules = detailedSchedule.dailySchedules;
+
+      if (enableLLMEnhancement) {
+        logger.info(`[TimelineEnhancement] Applying LLM enhancement to Week ${week.week} schedules...`);
+
+        enhancedDailySchedules = await Promise.all(
+          detailedSchedule.dailySchedules.map(async (daySchedule) => {
+            // Skip rest days - no problems to enhance
+            if (daySchedule.isRestDay) {
+              return daySchedule;
+            }
+
+            // Get problems for this specific day
+            const dayProblems = daySchedule.slots
+              .filter(s => s.problem)
+              .map(s => s.problem);
+
+            // Apply LLM enhancement with caching
+            return enhanceScheduleWithLLM(daySchedule, dayProblems, false);
+          })
+        );
+
+        logger.info(`[TimelineEnhancement] Week ${week.week} LLM enhancement complete`);
+      }
+
+      enhancedWeeks.push({
+        ...week,
+        detailed_daily_schedules: enhancedDailySchedules,
+        week_summary: detailedSchedule.summary,
+        focus_area: focusArea,
+        llm_enhanced: enableLLMEnhancement
+      });
+    } catch (error) {
+      logger.error(`[TimelineEnhancement] Failed to generate detailed schedule for week ${week.week}:`, error);
+      // Keep original week without detailed schedules
+      enhancedWeeks.push({
+        ...week,
+        detailed_daily_schedules: null,
+        week_summary: null,
+        focus_area: focusArea,
+        llm_enhanced: false
+      });
+    }
+  }
+
+  logger.info(`[TimelineEnhancement] Enhanced ${enhancedWeeks.length} weeks with detailed schedules`);
+  return enhancedWeeks;
+}
+
+/**
+ * Select problems appropriate for a specific week
+ */
+function selectProblemsForWeek(allProblems, week, maxProblems) {
+  if (!allProblems || allProblems.length === 0) {
+    return [];
+  }
+
+  const skillsLower = (week.skills_covered || []).map(s => s.toLowerCase());
+
+  // Filter by skills if available
+  let relevantProblems = allProblems.filter(p => {
+    const category = (p.category || '').toLowerCase();
+    const module = (p.module || '').toLowerCase();
+    return skillsLower.some(skill =>
+      category.includes(skill) || module.includes(skill) || skill.includes(category)
+    );
+  });
+
+  // If no skill matches, use problems based on week position
+  if (relevantProblems.length === 0) {
+    const startIdx = (week.week - 1) * maxProblems;
+    relevantProblems = allProblems.slice(startIdx, startIdx + maxProblems);
+  }
+
+  // Limit to reasonable number per week
+  return relevantProblems.slice(0, Math.min(maxProblems, 20));
+}
+
+/**
+ * Extract main focus area from week data
+ * Uses actual week data first, then derives from problems if available
+ */
+function extractFocusArea(week, allProblems = []) {
+  // Try to extract from title first
+  const titleMatch = week.title?.match(/:\s*(.+)/);
+  if (titleMatch) {
+    return titleMatch[1].trim();
+  }
+
+  // Use first skill if available
+  if (week.skills_covered && week.skills_covered.length > 0) {
+    return week.skills_covered[0];
+  }
+
+  // Try to derive from problems assigned to this week
+  if (allProblems && allProblems.length > 0) {
+    const weekProblems = allProblems.slice(
+      Math.floor((week.week - 1) * allProblems.length / 12), // Assume 12 weeks max
+      Math.floor(week.week * allProblems.length / 12)
+    );
+
+    // Find most common category in this week's problems
+    const categoryCounts = {};
+    weekProblems.forEach(p => {
+      const cat = p.category || p.module || 'General';
+      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+    });
+
+    const topCategory = Object.entries(categoryCounts)
+      .sort((a, b) => b[1] - a[1])[0];
+
+    if (topCategory) {
+      return topCategory[0];
+    }
+  }
+
+  // Last resort: generic progression (but logged as fallback)
+  logger.debug(`[TimelineEnhancement] Using generic focus area for week ${week.week}`);
+  if (week.week <= 3) return 'Arrays & Strings';
+  if (week.week <= 6) return 'Trees & Graphs';
+  if (week.week <= 9) return 'Dynamic Programming';
+  return 'System Design & Mock Interviews';
+}
+
+// ============================================================================
 // FALLBACK GENERATION (if LLM fails)
 // ============================================================================
 
@@ -467,11 +636,25 @@ function generateFallbackWeeks(totalWeeks, allProblems, totalPosts) {
   const weeks = [];
   const problemsPerWeek = Math.ceil(allProblems.length / totalWeeks);
 
+  // Derive skill progression from actual problems
+  const skillProgression = deriveSkillProgressionFromProblems(allProblems, totalWeeks);
+
   for (let week = 1; week <= totalWeeks; week++) {
     const progress = week / totalWeeks;
-    let title, description;
 
-    if (progress <= 0.33) {
+    // Get this week's skills and problems from real data
+    const weekSkills = skillProgression[week - 1] || ['Problem Solving'];
+    const weekProblems = allProblems.slice(
+      (week - 1) * problemsPerWeek,
+      week * problemsPerWeek
+    );
+
+    // Generate title from actual skills if available
+    let title, description;
+    if (weekSkills.length > 0 && weekSkills[0] !== 'Problem Solving') {
+      title = `Week ${week}: ${weekSkills.slice(0, 2).join(' & ')}`;
+      description = `Master ${weekSkills.join(', ')} through ${weekProblems.length} problems`;
+    } else if (progress <= 0.33) {
       title = `Week ${week}: Core Fundamentals`;
       description = 'Master basic data structures and algorithms';
     } else if (progress <= 0.66) {
@@ -482,25 +665,114 @@ function generateFallbackWeeks(totalWeeks, allProblems, totalPosts) {
       description = 'Practice mock interviews and company-specific problems';
     }
 
+    // Generate daily tasks from actual problems
+    const dailyTasks = generateDailyTasksFromProblems(weekProblems, week);
+
     weeks.push({
       week,
       title,
       description,
-      daily_tasks: [
-        `Monday: Study core concepts and solve 2 problems`,
-        `Tuesday: Practice pattern recognition with 3 problems`,
-        `Wednesday: Deep dive into 2 challenging problems`,
-        `Thursday: Review and optimize previous solutions`,
-        `Friday: Timed practice - solve 3 problems under time pressure`,
-        `Saturday: Mock interview simulation`,
-        `Sunday: Rest and review week's learnings`
-      ],
-      skills_covered: ['Problem Solving', 'Data Structures', 'Algorithms'],
-      based_on_posts: Math.floor(totalPosts / totalWeeks)
+      daily_tasks: dailyTasks,
+      skills_covered: weekSkills,
+      based_on_posts: Math.floor(totalPosts / totalWeeks),
+      problems_count: weekProblems.length
     });
   }
 
   return weeks;
+}
+
+/**
+ * Derive skill progression from actual problem categories
+ */
+function deriveSkillProgressionFromProblems(allProblems, totalWeeks) {
+  if (!allProblems || allProblems.length === 0) {
+    return Array(totalWeeks).fill(['Problem Solving']);
+  }
+
+  // Group problems by category
+  const categoryProblems = {};
+  allProblems.forEach(p => {
+    const cat = p.category || p.module || 'General';
+    if (!categoryProblems[cat]) {
+      categoryProblems[cat] = [];
+    }
+    categoryProblems[cat].push(p);
+  });
+
+  // Sort categories by problem count (most problems first)
+  const sortedCategories = Object.entries(categoryProblems)
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([cat]) => cat);
+
+  // Distribute categories across weeks
+  const skillProgression = [];
+  const categoriesPerWeek = Math.max(1, Math.ceil(sortedCategories.length / totalWeeks));
+
+  for (let week = 0; week < totalWeeks; week++) {
+    const startIdx = week * categoriesPerWeek;
+    const weekCategories = sortedCategories.slice(startIdx, startIdx + categoriesPerWeek);
+
+    if (weekCategories.length > 0) {
+      skillProgression.push(weekCategories);
+    } else {
+      // Repeat categories if we run out
+      skillProgression.push(sortedCategories.slice(0, 2));
+    }
+  }
+
+  return skillProgression;
+}
+
+/**
+ * Generate daily tasks from actual problems
+ */
+function generateDailyTasksFromProblems(weekProblems, weekNumber) {
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  if (!weekProblems || weekProblems.length === 0) {
+    // Generic fallback when no problems
+    return [
+      `Monday: Study core concepts and solve 2 problems`,
+      `Tuesday: Practice pattern recognition with 3 problems`,
+      `Wednesday: Deep dive into 2 challenging problems`,
+      `Thursday: Review and optimize previous solutions`,
+      `Friday: Timed practice - solve 3 problems under time pressure`,
+      `Saturday: Mock interview simulation`,
+      `Sunday: Rest and review week's learnings`
+    ];
+  }
+
+  // Distribute problems across days (Mon-Fri mostly, lighter Sat)
+  const problemsPerDay = Math.ceil(weekProblems.length / 5);
+  const dailyTasks = [];
+
+  days.forEach((day, dayIdx) => {
+    if (day === 'Sunday') {
+      dailyTasks.push(`${day}: Rest and review week's learnings`);
+      return;
+    }
+
+    if (day === 'Saturday') {
+      dailyTasks.push(`${day}: Mock interview simulation or light review`);
+      return;
+    }
+
+    // Assign specific problems to weekdays
+    const dayProblems = weekProblems.slice(dayIdx * problemsPerDay, (dayIdx + 1) * problemsPerDay);
+
+    if (dayProblems.length > 0) {
+      const problemNames = dayProblems
+        .slice(0, 3)
+        .map(p => p.name || `Problem #${p.number}`)
+        .join(', ');
+      dailyTasks.push(`${day}: Solve ${dayProblems.length} problems - ${problemNames}`);
+    } else {
+      dailyTasks.push(`${day}: Review and practice previous concepts`);
+    }
+  });
+
+  return dailyTasks;
 }
 
 function generateFallbackMilestones(totalWeeks, totalPosts) {
