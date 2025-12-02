@@ -52,6 +52,7 @@ const THRESHOLDS = {
  * @returns {Object} Structured learning map (100% real data)
  */
 async function generateLearningMapFromReport(reportId, userGoals = {}) {
+  const startTime = Date.now();
   logger.info(`[Learning Map] Starting generation for report: ${reportId}`);
 
   // 1. Load comprehensive analysis report from cache
@@ -76,38 +77,66 @@ async function generateLearningMapFromReport(reportId, userGoals = {}) {
   logger.info(`[Learning Map] Foundation pool: ${sourcePosts.length} posts (seed companies: ${seedCompanies.join(', ')})`);
   logger.info(`[Learning Map] Individual analyses: ${individualAnalyses.length} seed posts`);
 
-  // 3. Extract timeline data from foundation posts
-  const timelineData = await extractTimelineData(sourcePosts);
+  // ============================================================================
+  // PHASE 1: Fast operations (run in parallel) - ~500ms total
+  // ============================================================================
+  logger.info('[Learning Map] Phase 1: Starting fast parallel operations...');
+  const phase1Start = Date.now();
 
-  // 4. Build foundation metadata
+  const [timelineData, skillsRoadmap] = await Promise.all([
+    extractTimelineData(sourcePosts),
+    buildSkillsRoadmapNew(sourcePosts.map(p => p.post_id))
+  ]);
+
+  // Sync operations (instant)
   const foundation = buildFoundationMetadata(patterns, sourcePosts, individualAnalyses, timelineData);
-
-  // 5. Build company-specific tracks
   const companyTracks = buildCompanyTracks(patterns, userGoals);
 
-  // 6. Build skills roadmap (NEW: Using skill module generator)
-  const skillsRoadmap = await buildSkillsRoadmapNew(sourcePosts.map(p => p.post_id));
+  logger.info(`[Learning Map] Phase 1 completed in ${Date.now() - phase1Start}ms`);
 
-  // 7. Generate week-by-week timeline with LLM enhancement (Phase 4)
-  const timeline = await generateEnhancedTimeline(sourcePosts, timelineData, skillsRoadmap, userGoals);
+  // ============================================================================
+  // PHASE 2: LLM-heavy operations (run in parallel where possible) - ~30-60s total
+  // ============================================================================
+  logger.info('[Learning Map] Phase 2: Starting LLM parallel operations...');
+  const phase2Start = Date.now();
 
-  // 8. Create milestones with evidence-based criteria (Phase 4)
+  // These can all run in parallel:
+  // - Timeline generation needs skillsRoadmap (which we have)
+  // - Knowledge gaps and curated resources are independent
+  // - DB aggregations are fast and independent
+  const [
+    timeline,
+    knowledgeGapsData,
+    curatedResourcesData,
+    successFactorsData,
+    databaseResourcesData,
+    timelineStatsData,
+    commonPitfallsData,
+    readinessChecklistData
+  ] = await Promise.all([
+    generateEnhancedTimeline(sourcePosts, timelineData, skillsRoadmap, userGoals),
+    extractKnowledgeGaps(sourcePosts, userGoals),
+    extractCuratedResources(sourcePosts),
+    aggregateSuccessFactors(sourcePosts),
+    aggregateResourcesFromDB(sourcePosts),
+    aggregateTimelineData(sourcePosts),
+    aggregateCommonPitfalls(sourcePosts),
+    aggregateReadinessChecklist(sourcePosts)
+  ]);
+
+  logger.info(`[Learning Map] Phase 2 completed in ${Date.now() - phase2Start}ms`);
+
+  // ============================================================================
+  // PHASE 3: Sequential operations that depend on timeline - ~20-40s
+  // ============================================================================
+  logger.info('[Learning Map] Phase 3: Generating milestones (needs timeline)...');
+  const phase3Start = Date.now();
+
   const milestones = await generateEnhancedMilestones(sourcePosts, timeline, skillsRoadmap);
 
-  // 9. Extract knowledge gaps from failure patterns (Phase 5)
-  const knowledgeGapsData = await extractKnowledgeGaps(sourcePosts, userGoals);
-
-  // 10. Extract curated resources with success rates (Phase 5)
-  const curatedResourcesData = await extractCuratedResources(sourcePosts);
-
-  // 11. Phase 2: Database-first aggregation (Migration 27 fields)
-  logger.info('[Learning Map] Aggregating Migration 27 fields from database...');
-  const successFactorsData = await aggregateSuccessFactors(sourcePosts);
-  const databaseResourcesData = await aggregateResourcesFromDB(sourcePosts);
-  const timelineStatsData = await aggregateTimelineData(sourcePosts);
-  const commonPitfallsData = await aggregateCommonPitfalls(sourcePosts);
-  const readinessChecklistData = await aggregateReadinessChecklist(sourcePosts);
-  logger.info(`[Learning Map] Aggregated: ${successFactorsData.length} success factors, ${databaseResourcesData.length} resources, ${commonPitfallsData.pitfalls.length} pitfalls, ${readinessChecklistData.checklist_items.length} checklist items`);
+  logger.info(`[Learning Map] Phase 3 completed in ${Date.now() - phase3Start}ms`);
+  logger.info(`[Learning Map] Total generation time: ${Date.now() - startTime}ms`);
+  logger.info(`[Learning Map] Aggregated: ${successFactorsData.length} success factors, ${databaseResourcesData.length} resources, ${commonPitfallsData.pitfalls?.length || 0} pitfalls, ${readinessChecklistData.checklist_items?.length || 0} checklist items`);
 
   // 11. Map knowledge gaps to remediation (combine Phase 5 with old logic)
   const knowledgeGaps = {
