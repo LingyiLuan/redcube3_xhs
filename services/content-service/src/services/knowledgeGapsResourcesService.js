@@ -696,11 +696,26 @@ CRITICAL: Return ONLY the JSON array, no explanation. Maximum 8 gaps.`;
     logger.info(`[KnowledgeGaps] 🔍 Raw LLM response (first 1000 chars): ${response.substring(0, 1000)}`);
     logger.info(`[KnowledgeGaps] 🔍 Response length: ${response.length} characters`);
 
-    const gaps = extractJsonFromString(response);
+    let gaps = extractJsonFromString(response);
 
     // 🔍 DEBUG: Log extraction result
     logger.info(`[KnowledgeGaps] 🔍 Extracted gaps type: ${Array.isArray(gaps) ? 'array' : typeof gaps}`);
     logger.info(`[KnowledgeGaps] 🔍 Extracted gaps: ${JSON.stringify(gaps).substring(0, 500)}`);
+
+    // Ensure gaps is an array
+    if (!Array.isArray(gaps)) {
+      if (gaps && typeof gaps === 'object') {
+        // Try to extract array from common wrapper properties
+        gaps = gaps.gaps || gaps.knowledge_gaps || gaps.data || Object.values(gaps);
+        if (!Array.isArray(gaps)) {
+          logger.warn('[KnowledgeGaps] Could not extract array from object, using fallback');
+          return generateFallbackKnowledgeGaps(strugglePatterns, failurePostsCount);
+        }
+      } else {
+        logger.warn('[KnowledgeGaps] Gaps is not an array, using fallback');
+        return generateFallbackKnowledgeGaps(strugglePatterns, failurePostsCount);
+      }
+    }
 
     // Fill in source_post_ids from actual evidence
     gaps.forEach(gap => {

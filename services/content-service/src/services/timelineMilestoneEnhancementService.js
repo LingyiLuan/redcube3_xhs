@@ -370,6 +370,21 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
     const response = await analyzeWithOpenRouter(prompt, { max_tokens: estimatedTokens, temperature: 0.7 });
     let weeks = extractJsonFromString(response);
 
+    // Ensure weeks is an array
+    if (!Array.isArray(weeks)) {
+      if (weeks && typeof weeks === 'object') {
+        // Try to extract array from common wrapper properties
+        weeks = weeks.weeks || weeks.timeline || weeks.data || Object.values(weeks);
+        if (!Array.isArray(weeks)) {
+          logger.warn('[TimelineEnhancement] Could not extract array from object, using fallback');
+          weeks = generateFallbackWeeks(totalWeeks, allProblems, totalPosts);
+        }
+      } else {
+        logger.warn('[TimelineEnhancement] Weeks is not an array, using fallback');
+        weeks = generateFallbackWeeks(totalWeeks, allProblems, totalPosts);
+      }
+    }
+
     if (!weeks || weeks.length === 0) {
       logger.warn(`[TimelineEnhancement] LLM returned no weeks, using fallback`);
       weeks = generateFallbackWeeks(totalWeeks, allProblems, totalPosts);
@@ -479,6 +494,17 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
  * @returns {Array} Enhanced weeks with detailed_daily_schedules
  */
 async function enhanceWeeksWithDetailedSchedules(weeks, allProblems, availableHours = 6, enableLLMEnhancement = true) {
+  // Defensive check: ensure weeks is an array
+  if (!Array.isArray(weeks)) {
+    logger.warn(`[TimelineEnhancement] weeks is not an array (got ${typeof weeks}), converting to empty array`);
+    weeks = [];
+  }
+
+  if (weeks.length === 0) {
+    logger.warn('[TimelineEnhancement] No weeks to enhance, returning empty array');
+    return [];
+  }
+
   logger.info(`[TimelineEnhancement] Enhancing ${weeks.length} weeks with detailed schedules (LLM: ${enableLLMEnhancement})`);
 
   const enhancedWeeks = [];
