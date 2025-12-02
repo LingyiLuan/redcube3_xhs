@@ -79,6 +79,7 @@ async function createUserFromGoogle(userData) {
  * Update user's last login timestamp
  */
 async function updateUserLastLogin(userId) {
+  console.log('[DB] updateUserLastLogin starting for userId:', userId);
   const query = `
     UPDATE users
     SET last_login = NOW(), updated_at = NOW()
@@ -87,6 +88,7 @@ async function updateUserLastLogin(userId) {
   `;
 
   const result = await pool.query(query, [userId]);
+  console.log('[DB] updateUserLastLogin completed, rows:', result.rows.length);
   return result.rows[0];
 }
 
