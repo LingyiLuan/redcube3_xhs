@@ -102,6 +102,8 @@ router.get('/google/callback', (req, res, next) => {
       }
       delete req.session.oauthProcessing;
       console.log('[OAuth] Session saved, redirecting to:', redirectUrl);
+      console.log('[OAuth] Session ID:', req.sessionID);
+      console.log('[OAuth] Session cookie config:', req.session?.cookie);
       res.redirect(redirectUrl);
     });
   });
