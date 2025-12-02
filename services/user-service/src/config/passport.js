@@ -2,6 +2,8 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { findUserByGoogleId, createUserFromGoogle, updateUserLastLogin } = require('../database/userQueries');
 
+console.log('[Passport] GOOGLE_CALLBACK_URL:', process.env.GOOGLE_CALLBACK_URL);
+
 /**
  * Passport.js configuration for Google OAuth 2.0
  */
