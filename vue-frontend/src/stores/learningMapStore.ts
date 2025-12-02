@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { LearningMap } from '@/types/reports'
 import { useAuthStore } from './authStore'
 import { useReportsStore } from './reportsStore'
+import apiClient from '@/services/apiClient'
 
 export const useLearningMapStore = defineStore('learningMap', () => {
   // ===== STATE =====
@@ -50,28 +51,17 @@ export const useLearningMapStore = defineStore('learningMap', () => {
       console.log('[LearningMapStore] Generating learning map from batch report:', report.batchId)
       console.log('[LearningMapStore] Report ID:', reportId)
 
-      // Call the NEW content service API with reportId
-      const response = await fetch(`/api/content/learning-map`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authStore.token}`
-        },
-        body: JSON.stringify({
-          reportId: report.batchId,  // Use batchId as reportId (e.g., "batch_1_abc123")
-          userId: authStore.userId,
-          userGoals: {
-            title,
-            description
-          }
-        })
+      // Call the content service API with reportId via apiClient (uses correct API gateway URL)
+      const response = await apiClient.post('/learning-map', {
+        reportId: report.batchId,  // Use batchId as reportId (e.g., "batch_1_abc123")
+        userId: authStore.userId,
+        userGoals: {
+          title,
+          description
+        }
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to generate learning map')
-      }
-
-      const data = await response.json()
+      const data = response.data
       console.log('[LearningMapStore] Backend response:', data)
 
       const newMap: LearningMap = {
@@ -105,18 +95,10 @@ export const useLearningMapStore = defineStore('learningMap', () => {
 
     try {
       // ✅ SECURITY FIX: Remove userId from query params - backend uses authenticated session
-      const response = await fetch(`/api/content/learning-maps/history?limit=100`, {
-        credentials: 'include',  // Sends session cookie
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
+      // Uses apiClient which has correct API gateway URL and sends credentials
+      const response = await apiClient.get('/learning-maps/history?limit=100')
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch learning maps')
-      }
-
-      const data = await response.json()
+      const data = response.data
       console.log('[LearningMapStore] API Response:', data)
 
       // Backend returns { success: true, data: { maps: [...], totalCount: N } }
