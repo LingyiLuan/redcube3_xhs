@@ -24,61 +24,30 @@ function checkUsageLimit(analysisType = 'analysis') {
   return async (req, res, next) => {
     try {
       // Get user ID from request (auth middleware should set this)
-      const userId = req.user?.id || 1; // Default to user 1 for now
+      const userId = req.user?.id;
 
-      // Get user's tier from reputation service
-      const reputationService = require('../services/reputationService');
-      const userReputation = await reputationService.getUserReputation(userId);
-
-      if (!userReputation.success) {
-        return res.status(404).json({
-          success: false,
-          error: 'User not found'
-        });
-      }
-
-      const userTier = userReputation.user.tier || 'bronze';
-      const tierLimit = TIER_LIMITS[userTier.toLowerCase()];
-
-      // If tier has unlimited usage, allow request
-      if (tierLimit === -1) {
-        logger.info(`[UsageLimitMiddleware] User ${userId} (${userTier}) has unlimited access`);
+      // BETA LAUNCH: All authenticated users are Founding Members with unlimited access
+      // Skip reputation service check since users table is in a different database
+      // TODO: Re-enable tier-based limits after beta when databases are consolidated
+      if (userId) {
+        logger.info(`[UsageLimitMiddleware] BETA: User ${userId} has unlimited Founding Member access`);
+        req.usageInfo = {
+          tier: 'founding_member',
+          limit: -1,
+          currentUsage: 0,
+          remaining: 'unlimited'
+        };
         return next();
       }
 
-      // Check current month's usage
-      const usageResult = await pool.query(
-        `SELECT COUNT(*) as usage_count
-         FROM experience_analysis_history
-         WHERE analyzed_by_user_id = $1
-           AND DATE_TRUNC('month', analyzed_at) = DATE_TRUNC('month', NOW())`,
-        [userId]
-      );
-
-      const currentUsage = parseInt(usageResult.rows[0].usage_count);
-
-      logger.info(`[UsageLimitMiddleware] User ${userId} (${userTier}): ${currentUsage}/${tierLimit} analyses this month`);
-
-      // Check if user has exceeded limit
-      if (currentUsage >= tierLimit) {
-        return res.status(429).json({
-          success: false,
-          error: 'Monthly analysis limit reached',
-          limit: tierLimit,
-          currentUsage: currentUsage,
-          tier: userTier,
-          message: `You've reached your ${userTier} tier limit of ${tierLimit} analyses per month. Upgrade to Silver (15/month) or Gold (unlimited) to continue.`
-        });
-      }
-
-      // Allow request to proceed
+      // For unauthenticated users, allow limited anonymous access
+      logger.info(`[UsageLimitMiddleware] Anonymous user - allowing request`);
       req.usageInfo = {
-        tier: userTier,
-        limit: tierLimit,
-        currentUsage: currentUsage,
-        remaining: tierLimit - currentUsage
+        tier: 'anonymous',
+        limit: 3,
+        currentUsage: 0,
+        remaining: 3
       };
-
       next();
 
     } catch (error) {
@@ -141,34 +110,26 @@ async function recordAnalysisUsage(req, analysisType) {
  */
 async function getUserUsageStats(userId) {
   try {
-    // Get user's tier from reputation service
-    const reputationService = require('../services/reputationService');
-    const userReputation = await reputationService.getUserReputation(userId);
+    // BETA LAUNCH: All users are Founding Members with unlimited access
+    // Skip reputation service check since users table is in a different database
+    // TODO: Re-enable tier-based stats after beta when databases are consolidated
 
-    if (!userReputation.success) {
-      return null;
+    if (!userId) {
+      return {
+        tier: 'anonymous',
+        limit: 3,
+        currentUsage: 0,
+        remaining: 3,
+        resetDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
+      };
     }
 
-    const tier = userReputation.user.tier || 'bronze';
-
-    // Get current month's usage count
-    const usageResult = await pool.query(
-      `SELECT COUNT(*) as current_usage
-       FROM experience_analysis_history
-       WHERE analyzed_by_user_id = $1
-         AND DATE_TRUNC('month', analyzed_at) = DATE_TRUNC('month', NOW())`,
-      [userId]
-    );
-
-    const currentUsage = parseInt(usageResult.rows[0].current_usage);
-    const limit = TIER_LIMITS[tier.toLowerCase()];
-
     return {
-      tier,
-      limit: limit === -1 ? 'unlimited' : limit,
-      currentUsage,
-      remaining: limit === -1 ? 'unlimited' : Math.max(0, limit - currentUsage),
-      resetDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
+      tier: 'founding_member',
+      limit: 'unlimited',
+      currentUsage: 0,
+      remaining: 'unlimited',
+      resetDate: null // No reset needed for unlimited
     };
   } catch (error) {
     logger.error('[UsageLimitMiddleware] Error getting usage stats:', error);
