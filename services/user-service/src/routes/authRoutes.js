@@ -104,6 +104,12 @@ router.get('/google/callback', (req, res, next) => {
       console.log('[OAuth] Session saved, redirecting to:', redirectUrl);
       console.log('[OAuth] Session ID:', req.sessionID);
       console.log('[OAuth] Session cookie config:', req.session?.cookie);
+
+      // Manually set cookie to debug
+      const cookieValue = `redcube.sid=s%3A${req.sessionID}.PLACEHOLDER; Domain=.labzero.io; Path=/; HttpOnly; Secure; SameSite=None`;
+      res.setHeader('Set-Cookie', cookieValue);
+      console.log('[OAuth] Manually set cookie header');
+
       res.redirect(redirectUrl);
     });
   });
