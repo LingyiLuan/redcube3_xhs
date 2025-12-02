@@ -149,6 +149,7 @@ app.use((req, res, next) => {
   const originalSetHeader = res.setHeader.bind(res);
   res.setHeader = function(name, value) {
     if (name === 'Set-Cookie' && value) {
+      console.log('[Cookie Debug] Set-Cookie called with:', value);
       // Convert to array if needed
       const cookieHeaders = Array.isArray(value) ? value : [value];
       
