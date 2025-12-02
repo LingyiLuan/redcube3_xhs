@@ -5,6 +5,12 @@
 
 const axios = require('axios');
 
+// User service URL - Railway uses internal DNS, Docker uses service names
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL ||
+  (process.env.RAILWAY_ENVIRONMENT
+    ? `http://user-service.railway.internal:${process.env.USER_SERVICE_PORT || 3001}`
+    : 'http://user-service:3001');
+
 /**
  * Middleware to extract and verify user authentication
  * Makes request to user service to verify session and get user info
@@ -12,6 +18,7 @@ const axios = require('axios');
 async function requireAuth(req, res, next) {
   try {
     console.log('Auth middleware - checking authentication...');
+    console.log('User service URL:', USER_SERVICE_URL);
 
     // Extract session cookie
     const sessionCookie = req.headers.cookie;
@@ -29,7 +36,7 @@ async function requireAuth(req, res, next) {
     console.log('Making request to user service for auth verification...');
 
     // Make request to user service to verify session
-    const response = await axios.get('http://user-service:3001/api/auth/me', {
+    const response = await axios.get(`${USER_SERVICE_URL}/api/auth/me`, {
       headers: {
         'Cookie': sessionCookie,
         'Content-Type': 'application/json'
@@ -88,11 +95,12 @@ async function optionalAuth(req, res, next) {
       return next();
     }
 
-    const response = await axios.get('http://user-service:3001/api/auth/me', {
+    const response = await axios.get(`${USER_SERVICE_URL}/api/auth/me`, {
       headers: {
         'Cookie': sessionCookie,
         'Content-Type': 'application/json'
-      }
+      },
+      timeout: 5000
     });
 
     if (response.status === 200) {
