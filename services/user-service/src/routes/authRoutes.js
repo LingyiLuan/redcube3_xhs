@@ -96,11 +96,14 @@ router.get('/google/callback', (req, res, next) => {
 
     const redirectUrl = returnUrl ? `${frontendUrl}${returnUrl}` : `${frontendUrl}/`;
 
-    delete req.session.oauthProcessing;
-
-    console.log('[OAuth] Redirecting now to:', redirectUrl);
-
-    res.redirect(redirectUrl);
+    req.session.save((err) => {
+      if (err) {
+        console.error('[OAuth] Session save error:', err);
+      }
+      delete req.session.oauthProcessing;
+      console.log('[OAuth] Session saved, redirecting to:', redirectUrl);
+      res.redirect(redirectUrl);
+    });
   });
 });
 
