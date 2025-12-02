@@ -105,6 +105,30 @@ router.get('/google/callback', (req, res, next) => {
       console.log('[OAuth] Session ID:', req.sessionID);
       console.log('[OAuth] Session cookie config:', req.session?.cookie);
 
+      // Check if Set-Cookie header exists, if not manually add it
+      const existingCookies = res.getHeader('Set-Cookie');
+      console.log('[OAuth] Existing Set-Cookie headers:', existingCookies);
+
+      if (!existingCookies || (Array.isArray(existingCookies) && !existingCookies.some(c => c.includes('redcube.sid')))) {
+        // Manually construct and set the session cookie
+        const cookieName = 'redcube.sid';
+        const cookieOptions = [
+          `${cookieName}=${encodeURIComponent('s:' + req.sessionID + '.' + require('crypto').createHmac('sha256', process.env.SESSION_SECRET || 'redcube-session-secret-change-in-production').update('s:' + req.sessionID).digest('base64').replace(/=+$/, ''))}`,
+          'Path=/',
+          'HttpOnly',
+          'Secure',
+          'SameSite=None'
+        ];
+
+        if (process.env.SESSION_COOKIE_DOMAIN) {
+          cookieOptions.push(`Domain=${process.env.SESSION_COOKIE_DOMAIN}`);
+        }
+
+        const cookieValue = cookieOptions.join('; ');
+        console.log('[OAuth] Manually setting cookie:', cookieValue);
+        res.setHeader('Set-Cookie', cookieValue);
+      }
+
       res.redirect(redirectUrl);
     });
   });
