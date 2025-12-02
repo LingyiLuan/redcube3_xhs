@@ -46,9 +46,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     console.log('[Passport] findUserByGoogleId returned:', user?.email || 'null');
 
     if (user) {
-      console.log('[Passport] About to call updateUserLastLogin');
-      // Update last login
-      user = await updateUserLastLogin(user.id);
+      // TEMP: Skip slow updateUserLastLogin - causes long delay in OAuth callback
       console.log('Existing user logged in:', user.email);
       return done(null, user);
     } else {
