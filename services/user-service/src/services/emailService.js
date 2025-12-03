@@ -97,7 +97,7 @@ function generateVerificationEmailHTML(email, verificationUrl) {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Verify Your Email - Interview Intel</title>
+      <title>Verify Your Email - LabZero</title>
     </head>
     <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
       <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -109,10 +109,10 @@ function generateVerificationEmailHTML(email, verificationUrl) {
               <tr>
                 <td style="padding: 40px 40px 30px 40px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                   <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.02em;">
-                    Interview Intel
+                    LabZero
                   </h1>
                   <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 500;">
-                    AI-Powered Interview Intelligence Platform
+                    AI-Powered Career Intelligence Platform
                   </p>
                 </td>
               </tr>
@@ -125,7 +125,7 @@ function generateVerificationEmailHTML(email, verificationUrl) {
                   </h2>
 
                   <p style="margin: 0 0 20px 0; color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-                    Thanks for signing up for Interview Intel! To complete your registration and start accessing career insights, please verify your email address by clicking the button below.
+                    Thanks for signing up for LabZero! To complete your registration and start accessing career insights, please verify your email address by clicking the button below.
                   </p>
 
                   <!-- Verification Button -->
@@ -151,7 +151,7 @@ function generateVerificationEmailHTML(email, verificationUrl) {
                   <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
 
                   <p style="margin: 0; color: #8a8a8a; font-size: 13px; line-height: 1.6;">
-                    This verification link will expire in 24 hours. If you didn't create an account with Interview Intel, you can safely ignore this email.
+                    This verification link will expire in 24 hours. If you didn't create an account with LabZero, you can safely ignore this email.
                   </p>
                 </td>
               </tr>
@@ -160,7 +160,7 @@ function generateVerificationEmailHTML(email, verificationUrl) {
               <tr>
                 <td style="padding: 30px 40px; background-color: #f8f8f8; text-align: center; border-top: 1px solid #e0e0e0;">
                   <p style="margin: 0; color: #8a8a8a; font-size: 12px;">
-                    &copy; 2025 Interview Intel. All rights reserved.
+                    &copy; 2025 LabZero. All rights reserved.
                   </p>
                   <p style="margin: 8px 0 0 0; color: #8a8a8a; font-size: 12px;">
                     This is an automated message. Please do not reply to this email.
@@ -186,7 +186,7 @@ function generateVerificationEmailHTML(email, verificationUrl) {
 async function sendVerificationEmail(email, token) {
   const verificationUrl = generateVerificationUrl(token, email);
   const html = generateVerificationEmailHTML(email, verificationUrl);
-  const text = `Welcome to Interview Intel!\n\nPlease verify your email address by visiting this link:\n${verificationUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't create an account, you can safely ignore this email.`;
+  const text = `Welcome to LabZero!\n\nPlease verify your email address by visiting this link:\n${verificationUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't create an account, you can safely ignore this email.`;
 
   // Try Resend first (works on Railway/cloud)
   const resend = getResendClient();
@@ -194,9 +194,9 @@ async function sendVerificationEmail(email, token) {
     try {
       console.log('[EmailService] Sending verification email via Resend to:', email);
       const { data, error } = await resend.emails.send({
-        from: 'Interview Intel <onboarding@resend.dev>',
+        from: 'LabZero <onboarding@resend.dev>',
         to: [email],
-        subject: 'Verify Your Email - Interview Intel',
+        subject: 'Verify Your Email - LabZero',
         html: html,
         text: text,
       });
@@ -229,11 +229,11 @@ async function sendVerificationEmail(email, token) {
 
     const mailOptions = {
       from: {
-        name: 'Interview Intel',
+        name: 'LabZero',
         address: process.env.GMAIL_USER
       },
       to: email,
-      subject: 'Verify Your Email - Interview Intel',
+      subject: 'Verify Your Email - LabZero',
       html: html,
       text: text
     };
@@ -274,7 +274,7 @@ function generatePasswordResetEmailHTML(email, resetUrl) {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Reset Your Password - Interview Intel</title>
+      <title>Reset Your Password - LabZero</title>
     </head>
     <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
       <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -286,10 +286,10 @@ function generatePasswordResetEmailHTML(email, resetUrl) {
               <tr>
                 <td style="padding: 40px 40px 30px 40px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                   <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.02em;">
-                    Interview Intel
+                    LabZero
                   </h1>
                   <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 500;">
-                    AI-Powered Interview Intelligence Platform
+                    AI-Powered Career Intelligence Platform
                   </p>
                 </td>
               </tr>
@@ -302,7 +302,7 @@ function generatePasswordResetEmailHTML(email, resetUrl) {
                   </h2>
 
                   <p style="margin: 0 0 20px 0; color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-                    We received a request to reset your password for your Interview Intel account. If you made this request, click the button below to create a new password.
+                    We received a request to reset your password for your LabZero account. If you made this request, click the button below to create a new password.
                   </p>
 
                   <!-- Reset Button -->
@@ -340,7 +340,7 @@ function generatePasswordResetEmailHTML(email, resetUrl) {
               <tr>
                 <td style="padding: 30px 40px; background-color: #f8f8f8; text-align: center; border-top: 1px solid #e0e0e0;">
                   <p style="margin: 0; color: #8a8a8a; font-size: 12px;">
-                    &copy; 2025 Interview Intel. All rights reserved.
+                    &copy; 2025 LabZero. All rights reserved.
                   </p>
                   <p style="margin: 8px 0 0 0; color: #8a8a8a; font-size: 12px;">
                     This is an automated message. Please do not reply to this email.
@@ -371,7 +371,7 @@ async function sendPasswordResetEmail(email, token) {
 
   const resetUrl = generatePasswordResetUrl(token);
   const html = generatePasswordResetEmailHTML(normalizedEmail, resetUrl);
-  const text = `Password Reset Request\n\nWe received a request to reset your password for your Interview Intel account.\n\nClick the link below to reset your password:\n${resetUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't request a password reset, you can safely ignore this email.\n\nYour password will not change unless you click the link above and create a new one.`;
+  const text = `Password Reset Request\n\nWe received a request to reset your password for your LabZero account.\n\nClick the link below to reset your password:\n${resetUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't request a password reset, you can safely ignore this email.\n\nYour password will not change unless you click the link above and create a new one.`;
 
   // Try Resend first (works on Railway/cloud)
   console.log('[EmailService] Getting Resend client...');
@@ -380,9 +380,9 @@ async function sendPasswordResetEmail(email, token) {
     try {
       console.log('[EmailService] Sending password reset email via Resend to:', normalizedEmail);
       const { data, error } = await resend.emails.send({
-        from: 'Interview Intel <onboarding@resend.dev>',
+        from: 'LabZero <onboarding@resend.dev>',
         to: [normalizedEmail],
-        subject: 'Reset Your Password - Interview Intel',
+        subject: 'Reset Your Password - LabZero',
         html: html,
         text: text,
       });
@@ -414,11 +414,11 @@ async function sendPasswordResetEmail(email, token) {
 
   const mailOptions = {
     from: {
-      name: 'Interview Intel',
+      name: 'LabZero',
       address: process.env.GMAIL_USER
     },
     to: email,
-    subject: 'Reset Your Password - Interview Intel',
+    subject: 'Reset Your Password - LabZero',
     html: html,
     text: text
   };
