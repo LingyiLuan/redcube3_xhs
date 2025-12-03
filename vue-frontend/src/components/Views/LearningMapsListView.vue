@@ -1,14 +1,23 @@
 <script setup lang="ts">
 // @ts-nocheck
 import { computed, onMounted } from 'vue'
-import { Network, X } from 'lucide-vue-next'
-import { useLearningMapStore } from '@/stores/learningMapStore'
+import { Network, X, Loader2, AlertCircle, Calendar, BookOpen } from 'lucide-vue-next'
+import { useLearningMapStore, type PendingMap } from '@/stores/learningMapStore'
 import { useUIStore } from '@/stores/uiStore'
+import type { LearningMap } from '@/types/reports'
 
 const learningMapStore = useLearningMapStore()
 const uiStore = useUIStore()
 
 const maps = computed(() => learningMapStore.maps)
+const pendingMaps = computed(() => learningMapStore.pendingMaps)
+
+// Combine pending and completed maps for display
+const allCards = computed(() => {
+  const pending = pendingMaps.value.map(p => ({ type: 'pending' as const, data: p }))
+  const completed = maps.value.map(m => ({ type: 'completed' as const, data: m }))
+  return [...pending, ...completed]
+})
 
 onMounted(() => {
   learningMapStore.fetchUserMaps()
@@ -26,31 +35,57 @@ function handleDeleteMap(mapId: string, event: Event) {
   }
 }
 
+function handleDismissPending(pendingId: string, event: Event) {
+  event.stopPropagation()
+  learningMapStore.removePendingMap(pendingId)
+}
+
 function formatDate(timestamp: Date | string | undefined) {
   if (!timestamp) return 'Unknown'
 
   const date = new Date(timestamp)
   if (isNaN(date.getTime())) {
-    console.warn('[LearningMapsListView] Invalid date:', timestamp)
     return 'Invalid Date'
   }
 
-  return date.toLocaleString('en-US', {
+  return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
+    day: 'numeric'
   })
 }
 
-function getCompanyFocus(map: any): string {
-  // Extract company from title
+function formatTime(timestamp: Date | string | undefined) {
+  if (!timestamp) return ''
+
+  const date = new Date(timestamp)
+  if (isNaN(date.getTime())) {
+    return ''
+  }
+
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+function getTimeAgo(timestamp: Date | string): string {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffSec = Math.floor(diffMs / 1000)
+  const diffMin = Math.floor(diffSec / 60)
+
+  if (diffMin < 1) return 'just now'
+  if (diffMin < 60) return `${diffMin}m ago`
+  const diffHour = Math.floor(diffMin / 60)
+  if (diffHour < 24) return `${diffHour}h ago`
+  return formatDate(timestamp)
+}
+
+function getCompanyFocus(map: LearningMap): string {
   const title = map.title || ''
 
-  // Common patterns: "Google SWE", "Amazon Software Engineer", etc.
   const companies = ['Google', 'Amazon', 'Meta', 'Microsoft', 'Apple', 'Netflix',
                      'Uber', 'Lyft', 'Airbnb', 'Spotify', 'Twitter', 'LinkedIn',
                      'Coinbase', 'Stripe', 'Shopify', 'Dropbox', 'Slack', 'Zoom',
@@ -71,95 +106,159 @@ function getCompanyFocus(map: any): string {
     return foundCompanies.join(', ')
   }
 
-  // Fallback - extract first 2-3 words from title
   const words = title.split(' ').filter(w => w.length > 2)
-  return words.slice(0, 2).join(' ') || 'Learning Map'
+  return words.slice(0, 3).join(' ') || 'Learning Map'
 }
 
-function getSkillCount(map: any): number {
-  // Count from timeline weeks if available
+function getWeekCount(map: LearningMap): number {
   if (map.timeline?.weeks?.length) {
     return map.timeline.weeks.length
   }
-
-  // Fallback to nodes count
-  if (map.nodes?.length) {
-    return map.nodes.length
-  }
-
   return 0
 }
 
-function getProgress(map: any): number {
-  // TODO: Implement progress tracking when user completion data is available
-  // For now, return 0 to indicate no progress tracking yet
-  // This could be calculated from completed tasks/problems in the future
+function getMilestoneCount(map: LearningMap): number {
+  if (map.milestones?.length) {
+    return map.milestones.length
+  }
   return 0
 }
 </script>
 
 <template>
   <div class="learning-maps-list-view">
+    <!-- Header -->
+    <div class="view-header">
+      <div class="header-content">
+        <Network :size="24" class="header-icon" />
+        <h1 class="header-title">Learning Maps</h1>
+      </div>
+      <p class="header-subtitle">Your personalized study plans based on analysis reports</p>
+    </div>
+
     <!-- Empty State -->
-    <div v-if="maps.length === 0" class="empty-state">
-      <Network :size="48" class="empty-icon" />
+    <div v-if="allCards.length === 0" class="empty-state">
+      <Network :size="64" class="empty-icon" />
       <h3 class="empty-title">No Learning Maps Yet</h3>
       <p class="empty-description">
-        Generate your first learning map from analysis reports
+        Generate your first learning map from an analysis report.<br>
+        Select a report in the Inspector panel and click "Generate Learning Map".
       </p>
     </div>
 
-    <!-- Professional Table View -->
-    <div v-else class="table-container">
-      <table class="maps-table">
-        <thead>
-          <tr>
-            <th class="col-company">Company Focus</th>
-            <th class="col-skills">Skills</th>
-            <th class="col-created">Created</th>
-            <th class="col-progress">Progress</th>
-            <th class="col-actions">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="map in maps"
-            :key="map.id"
-            class="table-row"
-            @click="handleViewMap(map.id)"
-          >
-            <td class="col-company">
-              <span class="company-name">{{ getCompanyFocus(map) }}</span>
-            </td>
-            <td class="col-skills">
-              <span class="skill-count">{{ getSkillCount(map) }} skills</span>
-            </td>
-            <td class="col-created">
-              <span class="created-date">{{ formatDate(map.createdAt) }}</span>
-            </td>
-            <td class="col-progress">
-              <div class="progress-container">
-                <div class="progress-bar" :style="{ width: getProgress(map) + '%' }"></div>
-              </div>
-              <span class="progress-text">{{ getProgress(map) }}%</span>
-            </td>
-            <td class="col-actions" @click.stop>
-              <a @click="handleViewMap(map.id)" class="action-link">View</a>
-              <button @click="handleDeleteMap(map.id, $event)" class="action-delete">
-                <X :size="14" />
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Cards Grid -->
+    <div v-else class="cards-grid">
+      <!-- Pending Cards (Generating) -->
+      <div
+        v-for="card in allCards"
+        :key="card.type === 'pending' ? card.data.id : card.data.id"
+        class="map-card"
+        :class="{
+          'generating': card.type === 'pending' && card.data.status === 'generating',
+          'error': card.type === 'pending' && card.data.status === 'error'
+        }"
+        @click="card.type === 'completed' ? handleViewMap(card.data.id) : null"
+      >
+        <!-- Pending/Generating Card -->
+        <template v-if="card.type === 'pending'">
+          <div class="card-header">
+            <h3 class="card-title">{{ (card.data as PendingMap).title }}</h3>
+            <div class="card-status" :class="(card.data as PendingMap).status">
+              <Loader2 v-if="(card.data as PendingMap).status === 'generating'" :size="14" class="spinner" />
+              <AlertCircle v-else :size="14" />
+              <span>{{ (card.data as PendingMap).status === 'generating' ? 'Generating' : 'Error' }}</span>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div v-if="(card.data as PendingMap).status === 'generating'" class="progress-section">
+            <div class="progress-bar-container">
+              <div
+                class="progress-bar"
+                :style="{ width: (card.data as PendingMap).progress.percent + '%' }"
+              ></div>
+            </div>
+            <div class="progress-info">
+              <span class="progress-message">{{ (card.data as PendingMap).progress.message }}</span>
+              <span class="progress-percent">{{ (card.data as PendingMap).progress.percent }}%</span>
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <div v-if="(card.data as PendingMap).status === 'error'" class="error-section">
+            <p class="error-message">{{ (card.data as PendingMap).error }}</p>
+            <button @click="handleDismissPending((card.data as PendingMap).id, $event)" class="dismiss-btn">
+              Dismiss
+            </button>
+          </div>
+
+          <div class="card-footer">
+            <span class="card-timestamp">Started {{ getTimeAgo((card.data as PendingMap).startedAt) }}</span>
+          </div>
+        </template>
+
+        <!-- Completed Card -->
+        <template v-else>
+          <div class="card-header">
+            <h3 class="card-title">{{ getCompanyFocus(card.data as LearningMap) }}</h3>
+            <button
+              @click="handleDeleteMap((card.data as LearningMap).id, $event)"
+              class="delete-btn"
+              title="Delete map"
+            >
+              <X :size="16" />
+            </button>
+          </div>
+
+          <div class="card-stats">
+            <div class="stat">
+              <Calendar :size="14" />
+              <span>{{ getWeekCount(card.data as LearningMap) }} weeks</span>
+            </div>
+            <div class="stat">
+              <BookOpen :size="14" />
+              <span>{{ getMilestoneCount(card.data as LearningMap) }} milestones</span>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <span class="card-timestamp">
+              Created {{ formatDate((card.data as LearningMap).createdAt) }}
+              <span class="time">{{ formatTime((card.data as LearningMap).createdAt) }}</span>
+            </span>
+            <span class="view-link">View</span>
+          </div>
+        </template>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .learning-maps-list-view {
-  @apply flex flex-col h-full bg-white;
+  @apply flex flex-col h-full bg-gray-50 dark:bg-gray-900;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Header */
+.view-header {
+  @apply p-6 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900;
+}
+
+.header-content {
+  @apply flex items-center gap-3 mb-2;
+}
+
+.header-icon {
+  @apply text-blue-600 dark:text-blue-400;
+}
+
+.header-title {
+  @apply text-xl font-semibold text-gray-900 dark:text-gray-100;
+}
+
+.header-subtitle {
+  @apply text-sm text-gray-500 dark:text-gray-400;
 }
 
 /* Empty State */
@@ -168,203 +267,164 @@ function getProgress(map: any): number {
 }
 
 .empty-icon {
-  @apply text-gray-300 mb-4;
+  @apply text-gray-300 dark:text-gray-700 mb-6;
 }
 
 .empty-title {
-  @apply text-lg font-semibold text-gray-900 mb-2;
+  @apply text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3;
 }
 
 .empty-description {
-  @apply text-sm text-gray-500;
+  @apply text-sm text-gray-500 dark:text-gray-400 leading-relaxed;
 }
 
-/* Professional Table */
-.table-container {
-  @apply flex-1 overflow-auto;
+/* Cards Grid */
+.cards-grid {
+  @apply flex-1 overflow-auto p-6;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  align-content: start;
 }
 
-.maps-table {
-  @apply w-full border-collapse;
-  min-width: 800px;
-  table-layout: fixed;
+/* Map Card */
+.map-card {
+  @apply bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 cursor-pointer transition-all;
 }
 
-.maps-table thead {
-  @apply sticky top-0 z-10;
-  background: #F1F5F9;
-  border-bottom: 2px solid #E2E8F0;
+.map-card:hover:not(.generating):not(.error) {
+  @apply border-blue-400 dark:border-blue-600 shadow-md;
 }
 
-.maps-table th {
-  @apply text-left px-4 py-3;
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #1E3A8A;
-  white-space: nowrap;
+.map-card.generating {
+  @apply border-blue-400 dark:border-blue-600 cursor-default;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(255, 255, 255, 1) 100%);
 }
 
-.maps-table tbody tr {
-  @apply cursor-pointer;
-  border-bottom: 1px solid #E2E8F0;
-  transition: background-color 0.15s ease;
+.dark .map-card.generating {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(31, 41, 55, 1) 100%);
 }
 
-.maps-table tbody tr:nth-child(odd) {
-  background: white;
+.map-card.error {
+  @apply border-red-300 dark:border-red-700 cursor-default;
+  background: rgba(239, 68, 68, 0.05);
 }
 
-.maps-table tbody tr:nth-child(even) {
-  background: #F9FAFB;
+.dark .map-card.error {
+  background: rgba(239, 68, 68, 0.1);
 }
 
-.maps-table tbody tr:hover {
-  background: #EFF6FF;
+/* Card Header */
+.card-header {
+  @apply flex items-start justify-between gap-3 mb-3;
 }
 
-.maps-table td {
-  @apply px-4 py-3;
-  font-size: 13px;
-  color: #374151;
-  vertical-align: middle;
+.card-title {
+  @apply text-base font-semibold text-gray-900 dark:text-gray-100 flex-1;
+  line-height: 1.4;
 }
 
-/* Column Widths */
-.col-company {
-  width: 35%;
+.card-status {
+  @apply flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium;
 }
 
-.col-skills {
-  width: 10%;
+.card-status.generating {
+  @apply bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300;
 }
 
-.col-created {
-  width: 20%;
+.card-status.error {
+  @apply bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300;
 }
 
-.col-progress {
-  width: 20%;
+.spinner {
+  animation: spin 1s linear infinite;
 }
 
-.col-actions {
-  width: 15%;
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-/* Cell Content */
-.company-name {
-  @apply font-medium;
-  color: #111827;
+.delete-btn {
+  @apply p-1.5 rounded text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors;
 }
 
-.skill-count {
-  color: #374151;
-  font-weight: 500;
+/* Progress Section */
+.progress-section {
+  @apply mb-4;
 }
 
-.created-date {
-  color: #6B7280;
-  font-size: 12px;
-}
-
-/* Progress */
-.col-progress > div,
-.col-progress > span {
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.progress-container {
-  display: inline-block;
-  width: 80px;
-  height: 8px;
-  border-radius: 4px;
-  overflow: hidden;
-  background: #E2E8F0;
-  margin-right: 8px;
-  vertical-align: middle;
+.progress-bar-container {
+  @apply w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-2;
 }
 
 .progress-bar {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease;
-  background: #3B82F6;
+  @apply h-full bg-blue-500 transition-all duration-300 ease-out;
 }
 
-.progress-text {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 500;
-  color: #6B7280;
-  min-width: 28px;
-  text-align: right;
-  vertical-align: middle;
+.progress-info {
+  @apply flex items-center justify-between text-xs;
 }
 
-/* Actions */
-.col-actions > * {
-  display: inline-block;
-  vertical-align: middle;
+.progress-message {
+  @apply text-gray-600 dark:text-gray-400;
 }
 
-.action-link {
-  font-size: 12px;
-  font-weight: 500;
-  color: #3B82F6;
-  text-decoration: none;
-  cursor: pointer;
-  transition: color 0.15s ease;
-  margin-right: 12px;
+.progress-percent {
+  @apply font-medium text-blue-600 dark:text-blue-400;
 }
 
-.action-link:hover {
-  color: #2563EB;
-  text-decoration: underline;
+/* Error Section */
+.error-section {
+  @apply mb-3;
 }
 
-.action-delete {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 3px;
-  color: #9CA3AF;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  padding: 0;
+.error-message {
+  @apply text-sm text-red-600 dark:text-red-400 mb-2;
 }
 
-.action-delete:hover {
-  color: #EF4444;
-  background: #FEF2F2;
+.dismiss-btn {
+  @apply px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors;
+}
+
+/* Card Stats */
+.card-stats {
+  @apply flex items-center gap-4 mb-4;
+}
+
+.stat {
+  @apply flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400;
+}
+
+/* Card Footer */
+.card-footer {
+  @apply flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-100 dark:border-gray-700;
+}
+
+.card-timestamp {
+  @apply flex items-center gap-1;
+}
+
+.card-timestamp .time {
+  @apply text-gray-400 dark:text-gray-500;
+}
+
+.view-link {
+  @apply text-blue-600 dark:text-blue-400 font-medium hover:underline;
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
-  .col-progress {
-    display: none;
+@media (max-width: 640px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
   }
 
-  .col-company {
-    width: 40%;
+  .view-header {
+    @apply p-4;
   }
 
-  .col-skills {
-    width: 15%;
-  }
-
-  .col-created {
-    width: 30%;
-  }
-
-  .col-actions {
-    width: 15%;
+  .cards-grid {
+    @apply p-4;
   }
 }
 </style>

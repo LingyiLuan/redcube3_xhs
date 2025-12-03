@@ -5,12 +5,25 @@ import { useAuthStore } from './authStore'
 import { useReportsStore } from './reportsStore'
 import apiClient from '@/services/apiClient'
 
+// Pending map type for in-progress generation
+export interface PendingMap {
+  id: string // Temporary ID like 'pending-123'
+  title: string // Company names from batch report
+  status: 'generating' | 'error'
+  progress: { phase: number; message: string; percent: number }
+  startedAt: Date
+  error?: string
+}
+
 export const useLearningMapStore = defineStore('learningMap', () => {
   // ===== STATE =====
   const maps = ref<LearningMap[]>([])
   const activeMapId = ref<string | null>(null)
   const isGenerating = ref(false)
   const generationProgress = ref<{ phase: number; message: string; percent: number } | null>(null)
+
+  // Pending maps - maps that are currently being generated
+  const pendingMaps = ref<PendingMap[]>([])
 
   // ===== GETTERS =====
   const activeMap = computed(() =>
@@ -25,133 +38,210 @@ export const useLearningMapStore = defineStore('learningMap', () => {
 
   // ===== ACTIONS =====
 
-  async function generateMap(reportIds: string[], useRAG: boolean = false, title?: string, description?: string) {
-    isGenerating.value = true
-    generationProgress.value = { phase: 0, message: 'Starting...', percent: 0 }
+  // Helper to extract company names from a batch report
+  function getCompanyNamesFromReport(report: any): string {
+    // Extract from individual_analyses
+    if (report.result?.individual_analyses && Array.isArray(report.result.individual_analyses)) {
+      const companies = [...new Set(
+        report.result.individual_analyses
+          .map((analysis: any) => analysis.company)
+          .filter((c: string) => c && c !== 'Unknown' && c !== 'unknown')
+      )] as string[]
+
+      if (companies.length > 0) {
+        if (companies.length > 3) {
+          return `${companies.slice(0, 3).join(', ')} +${companies.length - 3}`
+        }
+        return companies.join(', ')
+      }
+    }
+    return 'Learning Map'
+  }
+
+  async function generateMap(reportIds: string[], _useRAG: boolean = false, title?: string, description?: string) {
     const authStore = useAuthStore()
     const reportsStore = useReportsStore()
 
-    try {
-      // ✅ NEW PATH: Use reportId directly for batch reports (comprehensive analysis)
-      // This uses the enhanced learningMapGeneratorService with foundation pool
-      if (reportIds.length !== 1) {
-        throw new Error('Please select exactly one batch analysis report to generate a learning map.')
-      }
+    // Validate inputs
+    if (reportIds.length !== 1) {
+      throw new Error('Please select exactly one batch analysis report to generate a learning map.')
+    }
 
-      const reportId = reportIds[0]
-      const report = reportsStore.reports.find(r => r.id === reportId)
+    const reportId = reportIds[0]
+    const report = reportsStore.reports.find(r => r.id === reportId)
 
-      if (!report) {
-        throw new Error('Report not found')
-      }
+    if (!report) {
+      throw new Error('Report not found')
+    }
 
-      // Validate it's a batch report (has batchId)
-      if (!report.batchId) {
-        throw new Error('Learning maps can only be generated from batch analysis reports. Please run a batch analysis first.')
-      }
+    if (!report.batchId) {
+      throw new Error('Learning maps can only be generated from batch analysis reports. Please run a batch analysis first.')
+    }
 
-      console.log('[LearningMapStore] Generating learning map from batch report:', report.batchId)
-      console.log('[LearningMapStore] Report ID:', reportId)
+    // Create a pending map immediately
+    const pendingId = `pending-${Date.now()}`
+    const mapTitle = title || getCompanyNamesFromReport(report)
+    const pendingMap: PendingMap = {
+      id: pendingId,
+      title: mapTitle,
+      status: 'generating',
+      progress: { phase: 0, message: 'Starting...', percent: 0 },
+      startedAt: new Date()
+    }
+    pendingMaps.value.unshift(pendingMap) // Add to beginning of array
 
-      // Use SSE streaming endpoint to avoid Cloudflare timeout
-      const apiBaseUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
-      const streamUrl = `${apiBaseUrl}/api/content/learning-map/stream`
+    // Set global generating state
+    isGenerating.value = true
+    generationProgress.value = { phase: 0, message: 'Starting...', percent: 0 }
 
-      return new Promise<LearningMap>((resolve, reject) => {
-        // Create POST request with fetch for SSE (EventSource only supports GET)
-        fetch(streamUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'text/event-stream'
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            reportId: report.batchId,
-            userId: authStore.userId,
-            userGoals: { title, description }
-          })
-        }).then(async response => {
-          if (!response.ok) {
-            const errorText = await response.text()
-            throw new Error(`HTTP ${response.status}: ${errorText}`)
-          }
+    console.log('[LearningMapStore] Created pending map:', pendingId)
+    console.log('[LearningMapStore] Generating from batch report:', report.batchId)
 
-          const reader = response.body?.getReader()
-          if (!reader) {
-            throw new Error('No response body')
-          }
+    // Use SSE streaming endpoint to avoid Cloudflare timeout
+    const apiBaseUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+    const streamUrl = `${apiBaseUrl}/api/content/learning-map/stream`
 
-          const decoder = new TextDecoder()
-          let buffer = ''
+    return new Promise<LearningMap>((resolve, reject) => {
+      fetch(streamUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          reportId: report.batchId,
+          userId: authStore.userId,
+          userGoals: { title, description }
+        })
+      }).then(async response => {
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`HTTP ${response.status}: ${errorText}`)
+        }
 
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
+        const reader = response.body?.getReader()
+        if (!reader) {
+          throw new Error('No response body')
+        }
 
-            buffer += decoder.decode(value, { stream: true })
+        const decoder = new TextDecoder()
+        let buffer = ''
 
-            // Process complete SSE events
-            const lines = buffer.split('\n')
-            buffer = lines.pop() || '' // Keep incomplete line in buffer
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
 
-            let eventType = ''
-            let eventData = ''
+          buffer += decoder.decode(value, { stream: true })
 
-            for (const line of lines) {
-              if (line.startsWith('event: ')) {
-                eventType = line.slice(7).trim()
-              } else if (line.startsWith('data: ')) {
-                eventData = line.slice(6)
-              } else if (line === '' && eventType && eventData) {
-                // Process complete event
-                try {
-                  const data = JSON.parse(eventData)
-                  console.log('[LearningMapStore] SSE Event:', eventType, data)
+          // Process complete SSE events
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
 
-                  if (eventType === 'progress') {
-                    generationProgress.value = {
-                      phase: data.phase,
-                      message: data.message,
-                      percent: data.percent
-                    }
-                  } else if (eventType === 'complete') {
-                    const newMap: LearningMap = {
-                      ...data.data,
-                      id: String(data.data.id),
-                      createdAt: new Date()
-                    }
-                    maps.value.push(newMap)
-                    activeMapId.value = newMap.id
-                    console.log('[LearningMapStore] Learning map generated:', newMap.id)
-                    resolve(newMap)
-                    return
-                  } else if (eventType === 'error') {
-                    reject(new Error(data.message || 'Generation failed'))
-                    return
+          let eventType = ''
+          let eventData = ''
+
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              eventType = line.slice(7).trim()
+            } else if (line.startsWith('data: ')) {
+              eventData = line.slice(6)
+            } else if (line === '' && eventType && eventData) {
+              try {
+                const data = JSON.parse(eventData)
+                console.log('[LearningMapStore] SSE Event:', eventType, data)
+
+                if (eventType === 'progress') {
+                  // Update both the pending map and global progress
+                  const progressData = {
+                    phase: data.phase,
+                    message: data.message,
+                    percent: data.percent
                   }
-                } catch (e) {
-                  console.warn('[LearningMapStore] Failed to parse SSE data:', eventData)
+                  generationProgress.value = progressData
+
+                  // Update the pending map's progress
+                  const pending = pendingMaps.value.find(p => p.id === pendingId)
+                  if (pending) {
+                    pending.progress = progressData
+                  }
+                } else if (eventType === 'complete') {
+                  // Remove pending map
+                  const pendingIndex = pendingMaps.value.findIndex(p => p.id === pendingId)
+                  if (pendingIndex > -1) {
+                    pendingMaps.value.splice(pendingIndex, 1)
+                  }
+
+                  // Add completed map
+                  const newMap: LearningMap = {
+                    ...data.data,
+                    id: String(data.data.id),
+                    createdAt: new Date()
+                  }
+                  maps.value.unshift(newMap) // Add to beginning
+                  activeMapId.value = newMap.id
+
+                  // Clear generating state
+                  isGenerating.value = false
+                  generationProgress.value = null
+
+                  console.log('[LearningMapStore] Learning map generated:', newMap.id)
+                  resolve(newMap)
+                  return
+                } else if (eventType === 'error') {
+                  // Mark pending map as error
+                  const pending = pendingMaps.value.find(p => p.id === pendingId)
+                  if (pending) {
+                    pending.status = 'error'
+                    pending.error = data.message || 'Generation failed'
+                  }
+
+                  isGenerating.value = false
+                  generationProgress.value = null
+
+                  reject(new Error(data.message || 'Generation failed'))
+                  return
                 }
-                eventType = ''
-                eventData = ''
+              } catch (e) {
+                console.warn('[LearningMapStore] Failed to parse SSE data:', eventData)
               }
+              eventType = ''
+              eventData = ''
             }
           }
+        }
 
-          // If we get here without complete event, something went wrong
-          reject(new Error('Stream ended without complete event'))
-        }).catch(error => {
-          console.error('[LearningMapStore] SSE Error:', error)
-          reject(error)
-        })
+        // Stream ended without complete event
+        const pending = pendingMaps.value.find(p => p.id === pendingId)
+        if (pending) {
+          pending.status = 'error'
+          pending.error = 'Stream ended unexpectedly'
+        }
+        isGenerating.value = false
+        generationProgress.value = null
+        reject(new Error('Stream ended without complete event'))
+      }).catch(error => {
+        console.error('[LearningMapStore] SSE Error:', error)
+
+        // Mark pending map as error
+        const pending = pendingMaps.value.find(p => p.id === pendingId)
+        if (pending) {
+          pending.status = 'error'
+          pending.error = error.message || 'Generation failed'
+        }
+
+        isGenerating.value = false
+        generationProgress.value = null
+        reject(error)
       })
-    } catch (error: any) {
-      console.error('[LearningMapStore] Failed to generate map:', error)
-      throw error
-    } finally {
-      isGenerating.value = false
-      generationProgress.value = null
+    })
+  }
+
+  // Remove a pending map (e.g., dismiss error)
+  function removePendingMap(pendingId: string) {
+    const index = pendingMaps.value.findIndex(p => p.id === pendingId)
+    if (index > -1) {
+      pendingMaps.value.splice(index, 1)
     }
   }
 
@@ -220,6 +310,7 @@ export const useLearningMapStore = defineStore('learningMap', () => {
     activeMapId,
     isGenerating,
     generationProgress,
+    pendingMaps,
 
     // Getters
     activeMap,
@@ -230,6 +321,7 @@ export const useLearningMapStore = defineStore('learningMap', () => {
     fetchUserMaps,
     setActiveMap,
     deleteMap,
-    clearAll
+    clearAll,
+    removePendingMap
   }
 })
