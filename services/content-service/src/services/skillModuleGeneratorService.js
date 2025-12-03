@@ -63,9 +63,10 @@ async function extractProblemsFromDatabase(postIds) {
     const tableCheck = await pool.query(tableCheckQuery);
 
     if (!tableCheck.rows[0].table_exists) {
-      logger.warn('[SkillModule] leetcode_problems table does not exist - returning empty problems array');
-      logger.warn('[SkillModule] Note: LeetCode extraction requires separate setup and backfill process');
-      return [];
+      logger.warn('[SkillModule] leetcode_problems table does not exist - falling back to curated_problems');
+
+      // Fallback to curated_problems table (Blind 75, NeetCode 150, etc.)
+      return await extractFromCuratedProblems();
     }
 
     const query = `
@@ -98,6 +99,77 @@ async function extractProblemsFromDatabase(postIds) {
     logger.error('[SkillModule] Error extracting problems:', error);
     // Return empty array instead of throwing to allow learning map generation to continue
     logger.warn('[SkillModule] Returning empty problems array due to error');
+    return [];
+  }
+}
+
+/**
+ * Fallback: Extract problems from curated_problems table (Blind 75, NeetCode 150, etc.)
+ * Used when leetcode_problems table doesn't exist
+ */
+async function extractFromCuratedProblems() {
+  try {
+    logger.info('[SkillModule] Extracting from curated_problems table');
+
+    // Check if curated_problems table exists
+    const tableCheckQuery = `
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public'
+        AND table_name = 'curated_problems'
+      ) as table_exists
+    `;
+
+    const tableCheck = await pool.query(tableCheckQuery);
+
+    if (!tableCheck.rows[0].table_exists) {
+      logger.warn('[SkillModule] curated_problems table does not exist - returning empty array');
+      return [];
+    }
+
+    const query = `
+      SELECT
+        id as problem_id,
+        problem_name,
+        leetcode_number as problem_number,
+        difficulty,
+        category,
+        url as problem_url,
+        topics,
+        estimated_time_minutes,
+        problem_list
+      FROM curated_problems
+      WHERE problem_list = 'Blind 75'
+      ORDER BY
+        CASE difficulty
+          WHEN 'Easy' THEN 1
+          WHEN 'Medium' THEN 2
+          WHEN 'Hard' THEN 3
+        END,
+        category,
+        leetcode_number
+    `;
+
+    const result = await pool.query(query);
+
+    logger.info(`[SkillModule] Found ${result.rows.length} curated problems (Blind 75)`);
+
+    // Transform to match the expected format
+    return result.rows.map(row => ({
+      problem_id: row.problem_id,
+      problem_name: row.problem_name,
+      problem_number: row.problem_number,
+      difficulty: row.difficulty,
+      category: row.category,
+      problem_url: row.problem_url,
+      frequency: 10, // Default frequency for curated problems (high priority)
+      companies: [], // No company data for curated problems
+      source_post_ids: [],
+      estimated_time_minutes: row.estimated_time_minutes,
+      is_curated: true
+    }));
+  } catch (error) {
+    logger.error('[SkillModule] Error extracting from curated_problems:', error);
     return [];
   }
 }
