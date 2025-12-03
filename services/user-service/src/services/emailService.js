@@ -13,11 +13,23 @@
 const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
 
-// Initialize Resend client if API key is available
+// Lazily initialized Resend client
 let resendClient = null;
-if (process.env.RESEND_API_KEY) {
-  resendClient = new Resend(process.env.RESEND_API_KEY);
-  console.log('[EmailService] Initialized Resend API client');
+
+/**
+ * Get or initialize Resend client
+ */
+function getResendClient() {
+  if (resendClient) return resendClient;
+
+  if (process.env.RESEND_API_KEY) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+    console.log('[EmailService] Initialized Resend API client');
+    return resendClient;
+  }
+
+  console.log('[EmailService] No RESEND_API_KEY found');
+  return null;
 }
 
 /**
@@ -177,12 +189,13 @@ async function sendVerificationEmail(email, token) {
   const text = `Welcome to Interview Intel!\n\nPlease verify your email address by visiting this link:\n${verificationUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't create an account, you can safely ignore this email.`;
 
   // Try Resend first (works on Railway/cloud)
-  if (resendClient) {
+  const resend = getResendClient();
+  if (resend) {
     try {
       console.log('[EmailService] Sending verification email via Resend to:', email);
-      const { data, error } = await resendClient.emails.send({
+      const { data, error } = await resend.emails.send({
         from: 'Interview Intel <onboarding@resend.dev>',
-        to: email,
+        to: [email],
         subject: 'Verify Your Email - Interview Intel',
         html: html,
         text: text,
@@ -357,12 +370,13 @@ async function sendPasswordResetEmail(email, token) {
   const text = `Password Reset Request\n\nWe received a request to reset your password for your Interview Intel account.\n\nClick the link below to reset your password:\n${resetUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't request a password reset, you can safely ignore this email.\n\nYour password will not change unless you click the link above and create a new one.`;
 
   // Try Resend first (works on Railway/cloud)
-  if (resendClient) {
+  const resend = getResendClient();
+  if (resend) {
     try {
       console.log('[EmailService] Sending password reset email via Resend to:', email);
-      const { data, error } = await resendClient.emails.send({
+      const { data, error } = await resend.emails.send({
         from: 'Interview Intel <onboarding@resend.dev>',
-        to: email,
+        to: [email],
         subject: 'Reset Your Password - Interview Intel',
         html: html,
         text: text,
