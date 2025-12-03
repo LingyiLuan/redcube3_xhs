@@ -365,10 +365,12 @@ function generatePasswordResetEmailHTML(email, resetUrl) {
  * @throws {Error} - Throws if email sending fails (for proper error handling)
  */
 async function sendPasswordResetEmail(email, token) {
-  console.log('[EmailService] sendPasswordResetEmail called for:', email);
+  // Normalize email to lowercase for Resend (case-sensitive matching on free tier)
+  const normalizedEmail = email.toLowerCase();
+  console.log('[EmailService] sendPasswordResetEmail called for:', normalizedEmail);
 
   const resetUrl = generatePasswordResetUrl(token);
-  const html = generatePasswordResetEmailHTML(email, resetUrl);
+  const html = generatePasswordResetEmailHTML(normalizedEmail, resetUrl);
   const text = `Password Reset Request\n\nWe received a request to reset your password for your Interview Intel account.\n\nClick the link below to reset your password:\n${resetUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't request a password reset, you can safely ignore this email.\n\nYour password will not change unless you click the link above and create a new one.`;
 
   // Try Resend first (works on Railway/cloud)
@@ -376,10 +378,10 @@ async function sendPasswordResetEmail(email, token) {
   const resend = getResendClient();
   if (resend) {
     try {
-      console.log('[EmailService] Sending password reset email via Resend to:', email);
+      console.log('[EmailService] Sending password reset email via Resend to:', normalizedEmail);
       const { data, error } = await resend.emails.send({
         from: 'Interview Intel <onboarding@resend.dev>',
-        to: [email],
+        to: [normalizedEmail],
         subject: 'Reset Your Password - Interview Intel',
         html: html,
         text: text,
