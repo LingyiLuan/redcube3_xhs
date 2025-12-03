@@ -80,6 +80,8 @@ const props = defineProps({
 const emit = defineEmits(['view'])
 const router = useRouter()
 
+const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+
 const hasUpvoted = ref(false)
 const isVoting = ref(false)
 
@@ -101,7 +103,7 @@ async function handleVote(voteType) {
 
   try {
     const response = await axios.post(
-      `http://localhost:8080/api/content/interview-intel/experiences/${props.experience.id}/vote`,
+      `${apiGatewayUrl}/api/content/interview-intel/experiences/${props.experience.id}/vote`,
       { voteType }
     )
 

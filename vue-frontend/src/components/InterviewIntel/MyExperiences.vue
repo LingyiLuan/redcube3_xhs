@@ -36,6 +36,8 @@ import ExperienceCard from './ExperienceCard.vue'
 
 const emit = defineEmits(['view-experience'])
 
+const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+
 const experiences = ref([])
 const loading = ref(false)
 const error = ref('')
@@ -50,7 +52,7 @@ async function fetchMyExperiences() {
 
   try {
     const response = await axios.get(
-      'http://localhost:8080/api/content/interview-intel/my-experiences'
+      `${apiGatewayUrl}/api/content/interview-intel/my-experiences`
     )
 
     console.log('[MyExperiences] Fetched my experiences:', response.data)

@@ -110,6 +110,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
+const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+
 const experience = ref(null)
 const loading = ref(false)
 const error = ref('')
@@ -124,7 +126,7 @@ async function fetchExperience() {
 
   try {
     const response = await axios.get(
-      `http://localhost:8080/api/content/interview-intel/experiences/${props.experienceId}`
+      `${apiGatewayUrl}/api/content/interview-intel/experiences/${props.experienceId}`
     )
 
     console.log('[ExperienceDetailView] Fetched experience:', response.data)

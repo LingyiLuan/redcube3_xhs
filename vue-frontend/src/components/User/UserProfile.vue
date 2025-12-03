@@ -679,6 +679,9 @@ const tierProgressPercent = computed(() => {
 
 const currentTierBenefits = computed(() => currentTierInfo.value.benefits || [])
 
+// API Gateway URL
+const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+
 // Navigation
 function goHome() {
   router.push('/')
@@ -690,7 +693,7 @@ async function loadProfile() {
 
   try {
     // First, get authenticated user from user-service
-    const authResponse = await fetch('http://localhost:8080/api/auth/me', {
+    const authResponse = await fetch(`${apiGatewayUrl}/api/auth/me`, {
       credentials: 'include'  // Include session cookies
     })
 
@@ -704,8 +707,8 @@ async function loadProfile() {
 
     // Then get reputation/usage data from content-service
     const [reputationResponse, usageResponse] = await Promise.all([
-      fetch(`http://localhost:8080/api/content/reputation/profile/${userId}`),
-      fetch(`http://localhost:8080/api/content/reputation/usage/${userId}`)
+      fetch(`${apiGatewayUrl}/api/content/reputation/profile/${userId}`),
+      fetch(`${apiGatewayUrl}/api/content/reputation/usage/${userId}`)
     ])
 
     // Merge auth data (from user-service) with reputation data (from content-service)
@@ -799,7 +802,7 @@ function handleUpgrade() {
 
 function connectLinkedIn() {
   // Redirect to LinkedIn OAuth flow
-  window.location.href = 'http://localhost:8080/auth/linkedin'
+  window.location.href = `${apiGatewayUrl}/auth/linkedin`
 }
 
 async function disconnectLinkedIn() {
@@ -808,7 +811,7 @@ async function disconnectLinkedIn() {
   }
 
   try {
-    const response = await fetch('http://localhost:8080/api/auth/linkedin/disconnect', {
+    const response = await fetch(`${apiGatewayUrl}/api/auth/linkedin/disconnect`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -840,7 +843,7 @@ async function handleSendVerificationEmail() {
   try {
     sendingVerification.value = true
 
-    const response = await fetch('http://localhost:8080/api/auth/resend-verification', {
+    const response = await fetch(`${apiGatewayUrl}/api/auth/resend-verification`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -876,7 +879,7 @@ async function handlePasswordChange() {
   try {
     sendingPasswordReset.value = true
 
-    const response = await fetch('http://localhost:8080/api/auth/forgot-password', {
+    const response = await fetch(`${apiGatewayUrl}/api/auth/forgot-password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -909,7 +912,7 @@ function handleDeleteAccount() {
 
 async function handleDeleteAccountConfirm(reason: string) {
   try {
-    const response = await fetch('http://localhost:8080/api/auth/delete-account', {
+    const response = await fetch(`${apiGatewayUrl}/api/auth/delete-account`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -947,7 +950,7 @@ async function handleCancelDeletion() {
   try {
     cancelingDeletion.value = true
 
-    const response = await fetch('http://localhost:8080/api/auth/cancel-deletion', {
+    const response = await fetch(`${apiGatewayUrl}/api/auth/cancel-deletion`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1001,7 +1004,7 @@ async function saveDisplayName() {
   try {
     const userId = authStore.user?.id || 1
 
-    const response = await fetch(`http://localhost:8080/api/auth/profile`, {
+    const response = await fetch(`${apiGatewayUrl}/api/auth/profile`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'

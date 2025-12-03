@@ -191,7 +191,8 @@ async function loadExperiences() {
 }
 
 function getApiUrl(): string {
-  const baseUrl = 'http://localhost:8080/api'
+  const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+  const baseUrl = `${apiGatewayUrl}/api`
 
   if (selectedTab.value === 'trending') {
     return `${baseUrl}/trending/experiences`

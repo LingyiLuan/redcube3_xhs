@@ -195,8 +195,9 @@ async function loadLeaderboard() {
   error.value = null
 
   try {
+    const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
     const limit = 50 // Show top 50 users
-    const response = await fetch(`http://localhost:8080/api/content/reputation/leaderboard?limit=${limit}`)
+    const response = await fetch(`${apiGatewayUrl}/api/content/reputation/leaderboard?limit=${limit}`)
 
     if (!response.ok) {
       throw new Error('Failed to load leaderboard')

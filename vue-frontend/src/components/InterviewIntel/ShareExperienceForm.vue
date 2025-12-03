@@ -133,6 +133,8 @@ import axios from 'axios'
 
 const emit = defineEmits(['experience-created'])
 
+const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+
 const formData = ref({
   company: '',
   role: '',
@@ -182,7 +184,7 @@ async function submitExperience() {
     }
 
     const response = await axios.post(
-      'http://localhost:8080/api/content/interview-intel/experiences',
+      `${apiGatewayUrl}/api/content/interview-intel/experiences`,
       payload
     )
 

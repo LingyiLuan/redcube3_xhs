@@ -201,8 +201,9 @@ onMounted(async () => {
     try {
       // Fetch experience data from API
       console.log('[WorkflowEditor] 📥 Fetching experience from API...')
+      const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
       const response = await axios.get(
-        `http://localhost:8080/api/content/interview-intel/experiences/${route.query.experienceId}`
+        `${apiGatewayUrl}/api/content/interview-intel/experiences/${route.query.experienceId}`
       )
 
       if (response.data.success) {
@@ -392,7 +393,7 @@ onMounted(async () => {
         try {
           console.log('[WorkflowEditor] 📝 Recording citation...')
           await axios.post(
-            `http://localhost:8080/api/content/interview-intel/experiences/${experience.id}/cite`,
+            `${apiGatewayUrl}/api/content/interview-intel/experiences/${experience.id}/cite`,
             {
               workflowId: `workflow_${Date.now()}`,
               analysisType: 'workflow_analysis'

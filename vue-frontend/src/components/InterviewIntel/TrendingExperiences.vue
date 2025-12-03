@@ -67,6 +67,8 @@ import ExperienceCard from './ExperienceCard.vue'
 
 const emit = defineEmits(['view-experience'])
 
+const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+
 const experiences = ref([])
 const loading = ref(false)
 const error = ref('')
@@ -92,15 +94,15 @@ async function fetchExperiences() {
 
     switch (activeSubTab.value) {
       case 'trending':
-        url = 'http://localhost:8080/api/content/trending/experiences'
+        url = `${apiGatewayUrl}/api/content/trending/experiences`
         params = { limit: 20, timeWindow: timeWindow.value }
         break
       case 'rising':
-        url = 'http://localhost:8080/api/content/trending/rising-stars'
+        url = `${apiGatewayUrl}/api/content/trending/rising-stars`
         params = { limit: 10 }
         break
       case 'cited':
-        url = 'http://localhost:8080/api/content/trending/most-cited'
+        url = `${apiGatewayUrl}/api/content/trending/most-cited`
         params = { limit: 20, timeWindow: 'all' }
         break
     }

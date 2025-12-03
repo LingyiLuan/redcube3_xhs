@@ -39,7 +39,7 @@ app.use(cors({
     'http://localhost:5173', // Vue dev server
     'http://localhost:3001', // Container frontend (legacy)
     'http://localhost:3002', // Local dev frontend (legacy)
-    process.env.FRONTEND_URL
+    process.env.FRONTEND_URL || 'https://labzero.io' // Production frontend
   ].filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

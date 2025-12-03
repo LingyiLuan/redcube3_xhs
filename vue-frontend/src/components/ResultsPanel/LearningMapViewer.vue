@@ -860,9 +860,11 @@ async function handleViewSources(postIds: string[]) {
 
   console.log('[LearningMapViewer] Fetching', postIds.length, 'posts from API')
 
+  const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+
   try {
     // Fetch posts from backend API
-    const response = await fetch('http://localhost:8080/api/content/posts/batch', {
+    const response = await fetch(`${apiGatewayUrl}/api/content/posts/batch`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

@@ -108,6 +108,8 @@ import ExperienceCard from './ExperienceCard.vue'
 
 const emit = defineEmits(['view-experience', 'go-to-share'])
 
+const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+
 const experiences = ref([])
 const loading = ref(false)
 const error = ref('')
@@ -163,7 +165,7 @@ async function fetchExperiences() {
     if (filters.value.outcome) params.outcome = filters.value.outcome
 
     const response = await axios.get(
-      'http://localhost:8080/api/content/interview-intel/experiences',
+      `${apiGatewayUrl}/api/content/interview-intel/experiences`,
       { params }
     )
 
@@ -206,7 +208,7 @@ async function performSearch() {
 
     try {
       const response = await axios.get(
-        'http://localhost:8080/api/content/interview-intel/search',
+        `${apiGatewayUrl}/api/content/interview-intel/search`,
         {
           params: {
             q: searchQuery.value,
