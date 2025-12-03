@@ -644,15 +644,19 @@ async function enhanceLearningMap(baseLearningMap, patterns, targetCompany = nul
 
     logger.info(`[EnhanceLearningMap] Matched ${matchedQuestions.length}/${extractedQuestions.length} questions to curated problems`);
 
-    // 3. Build curated 12-week curriculum
+    // 3. Build curated curriculum matching the base timeline week count
+    // CRITICAL: Use the actual number of weeks from base timeline to ensure consistency
+    // This ensures curriculum weeks match the weeks that have detailed_daily_schedules
+    const baseTimelineWeekCount = baseLearningMap.timeline?.weeks?.length || baseLearningMap.timeline_weeks || 12;
+
     const userGoals = {
       targetCompany: targetCompany || 'Google',
       targetLevel: 'L4',
-      timelineWeeks: baseLearningMap.timeline_weeks || 12
+      timelineWeeks: baseTimelineWeekCount
     };
 
     const curatedCurriculum = await buildCurriculum(userGoals, []);
-    logger.info(`[EnhanceLearningMap] Built ${curatedCurriculum.total_weeks}-week curated curriculum with ${curatedCurriculum.metadata.total_problems} problems`);
+    logger.info(`[EnhanceLearningMap] Built ${curatedCurriculum.total_weeks}-week curated curriculum (matching base timeline: ${baseTimelineWeekCount} weeks) with ${curatedCurriculum.metadata.total_problems} problems`);
 
     // 4. Merge curated curriculum into timeline format
     // CRITICAL: Preserve detailed_daily_schedules from baseLearningMap.timeline if they exist
