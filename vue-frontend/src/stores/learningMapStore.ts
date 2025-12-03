@@ -10,6 +10,7 @@ export const useLearningMapStore = defineStore('learningMap', () => {
   const maps = ref<LearningMap[]>([])
   const activeMapId = ref<string | null>(null)
   const isGenerating = ref(false)
+  const generationProgress = ref<{ phase: number; message: string; percent: number } | null>(null)
 
   // ===== GETTERS =====
   const activeMap = computed(() =>
@@ -26,6 +27,7 @@ export const useLearningMapStore = defineStore('learningMap', () => {
 
   async function generateMap(reportIds: string[], useRAG: boolean = false, title?: string, description?: string) {
     isGenerating.value = true
+    generationProgress.value = { phase: 0, message: 'Starting...', percent: 0 }
     const authStore = useAuthStore()
     const reportsStore = useReportsStore()
 
@@ -51,35 +53,105 @@ export const useLearningMapStore = defineStore('learningMap', () => {
       console.log('[LearningMapStore] Generating learning map from batch report:', report.batchId)
       console.log('[LearningMapStore] Report ID:', reportId)
 
-      // Call the content service API with reportId via apiClient (uses correct API gateway URL)
-      const response = await apiClient.post('/learning-map', {
-        reportId: report.batchId,  // Use batchId as reportId (e.g., "batch_1_abc123")
-        userId: authStore.userId,
-        userGoals: {
-          title,
-          description
-        }
+      // Use SSE streaming endpoint to avoid Cloudflare timeout
+      const apiBaseUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+      const streamUrl = `${apiBaseUrl}/api/content/learning-map/stream`
+
+      return new Promise<LearningMap>((resolve, reject) => {
+        // Create POST request with fetch for SSE (EventSource only supports GET)
+        fetch(streamUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'text/event-stream'
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            reportId: report.batchId,
+            userId: authStore.userId,
+            userGoals: { title, description }
+          })
+        }).then(async response => {
+          if (!response.ok) {
+            const errorText = await response.text()
+            throw new Error(`HTTP ${response.status}: ${errorText}`)
+          }
+
+          const reader = response.body?.getReader()
+          if (!reader) {
+            throw new Error('No response body')
+          }
+
+          const decoder = new TextDecoder()
+          let buffer = ''
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+
+            // Process complete SSE events
+            const lines = buffer.split('\n')
+            buffer = lines.pop() || '' // Keep incomplete line in buffer
+
+            let eventType = ''
+            let eventData = ''
+
+            for (const line of lines) {
+              if (line.startsWith('event: ')) {
+                eventType = line.slice(7).trim()
+              } else if (line.startsWith('data: ')) {
+                eventData = line.slice(6)
+              } else if (line === '' && eventType && eventData) {
+                // Process complete event
+                try {
+                  const data = JSON.parse(eventData)
+                  console.log('[LearningMapStore] SSE Event:', eventType, data)
+
+                  if (eventType === 'progress') {
+                    generationProgress.value = {
+                      phase: data.phase,
+                      message: data.message,
+                      percent: data.percent
+                    }
+                  } else if (eventType === 'complete') {
+                    const newMap: LearningMap = {
+                      ...data.data,
+                      id: String(data.data.id),
+                      createdAt: new Date()
+                    }
+                    maps.value.push(newMap)
+                    activeMapId.value = newMap.id
+                    console.log('[LearningMapStore] Learning map generated:', newMap.id)
+                    resolve(newMap)
+                    return
+                  } else if (eventType === 'error') {
+                    reject(new Error(data.message || 'Generation failed'))
+                    return
+                  }
+                } catch (e) {
+                  console.warn('[LearningMapStore] Failed to parse SSE data:', eventData)
+                }
+                eventType = ''
+                eventData = ''
+              }
+            }
+          }
+
+          // If we get here without complete event, something went wrong
+          reject(new Error('Stream ended without complete event'))
+        }).catch(error => {
+          console.error('[LearningMapStore] SSE Error:', error)
+          reject(error)
+        })
       })
-
-      const data = response.data
-      console.log('[LearningMapStore] Backend response:', data)
-
-      const newMap: LearningMap = {
-        ...data.data,
-        id: String(data.data.id), // Ensure ID is a string
-        createdAt: new Date()
-      }
-
-      maps.value.push(newMap)
-      activeMapId.value = newMap.id
-
-      console.log('[LearningMapStore] Learning map generated:', newMap.id)
-      return newMap
     } catch (error: any) {
       console.error('[LearningMapStore] Failed to generate map:', error)
       throw error
     } finally {
       isGenerating.value = false
+      generationProgress.value = null
     }
   }
 
@@ -147,6 +219,7 @@ export const useLearningMapStore = defineStore('learningMap', () => {
     maps,
     activeMapId,
     isGenerating,
+    generationProgress,
 
     // Getters
     activeMap,

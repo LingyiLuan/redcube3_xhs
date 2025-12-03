@@ -242,6 +242,14 @@ function getReportSummary(report: any) {
 
       <!-- Generate Button (Sticky Footer) -->
       <div class="generate-section">
+        <!-- Progress indicator -->
+        <div v-if="learningMapStore.isGenerating && learningMapStore.generationProgress" class="progress-section">
+          <div class="progress-bar-container">
+            <div class="progress-bar" :style="{ width: learningMapStore.generationProgress.percent + '%' }"></div>
+          </div>
+          <p class="progress-message">{{ learningMapStore.generationProgress.message }}</p>
+        </div>
+
         <button
           @click="handleGenerateLearningMap"
           :disabled="!canGenerate"
@@ -249,7 +257,7 @@ function getReportSummary(report: any) {
           :class="{ 'generating': learningMapStore.isGenerating }"
         >
           <Sparkles :size="18" />
-          <span v-if="learningMapStore.isGenerating">Generating...</span>
+          <span v-if="learningMapStore.isGenerating">Generating... {{ learningMapStore.generationProgress?.percent || 0 }}%</span>
           <span v-else>Generate Learning Map</span>
         </button>
       </div>
@@ -382,6 +390,23 @@ function getReportSummary(report: any) {
 
 .generate-btn.generating {
   @apply bg-blue-500 cursor-wait;
+}
+
+/* Progress Section */
+.progress-section {
+  @apply mb-3;
+}
+
+.progress-bar-container {
+  @apply w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden;
+}
+
+.progress-bar {
+  @apply h-full bg-blue-500 transition-all duration-300 ease-out;
+}
+
+.progress-message {
+  @apply text-xs text-gray-600 dark:text-gray-400 mt-1.5 text-center;
 }
 
 .auth-empty-state {

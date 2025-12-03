@@ -27,6 +27,7 @@ const {
   deleteMap,
   backfillResources
 } = require('../controllers/learningMapController');
+const { generateLearningMapStream } = require('../controllers/learningMapStreamController');
 const {
   getUserGoals,
   getUserAnalysisIds
@@ -190,6 +191,7 @@ router.get('/trends/recommendations', getRecommendations);
 
 // Learning map endpoints
 router.post('/learning-map', checkUsageLimit('learning_map'), recordUsage('learning_map'), generateLearningMap);
+router.post('/learning-map/stream', checkUsageLimit('learning_map'), recordUsage('learning_map'), generateLearningMapStream);
 router.post('/learning-map/backfill-resources', backfillResources);
 router.get('/learning-map/:mapId', requireAuth, getLearningMap);  // ✅ SECURITY FIX: Require authentication
 router.get('/learning-maps/history', requireAuth, getLearningMapsHistory);  // ✅ SECURITY FIX: Require authentication
