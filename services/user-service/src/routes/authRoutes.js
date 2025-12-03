@@ -1134,24 +1134,31 @@ router.post('/forgot-password', async (req, res) => {
     const { sendPasswordResetEmail } = require('../services/emailService');
 
     const token = generatePasswordResetToken();
-    console.log('[Forgot Password] Token generated, saving to database...');
+    console.log('[Forgot Password] Token generated, queuing background task...');
 
-    // Save token to database (hashed with SHA-256)
-    await createPasswordResetToken(user.id, token);
-    console.log('[Forgot Password] Token saved to database, sending email...');
-
-    // Send password reset email ASYNCHRONOUSLY (fire-and-forget)
-    // This prevents Cloudflare timeout issues - email sending can take 2+ minutes
+    // IMPORTANT: Both DB save and email are done in background (fire-and-forget)
+    // Railway PostgreSQL has known I/O performance issues that can cause UPDATEs to take 1-2 minutes
+    // See: https://station.railway.com/questions/assistance-requested-postgre-sql-sudden-04258f1a
+    // This pattern ensures the user gets an immediate response while the work completes in background
     setImmediate(async () => {
       try {
+        // Save token to database (hashed with SHA-256)
+        console.log('[Forgot Password Background] Saving token to database for user:', user.id);
+        await createPasswordResetToken(user.id, token);
+        console.log('[Forgot Password Background] Token saved to database');
+
+        // Send password reset email
+        console.log('[Forgot Password Background] Sending email to:', user.email);
         await sendPasswordResetEmail(user.email, token);
-        console.log('[Forgot Password] Password reset email sent to:', user.email);
-      } catch (emailError) {
-        console.error('[Forgot Password] Failed to send email:', emailError);
+        console.log('[Forgot Password Background] Email sent successfully to:', user.email);
+      } catch (error) {
+        console.error('[Forgot Password Background] Task failed:', error);
+        // Note: User already received success response, so we just log the error
+        // In production, you might want to add retry logic or alerting here
       }
     });
 
-    console.log('[Forgot Password] Email queued for background sending to:', user.email);
+    console.log('[Forgot Password] Background task queued for:', user.email);
 
     res.json({
       success: true,
