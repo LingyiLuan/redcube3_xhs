@@ -587,16 +587,21 @@ router.post('/register', async (req, res) => {
 
       console.log('[Register] User and verification token created successfully');
 
-      // Send verification email (outside transaction - this can fail without rolling back)
-      try {
-        const { sendVerificationEmail } = require('../services/emailService');
-        await sendVerificationEmail(newUser.email, token);
-        console.log('[Register] Verification email sent to:', newUser.email);
-      } catch (emailError) {
-        // Log error but don't fail registration
-        console.error('[Register] Failed to send verification email:', emailError);
-        // User can still resend later via /api/auth/resend-verification
-      }
+      // Send verification email ASYNCHRONOUSLY (fire-and-forget)
+      // This prevents Cloudflare timeout issues - email sending can take 2+ minutes
+      // The API returns immediately, and email is sent in the background
+      const { sendVerificationEmail } = require('../services/emailService');
+      setImmediate(async () => {
+        try {
+          await sendVerificationEmail(newUser.email, token);
+          console.log('[Register] Verification email sent to:', newUser.email);
+        } catch (emailError) {
+          // Log error but registration already succeeded
+          console.error('[Register] Failed to send verification email:', emailError);
+          // User can resend later via /api/auth/resend-verification
+        }
+      });
+      console.log('[Register] Email queued for background sending');
     } catch (dbError) {
       // Rollback transaction on any error
       await client.query('ROLLBACK');
@@ -889,14 +894,22 @@ router.post('/resend-verification', async (req, res) => {
     // Save token to database (hashed)
     await createVerificationToken(user.id, token);
 
-    // Send verification email (with plaintext token)
-    await sendVerificationEmail(user.email, token);
+    // Send verification email ASYNCHRONOUSLY (fire-and-forget)
+    // This prevents Cloudflare timeout issues - email sending can take 2+ minutes
+    setImmediate(async () => {
+      try {
+        await sendVerificationEmail(user.email, token);
+        console.log('[Resend Verification] Verification email sent to:', user.email);
+      } catch (emailError) {
+        console.error('[Resend Verification] Failed to send email:', emailError);
+      }
+    });
 
-    console.log('[Resend Verification] Verification email sent to:', user.email);
+    console.log('[Resend Verification] Email queued for background sending to:', user.email);
 
     res.json({
       success: true,
-      message: 'Verification email sent successfully. Please check your inbox.'
+      message: 'Verification email is being sent. This may take a few minutes - please check your inbox and spam folder.'
     });
 
   } catch (error) {
@@ -1124,18 +1137,22 @@ router.post('/forgot-password', async (req, res) => {
     // Save token to database (hashed with SHA-256)
     await createPasswordResetToken(user.id, token);
 
-    // Send password reset email (with plaintext token)
-    try {
-      await sendPasswordResetEmail(user.email, token);
-      console.log('[Forgot Password] Password reset email sent to:', user.email);
-    } catch (emailError) {
-      // Log error but don't fail the request (prevents email enumeration)
-      console.error('[Forgot Password] Failed to send email:', emailError);
-    }
+    // Send password reset email ASYNCHRONOUSLY (fire-and-forget)
+    // This prevents Cloudflare timeout issues - email sending can take 2+ minutes
+    setImmediate(async () => {
+      try {
+        await sendPasswordResetEmail(user.email, token);
+        console.log('[Forgot Password] Password reset email sent to:', user.email);
+      } catch (emailError) {
+        console.error('[Forgot Password] Failed to send email:', emailError);
+      }
+    });
+
+    console.log('[Forgot Password] Email queued for background sending to:', user.email);
 
     res.json({
       success: true,
-      message: 'If an account exists with this email, a password reset link has been sent. Please check your inbox and spam folder. If you don\'t receive an email within a few minutes, the email address may not be registered with us.'
+      message: 'If an account exists with this email, a password reset link is being sent. This may take a few minutes - please check your inbox and spam folder.'
     });
 
   } catch (error) {

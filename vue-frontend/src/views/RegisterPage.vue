@@ -27,10 +27,10 @@
             </div>
             <h2 class="success-title">Account Created Successfully!</h2>
             <p class="success-message">
-              Welcome to Working Lab. A verification email has been sent to <strong>{{ email }}</strong>.
+              Welcome to LabZero. A verification email is being sent to <strong>{{ email }}</strong>.
             </p>
             <p class="success-note">
-              Please check your inbox to verify your email address.
+              This may take a few minutes to arrive. Please check your inbox and spam folder.
             </p>
             <div class="redirect-notice">
               <p>Redirecting to dashboard in <strong>{{ redirectCountdown }}</strong> seconds...</p>

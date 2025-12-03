@@ -99,8 +99,8 @@ async function handleResendEmail() {
       throw new Error(error.message || 'Failed to resend verification email')
     }
 
-    // Success
-    resendMessage.value = 'Verification email sent! Check your inbox.'
+    // Success - set expectations about delivery time
+    resendMessage.value = 'Verification email is being sent! This may take a few minutes - check your inbox and spam folder.'
     resendMessageType.value = 'success'
 
     // Start 60-second cooldown
