@@ -123,8 +123,8 @@ async function extractFromCuratedProblems() {
     const tableCheck = await pool.query(tableCheckQuery);
 
     if (!tableCheck.rows[0].table_exists) {
-      logger.warn('[SkillModule] curated_problems table does not exist - returning empty array');
-      return [];
+      logger.warn('[SkillModule] curated_problems table does not exist - trying leetcode_questions');
+      return await extractFromLeetCodeQuestions();
     }
 
     const query = `
@@ -170,6 +170,84 @@ async function extractFromCuratedProblems() {
     }));
   } catch (error) {
     logger.error('[SkillModule] Error extracting from curated_problems:', error);
+    return [];
+  }
+}
+
+/**
+ * Fallback: Extract problems from leetcode_questions table (full catalog)
+ * This is the master catalog table with 3700+ problems
+ * Used when neither leetcode_problems nor curated_problems exist
+ */
+async function extractFromLeetCodeQuestions() {
+  try {
+    logger.info('[SkillModule] Extracting from leetcode_questions table (full catalog)');
+
+    // Check if leetcode_questions table exists
+    const tableCheckQuery = `
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public'
+        AND table_name = 'leetcode_questions'
+      ) as table_exists
+    `;
+
+    const tableCheck = await pool.query(tableCheckQuery);
+
+    if (!tableCheck.rows[0].table_exists) {
+      logger.warn('[SkillModule] leetcode_questions table does not exist - returning empty array');
+      return [];
+    }
+
+    // Get a curated selection of the most important problems (similar to Blind 75)
+    // Select problems that are commonly asked, balanced by difficulty
+    const query = `
+      SELECT
+        id as problem_id,
+        title as problem_name,
+        frontend_id as problem_number,
+        difficulty,
+        topic_tags,
+        url as problem_url
+      FROM leetcode_questions
+      WHERE frontend_id <= 300
+        AND is_premium = false
+      ORDER BY
+        CASE difficulty
+          WHEN 'Easy' THEN 1
+          WHEN 'Medium' THEN 2
+          WHEN 'Hard' THEN 3
+        END,
+        frontend_id
+      LIMIT 75
+    `;
+
+    const result = await pool.query(query);
+
+    logger.info(`[SkillModule] Found ${result.rows.length} problems from leetcode_questions catalog`);
+
+    // Transform to match the expected format
+    return result.rows.map(row => {
+      // Extract first topic as category
+      const topics = row.topic_tags || [];
+      const category = topics.length > 0 ? topics[0] : 'General';
+
+      return {
+        problem_id: row.problem_id,
+        problem_name: row.problem_name,
+        problem_number: row.problem_number,
+        difficulty: row.difficulty,
+        category: category,
+        problem_url: row.problem_url || `https://leetcode.com/problems/${row.problem_name.toLowerCase().replace(/\s+/g, '-')}/`,
+        frequency: 8, // Default frequency for catalog problems
+        companies: [],
+        source_post_ids: [],
+        is_curated: false,
+        is_from_catalog: true
+      };
+    });
+  } catch (error) {
+    logger.error('[SkillModule] Error extracting from leetcode_questions:', error);
     return [];
   }
 }
