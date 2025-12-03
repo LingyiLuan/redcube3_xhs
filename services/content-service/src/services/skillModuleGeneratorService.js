@@ -44,144 +44,13 @@ const CATEGORY_GROUPINGS = {
 };
 
 /**
- * Extract LeetCode problems from database for given post IDs
+ * Extract LeetCode problems from leetcode_questions table (master catalog with 3700+ problems)
+ * This is the primary source for learning map problem data
+ * @param {Array} _postIds - Not used, kept for API compatibility
  */
-async function extractProblemsFromDatabase(postIds) {
+async function extractProblemsFromDatabase(_postIds) {
   try {
-    logger.info(`[SkillModule] Extracting problems from ${postIds.length} posts`);
-
-    // Check if leetcode_problems table exists - if not, return empty array
-    // This table may not exist in all deployments, it requires separate LeetCode extraction
-    const tableCheckQuery = `
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables
-        WHERE table_schema = 'public'
-        AND table_name = 'leetcode_problems'
-      ) as table_exists
-    `;
-
-    const tableCheck = await pool.query(tableCheckQuery);
-
-    if (!tableCheck.rows[0].table_exists) {
-      logger.warn('[SkillModule] leetcode_problems table does not exist - falling back to curated_problems');
-
-      // Fallback to curated_problems table (Blind 75, NeetCode 150, etc.)
-      return await extractFromCuratedProblems();
-    }
-
-    const query = `
-      SELECT
-        lp.id as problem_id,
-        lp.problem_name,
-        lp.problem_number,
-        lp.difficulty,
-        lp.category,
-        lp.url as problem_url,
-        COUNT(DISTINCT lp.post_id) as frequency,
-        ARRAY_AGG(DISTINCT p.llm_company) FILTER (WHERE p.llm_company IS NOT NULL) as companies,
-        ARRAY_AGG(DISTINCT lp.post_id) as source_post_ids
-      FROM leetcode_problems lp
-      LEFT JOIN scraped_posts p ON p.id = lp.post_id
-      WHERE lp.post_id = ANY($1)
-        AND lp.problem_name IS NOT NULL
-        AND lp.problem_name != ''
-      GROUP BY lp.id, lp.problem_name, lp.problem_number, lp.difficulty, lp.category, lp.url
-      ORDER BY frequency DESC, lp.difficulty ASC
-    `;
-
-    const result = await pool.query(query, [postIds]);
-
-    logger.info(`[SkillModule] Found ${result.rows.length} unique problems`);
-    logger.info(`[SkillModule] Sample problems: ${result.rows.slice(0, 5).map(p => `${p.problem_name} (${p.frequency} mentions)`).join(', ')}`);
-
-    return result.rows;
-  } catch (error) {
-    logger.error('[SkillModule] Error extracting problems:', error);
-    // Return empty array instead of throwing to allow learning map generation to continue
-    logger.warn('[SkillModule] Returning empty problems array due to error');
-    return [];
-  }
-}
-
-/**
- * Fallback: Extract problems from curated_problems table (Blind 75, NeetCode 150, etc.)
- * Used when leetcode_problems table doesn't exist
- */
-async function extractFromCuratedProblems() {
-  try {
-    logger.info('[SkillModule] Extracting from curated_problems table');
-
-    // Check if curated_problems table exists
-    const tableCheckQuery = `
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables
-        WHERE table_schema = 'public'
-        AND table_name = 'curated_problems'
-      ) as table_exists
-    `;
-
-    const tableCheck = await pool.query(tableCheckQuery);
-
-    if (!tableCheck.rows[0].table_exists) {
-      logger.warn('[SkillModule] curated_problems table does not exist - trying leetcode_questions');
-      return await extractFromLeetCodeQuestions();
-    }
-
-    const query = `
-      SELECT
-        id as problem_id,
-        problem_name,
-        leetcode_number as problem_number,
-        difficulty,
-        category,
-        url as problem_url,
-        topics,
-        estimated_time_minutes,
-        problem_list
-      FROM curated_problems
-      WHERE problem_list = 'Blind 75'
-      ORDER BY
-        CASE difficulty
-          WHEN 'Easy' THEN 1
-          WHEN 'Medium' THEN 2
-          WHEN 'Hard' THEN 3
-        END,
-        category,
-        leetcode_number
-    `;
-
-    const result = await pool.query(query);
-
-    logger.info(`[SkillModule] Found ${result.rows.length} curated problems (Blind 75)`);
-
-    // Transform to match the expected format
-    return result.rows.map(row => ({
-      problem_id: row.problem_id,
-      problem_name: row.problem_name,
-      problem_number: row.problem_number,
-      difficulty: row.difficulty,
-      category: row.category,
-      problem_url: row.problem_url,
-      frequency: 10, // Default frequency for curated problems (high priority)
-      companies: [], // No company data for curated problems
-      source_post_ids: [],
-      estimated_time_minutes: row.estimated_time_minutes,
-      is_curated: true
-    }));
-  } catch (error) {
-    logger.error('[SkillModule] Error extracting from curated_problems:', error);
-    return [];
-  }
-}
-
-/**
- * Fallback: Extract problems from leetcode_questions table (full catalog)
- * This is the master catalog table with 3700+ problems
- * Used when neither leetcode_problems nor curated_problems exist
- */
-async function extractFromLeetCodeQuestions() {
-  try {
-    logger.info('[SkillModule] Extracting from leetcode_questions table (full catalog)');
+    logger.info(`[SkillModule] Extracting problems from leetcode_questions catalog`);
 
     // Check if leetcode_questions table exists
     const tableCheckQuery = `
@@ -195,12 +64,12 @@ async function extractFromLeetCodeQuestions() {
     const tableCheck = await pool.query(tableCheckQuery);
 
     if (!tableCheck.rows[0].table_exists) {
-      logger.warn('[SkillModule] leetcode_questions table does not exist - returning empty array');
+      logger.error('[SkillModule] leetcode_questions table does not exist - returning empty array');
       return [];
     }
 
-    // Get a curated selection of the most important problems (similar to Blind 75)
-    // Select problems that are commonly asked, balanced by difficulty
+    // Get problems from the master LeetCode catalog
+    // Select commonly asked problems (first 300 by frontend_id), balanced by difficulty
     const query = `
       SELECT
         id as problem_id,
@@ -219,7 +88,7 @@ async function extractFromLeetCodeQuestions() {
           WHEN 'Hard' THEN 3
         END,
         frontend_id
-      LIMIT 75
+      LIMIT 100
     `;
 
     const result = await pool.query(query);
@@ -239,15 +108,13 @@ async function extractFromLeetCodeQuestions() {
         difficulty: row.difficulty,
         category: category,
         problem_url: row.problem_url || `https://leetcode.com/problems/${row.problem_name.toLowerCase().replace(/\s+/g, '-')}/`,
-        frequency: 8, // Default frequency for catalog problems
+        frequency: 10, // Default frequency for catalog problems
         companies: [],
-        source_post_ids: [],
-        is_curated: false,
-        is_from_catalog: true
+        source_post_ids: []
       };
     });
   } catch (error) {
-    logger.error('[SkillModule] Error extracting from leetcode_questions:', error);
+    logger.error('[SkillModule] Error extracting problems:', error);
     return [];
   }
 }
