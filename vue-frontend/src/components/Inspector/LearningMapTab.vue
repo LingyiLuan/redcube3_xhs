@@ -6,6 +6,7 @@ import { useLearningMapStore} from '@/stores/learningMapStore'
 import { useReportsStore } from '@/stores/reportsStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useAuthStore } from '@/stores/authStore'
+import apiClient from '@/services/apiClient'
 
 const learningMapStore = useLearningMapStore()
 const reportsStore = useReportsStore()
@@ -64,19 +65,20 @@ const ragStatus = computed(() => {
 async function fetchEmbeddingCoverage() {
   isLoadingCoverage.value = true
   try {
-    const response = await fetch('/api/content/embeddings/stats')
-    if (response.ok) {
-      const data = await response.json()
-      console.log('[LearningMapTab] Embedding stats:', data)
+    // Use apiClient for proper authentication (Bearer token + credentials)
+    const response = await apiClient.get('/embeddings/stats')
+    const data = response.data
+    console.log('[LearningMapTab] Embedding stats:', data)
 
-      // Backend returns snake_case: total_posts, posts_with_embeddings
-      const totalPosts = parseInt(data.database?.total_posts || '0')
-      const postsWithEmbeddings = parseInt(data.database?.posts_with_embeddings || '0')
+    // Backend returns snake_case fields
+    // Use is_relevant posts count for more accurate coverage
+    const relevantPosts = parseInt(data.database?.relevant_posts || data.database?.total_posts || '0')
+    const relevantWithEmbeddings = parseInt(data.database?.relevant_with_embeddings || data.database?.posts_with_embeddings || '0')
 
-      if (totalPosts > 0) {
-        embeddingCoverage.value = (postsWithEmbeddings / totalPosts) * 100
-        console.log('[LearningMapTab] Coverage calculated:', embeddingCoverage.value.toFixed(2) + '%')
-      }
+    if (relevantPosts > 0) {
+      embeddingCoverage.value = (relevantWithEmbeddings / relevantPosts) * 100
+      console.log('[LearningMapTab] Coverage calculated:', embeddingCoverage.value.toFixed(2) + '%',
+        `(${relevantWithEmbeddings}/${relevantPosts} relevant posts)`)
     }
   } catch (error) {
     console.error('[LearningMapTab] Failed to fetch embedding coverage:', error)

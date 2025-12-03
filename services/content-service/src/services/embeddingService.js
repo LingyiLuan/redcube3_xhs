@@ -391,7 +391,11 @@ async function getEmbeddingStats() {
       COUNT(*) FILTER (WHERE embedding_status = 'completed') as completed,
       ROUND(100.0 * COUNT(embedding) / NULLIF(COUNT(*), 0), 2) as coverage_pct,
       MAX(embedding_generated_at) as last_generated,
-      AVG(EXTRACT(EPOCH FROM (embedding_generated_at - scraped_at))) as avg_delay_seconds
+      AVG(EXTRACT(EPOCH FROM (embedding_generated_at - scraped_at))) as avg_delay_seconds,
+      -- is_relevant stats for accurate RAG coverage calculation
+      COUNT(*) FILTER (WHERE is_relevant = true) as relevant_posts,
+      COUNT(embedding) FILTER (WHERE is_relevant = true) as relevant_with_embeddings,
+      ROUND(100.0 * COUNT(embedding) FILTER (WHERE is_relevant = true) / NULLIF(COUNT(*) FILTER (WHERE is_relevant = true), 0), 2) as relevant_coverage_pct
     FROM scraped_posts
   `);
 
