@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // @ts-nocheck
-import { markRaw, computed, watch } from 'vue'
+import { markRaw, computed, watch, nextTick } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
@@ -15,6 +15,7 @@ import ResultsNode from '@/components/Nodes/ResultsNode.vue'
 const workflowStore = useWorkflowStore()
 const uiStore = useUIStore()
 const { nodes, edges, selectedEdgeId, selectionMode, connectedEdgesForSelection } = storeToRefs(workflowStore)
+const { canvasCommand } = storeToRefs(uiStore)
 
 // Register custom node types
 const nodeTypes = {
@@ -24,7 +25,32 @@ const nodeTypes = {
 }
 
 // Vue Flow composable for events
-const { onConnect, onNodeClick, onNodeDragStop, onEdgeClick, fitView } = useVueFlow()
+const { onConnect, onNodeClick, onNodeDragStop, onEdgeClick, fitView, zoomIn, zoomOut } = useVueFlow()
+
+// Watch for canvas commands from the toolbar via uiStore
+watch(canvasCommand, (command) => {
+  if (!command) return
+
+  console.log('[WorkflowCanvas] Executing canvas command:', command)
+
+  switch (command) {
+    case 'zoomIn':
+      zoomIn()
+      break
+    case 'zoomOut':
+      zoomOut()
+      break
+    case 'fitView':
+      fitView({ padding: 0.2, duration: 400 })
+      uiStore.showToast('Fit to screen', 'info')
+      break
+  }
+
+  // Clear the command after executing
+  nextTick(() => {
+    uiStore.clearCanvasCommand()
+  })
+})
 
 // Handle new connections
 onConnect((params) => {

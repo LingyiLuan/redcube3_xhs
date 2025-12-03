@@ -35,6 +35,10 @@ export const useUIStore = defineStore('ui', () => {
   const consoleOpen = ref(false)
   const consoleHeight = ref(300) // Default height in pixels
 
+  // Canvas control state - for communication between toolbar and canvas
+  const canvasCommand = ref<'zoomIn' | 'zoomOut' | 'fitView' | null>(null)
+  const canvasLabelsVisible = ref(true)
+
   // ===== ACTIONS =====
 
   function setMode(newMode: 'light' | 'dark') {
@@ -215,6 +219,27 @@ export const useUIStore = defineStore('ui', () => {
     reportFilter.value = filter
   }
 
+  // Canvas control actions - trigger commands that WorkflowCanvas will listen to
+  function triggerCanvasZoomIn() {
+    canvasCommand.value = 'zoomIn'
+  }
+
+  function triggerCanvasZoomOut() {
+    canvasCommand.value = 'zoomOut'
+  }
+
+  function triggerCanvasFitView() {
+    canvasCommand.value = 'fitView'
+  }
+
+  function clearCanvasCommand() {
+    canvasCommand.value = null
+  }
+
+  function toggleCanvasLabels() {
+    canvasLabelsVisible.value = !canvasLabelsVisible.value
+  }
+
   // ===== RETURN PUBLIC API =====
 
   return {
@@ -231,6 +256,8 @@ export const useUIStore = defineStore('ui', () => {
     reportFilter,
     contentView,
     activeContentId,
+    canvasCommand,
+    canvasLabelsVisible,
 
     // Actions
     setMode,
@@ -258,6 +285,11 @@ export const useUIStore = defineStore('ui', () => {
     showLearningMapsList,
     showReportDetail,
     showLearningMapDetail,
-    setReportFilter
+    setReportFilter,
+    triggerCanvasZoomIn,
+    triggerCanvasZoomOut,
+    triggerCanvasFitView,
+    clearCanvasCommand,
+    toggleCanvasLabels
   }
 })

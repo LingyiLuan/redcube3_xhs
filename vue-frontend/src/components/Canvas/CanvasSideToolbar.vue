@@ -63,7 +63,7 @@
     <button
       class="toolbar-btn"
       @click="toggleTags"
-      :class="{ active: showTags }"
+      :class="{ active: canvasLabelsVisible }"
       title="Toggle labels"
     >
       <Tag :size="18" />
@@ -75,18 +75,15 @@
 // @ts-nocheck
 import { ref, computed } from 'vue'
 import { Plus, ZoomIn, ZoomOut, Maximize2, Tag, FileText, Zap } from 'lucide-vue-next'
-import { useVueFlow } from '@vue-flow/core'
 import { useWorkflowStore } from '@/stores/workflowStore'
 import { useUIStore } from '@/stores/uiStore'
 import { storeToRefs } from 'pinia'
 
-const { fitView: vueFlowFitView, zoomIn: vueFlowZoomIn, zoomOut: vueFlowZoomOut } = useVueFlow()
 const workflowStore = useWorkflowStore()
 const uiStore = useUIStore()
 
-const { sidebarOpen } = storeToRefs(uiStore)
+const { sidebarOpen, canvasLabelsVisible } = storeToRefs(uiStore)
 const showNodeMenu = ref(false)
-const showTags = ref(true)
 
 // Calculate left position based on sidebar state
 const toolbarLeftPosition = computed(() => {
@@ -119,22 +116,20 @@ function addNode(type: 'input' | 'analysis') {
 }
 
 function zoomIn() {
-  vueFlowZoomIn()
+  uiStore.triggerCanvasZoomIn()
 }
 
 function zoomOut() {
-  vueFlowZoomOut()
+  uiStore.triggerCanvasZoomOut()
 }
 
 function fitView() {
-  vueFlowFitView({ padding: 0.2, duration: 400 })
-  uiStore.showToast('Fit to screen', 'info')
+  uiStore.triggerCanvasFitView()
 }
 
 function toggleTags() {
-  showTags.value = !showTags.value
-  // TODO: Implement label visibility toggle
-  uiStore.showToast(showTags.value ? 'Labels shown' : 'Labels hidden', 'info')
+  uiStore.toggleCanvasLabels()
+  uiStore.showToast(canvasLabelsVisible.value ? 'Labels shown' : 'Labels hidden', 'info')
 }
 
 // Close node menu when clicking outside

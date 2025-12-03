@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { AnalysisReport } from '@/types/reports'
 import { useAuthStore } from './authStore'
+import apiClient from '@/services/apiClient'
 
 const STORAGE_KEY = 'redcube-reports'
 
@@ -254,33 +255,30 @@ export const useReportsStore = defineStore('reports', () => {
     console.log('[ReportsStore] Fetching reports from backend for user:', authStore.userId)
 
     try {
-      // ✅ SECURITY FIX: Remove userId from query params - backend uses authenticated session
+      // ✅ Use apiClient for proper authentication (Bearer token + credentials)
       // Fetch BOTH batch and single analyses in parallel
-      const [batchResponse, singleResponse] = await Promise.all([
-        fetch(`/api/content/history?limit=100`, {
-          credentials: 'include'  // Sends session cookie
-        }),
-        fetch(`/api/content/single-analysis/history?userId=${authStore.userId}&limit=100`, {
-          credentials: 'include'  // Sends session cookie
-        })
+      const [batchResponse, singleResponse] = await Promise.allSettled([
+        apiClient.get('/history?limit=100'),
+        apiClient.get('/single-analysis/history?limit=100')
       ])
 
-      if (!batchResponse.ok) {
-        throw new Error(`Failed to fetch batch reports: ${batchResponse.statusText}`)
+      // Handle batch reports
+      let batchData: any[] = []
+      if (batchResponse.status === 'fulfilled') {
+        batchData = batchResponse.value.data || []
+        console.log('[ReportsStore] ✅ Fetched batch reports:', batchData.length)
+      } else {
+        console.error('[ReportsStore] ❌ Failed to fetch batch reports:', batchResponse.reason)
       }
 
-      if (!singleResponse.ok) {
-        console.error('[ReportsStore] ❌ Failed to fetch single analyses:', singleResponse.status, singleResponse.statusText)
-        try {
-          const errorText = await singleResponse.text()
-          console.error('[ReportsStore] Error details:', errorText)
-        } catch (e) {
-          console.error('[ReportsStore] Could not read error response')
-        }
+      // Handle single analyses
+      let singleData: any[] = []
+      if (singleResponse.status === 'fulfilled') {
+        singleData = singleResponse.value.data || []
+        console.log('[ReportsStore] ✅ Fetched single analyses:', singleData.length)
+      } else {
+        console.error('[ReportsStore] ❌ Failed to fetch single analyses:', singleResponse.reason)
       }
-
-      const batchData = await batchResponse.json()
-      const singleData = singleResponse.ok ? await singleResponse.json() : []
 
       console.log('[ReportsStore] ✅ Fetched', batchData.length, 'batch reports and', singleData.length, 'single analyses from backend')
 
