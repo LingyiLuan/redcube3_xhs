@@ -1081,9 +1081,9 @@ router.post('/forgot-password', async (req, res) => {
     // Sanitize email
     const sanitizedEmail = sanitizeEmail(email);
 
-    // Check rate limiting by email (max 3 attempts per hour)
+    // Check rate limiting by email (max 5 attempts per hour)
     const emailAttempts = await getRecentResetAttempts(sanitizedEmail, 1);
-    if (emailAttempts >= 3) {
+    if (emailAttempts >= 5) {
       console.log('[Forgot Password] Rate limit exceeded for email:', sanitizedEmail);
       // Still return success to prevent email enumeration
       return res.json({
@@ -1092,9 +1092,9 @@ router.post('/forgot-password', async (req, res) => {
       });
     }
 
-    // Check rate limiting by IP (max 5 attempts per hour)
+    // Check rate limiting by IP (max 10 attempts per hour)
     const ipAttempts = await getRecentResetAttemptsByIP(ipAddress, 1);
-    if (ipAttempts >= 5) {
+    if (ipAttempts >= 10) {
       console.log('[Forgot Password] Rate limit exceeded for IP:', ipAddress);
       // Still return success to prevent email enumeration
       return res.json({
