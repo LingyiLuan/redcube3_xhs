@@ -100,14 +100,22 @@ async function handleSubmit() {
 
   try {
     const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+
+    // Add timeout to prevent infinite hanging (30 second timeout)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
+
     const response = await fetch(`${apiGatewayUrl}/api/auth/forgot-password`, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ email: email.value })
+      body: JSON.stringify({ email: email.value }),
+      signal: controller.signal
     })
+
+    clearTimeout(timeoutId)
 
     const data = await response.json()
 
@@ -119,7 +127,11 @@ async function handleSubmit() {
     emailSent.value = true
   } catch (error: any) {
     console.error('[ForgotPasswordPage] Error:', error)
-    errorMessage.value = error.message || 'Failed to send reset email. Please try again.'
+    if (error.name === 'AbortError') {
+      errorMessage.value = 'Request timed out. Please try again later.'
+    } else {
+      errorMessage.value = error.message || 'Failed to send reset email. Please try again.'
+    }
   } finally {
     isSubmitting.value = false
   }

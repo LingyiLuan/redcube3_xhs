@@ -15,11 +15,24 @@ const nodemailer = require('nodemailer');
  * Supports both OAuth2 and App Password authentication methods
  */
 function createTransporter() {
+  // Use port 587 with STARTTLS (often not blocked by cloud providers)
+  // or port 465 with SSL (sometimes blocked)
+  const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
+  const useSSL = smtpPort === 465;
+
   const emailConfig = {
     host: 'smtp.gmail.com',
-    port: process.env.SMTP_PORT || 465,
-    secure: true, // Use SSL
+    port: smtpPort,
+    secure: useSSL, // true for 465, false for 587
+    connectionTimeout: 10000, // 10 second connection timeout
+    greetingTimeout: 10000, // 10 second greeting timeout
+    socketTimeout: 15000, // 15 second socket timeout
   };
+
+  // For port 587, require TLS upgrade
+  if (!useSSL) {
+    emailConfig.requireTLS = true;
+  }
 
   // Check if OAuth2 credentials are provided (recommended method)
   if (process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN) {
@@ -30,7 +43,7 @@ function createTransporter() {
       clientSecret: process.env.GMAIL_CLIENT_SECRET,
       refreshToken: process.env.GMAIL_REFRESH_TOKEN,
     };
-    console.log('[EmailService] Using OAuth2 authentication');
+    console.log('[EmailService] Using OAuth2 authentication on port', smtpPort);
   }
   // Fall back to App Password method
   else if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
@@ -38,7 +51,7 @@ function createTransporter() {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASSWORD,
     };
-    console.log('[EmailService] Using App Password authentication');
+    console.log('[EmailService] Using App Password authentication on port', smtpPort);
   }
   // No email credentials configured
   else {
@@ -302,7 +315,8 @@ function generatePasswordResetEmailHTML(email, resetUrl) {
  * Send password reset email
  * @param {string} email - User's email address
  * @param {string} token - Password reset token
- * @returns {Promise<boolean>} - True if sent successfully, false otherwise
+ * @returns {Promise<boolean>} - True if sent successfully
+ * @throws {Error} - Throws if email sending fails (for proper error handling)
  */
 async function sendPasswordResetEmail(email, token) {
   const transporter = createTransporter();
@@ -330,7 +344,7 @@ async function sendPasswordResetEmail(email, token) {
     text: `Password Reset Request\n\nWe received a request to reset your password for your Interview Intel account.\n\nClick the link below to reset your password:\n${resetUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't request a password reset, you can safely ignore this email.\n\nYour password will not change unless you click the link above and create a new one.`
   };
 
-  // Send email
+  // Send email with timeout handling
   try {
     const info = await transporter.sendMail(mailOptions);
 
@@ -340,8 +354,9 @@ async function sendPasswordResetEmail(email, token) {
     });
     return true;
   } catch (error) {
-    console.error('[EmailService] Failed to send password reset email:', error);
-    return false;
+    console.error('[EmailService] Failed to send password reset email:', error.message);
+    // Throw error so the route handler knows sending failed
+    throw new Error(`Email sending failed: ${error.message}`);
   }
 }
 
