@@ -252,7 +252,7 @@ function extractSkillMilestones(passedPosts) {
 
 /**
  * Extract all problems from skill modules
- * Supports both old format (module.categories.problems) and new format (module.problems)
+ * Problems are directly on module.problems (from leetcode_questions table)
  */
 function extractAllProblems(skillModules) {
   if (!skillModules || !skillModules.modules) {
@@ -261,7 +261,6 @@ function extractAllProblems(skillModules) {
 
   const problems = [];
   skillModules.modules.forEach(module => {
-    // NEW FORMAT: Problems directly on module (from leetcode_questions)
     if (module.problems && Array.isArray(module.problems)) {
       module.problems.forEach(problem => {
         problems.push({
@@ -276,32 +275,13 @@ function extractAllProblems(skillModules) {
         });
       });
     }
-    // OLD FORMAT: Problems nested in categories (legacy)
-    else if (module.categories && Array.isArray(module.categories)) {
-      module.categories.forEach(category => {
-        if (category.problems && Array.isArray(category.problems)) {
-          category.problems.forEach(problem => {
-            problems.push({
-              name: problem.problem_name,
-              number: problem.problem_number,
-              difficulty: problem.difficulty,
-              category: category.category_name,
-              module: module.module_name,
-              priority: problem.priority,
-              frequency: problem.frequency
-            });
-          });
-        }
-      });
-    }
   });
 
   return problems;
 }
 
 /**
- * Extract skill progression data
- * Supports both old format (estimated_time_hours) and new format (estimated_hours)
+ * Extract skill progression data from skill modules
  */
 function extractSkillProgression(skillModules) {
   if (!skillModules || !skillModules.modules) {
@@ -312,8 +292,8 @@ function extractSkillProgression(skillModules) {
     sequence: idx + 1,
     module_name: module.module_name,
     priority: module.priority,
-    total_problems: module.total_problems || (module.problems ? module.problems.length : 0),
-    estimated_hours: module.estimated_hours || module.estimated_time_hours || 10
+    total_problems: module.total_problems || module.problems?.length || 0,
+    estimated_hours: module.estimated_hours || 10
   }));
 }
 
