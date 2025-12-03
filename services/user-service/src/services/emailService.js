@@ -1,14 +1,24 @@
 /**
  * Email Service
  *
- * Handles sending emails using Nodemailer with Gmail SMTP
- * Based on industry best practices (2025):
- * - Support for both OAuth2 (recommended) and App Password authentication
- * - HTML email templates
- * - Secure SMTP configuration
+ * Handles sending emails using Resend API (primary) or Nodemailer (fallback)
+ * Resend is used in production because cloud providers like Railway block SMTP ports.
+ *
+ * Priority:
+ * 1. Resend API (if RESEND_API_KEY is set) - Works on Railway/cloud
+ * 2. Nodemailer SMTP (if Gmail credentials set) - Works locally
+ * 3. Simulation mode (development without credentials)
  */
 
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+
+// Initialize Resend client if API key is available
+let resendClient = null;
+if (process.env.RESEND_API_KEY) {
+  resendClient = new Resend(process.env.RESEND_API_KEY);
+  console.log('[EmailService] Initialized Resend API client');
+}
 
 /**
  * Create email transporter based on environment configuration
@@ -162,22 +172,48 @@ function generateVerificationEmailHTML(email, verificationUrl) {
  * @returns {Promise<boolean>} - True if sent successfully, false otherwise
  */
 async function sendVerificationEmail(email, token) {
+  const verificationUrl = generateVerificationUrl(token, email);
+  const html = generateVerificationEmailHTML(email, verificationUrl);
+  const text = `Welcome to Interview Intel!\n\nPlease verify your email address by visiting this link:\n${verificationUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't create an account, you can safely ignore this email.`;
+
+  // Try Resend first (works on Railway/cloud)
+  if (resendClient) {
+    try {
+      console.log('[EmailService] Sending verification email via Resend to:', email);
+      const { data, error } = await resendClient.emails.send({
+        from: 'Interview Intel <onboarding@resend.dev>',
+        to: email,
+        subject: 'Verify Your Email - Interview Intel',
+        html: html,
+        text: text,
+      });
+
+      if (error) {
+        console.error('[EmailService] Resend error:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('[EmailService] Verification email sent via Resend:', {
+        id: data.id,
+        recipient: email
+      });
+      return true;
+    } catch (error) {
+      console.error('[EmailService] Failed to send via Resend:', error.message);
+      // Fall through to try nodemailer
+    }
+  }
+
+  // Fallback to Nodemailer (for local development)
   try {
-    // Create transporter
     const transporter = createTransporter();
 
-    // If no transporter (no credentials), simulate email sending
     if (!transporter) {
       console.log('[EmailService] SIMULATED: Would send verification email to:', email);
-      console.log('[EmailService] SIMULATED: Verification token:', token);
-      console.log('[EmailService] SIMULATED: Verification URL:', generateVerificationUrl(token));
-      return true; // Return success for development
+      console.log('[EmailService] SIMULATED: Verification URL:', verificationUrl);
+      return true;
     }
 
-    // Generate verification URL
-    const verificationUrl = generateVerificationUrl(token, email);
-
-    // Email options
     const mailOptions = {
       from: {
         name: 'Interview Intel',
@@ -185,18 +221,15 @@ async function sendVerificationEmail(email, token) {
       },
       to: email,
       subject: 'Verify Your Email - Interview Intel',
-      html: generateVerificationEmailHTML(email, verificationUrl),
-      text: `Welcome to Interview Intel!\n\nPlease verify your email address by visiting this link:\n${verificationUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't create an account, you can safely ignore this email.`
+      html: html,
+      text: text
     };
 
-    // Send email
     const info = await transporter.sendMail(mailOptions);
-
-    console.log('[EmailService] Verification email sent successfully:', {
+    console.log('[EmailService] Verification email sent via Nodemailer:', {
       messageId: info.messageId,
       recipient: email
     });
-
     return true;
   } catch (error) {
     console.error('[EmailService] Failed to send verification email:', error);
@@ -319,20 +352,47 @@ function generatePasswordResetEmailHTML(email, resetUrl) {
  * @throws {Error} - Throws if email sending fails (for proper error handling)
  */
 async function sendPasswordResetEmail(email, token) {
-  const transporter = createTransporter();
+  const resetUrl = generatePasswordResetUrl(token);
+  const html = generatePasswordResetEmailHTML(email, resetUrl);
+  const text = `Password Reset Request\n\nWe received a request to reset your password for your Interview Intel account.\n\nClick the link below to reset your password:\n${resetUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't request a password reset, you can safely ignore this email.\n\nYour password will not change unless you click the link above and create a new one.`;
 
-  // If no transporter, simulate sending (for development without email config)
-  if (!transporter) {
-    console.log('[EmailService] SIMULATED: Would send password reset email to:', email);
-    console.log('[EmailService] SIMULATED: Reset token:', token);
-    console.log('[EmailService] SIMULATED: Reset URL:', generatePasswordResetUrl(token));
-    return true; // Return success for development
+  // Try Resend first (works on Railway/cloud)
+  if (resendClient) {
+    try {
+      console.log('[EmailService] Sending password reset email via Resend to:', email);
+      const { data, error } = await resendClient.emails.send({
+        from: 'Interview Intel <onboarding@resend.dev>',
+        to: email,
+        subject: 'Reset Your Password - Interview Intel',
+        html: html,
+        text: text,
+      });
+
+      if (error) {
+        console.error('[EmailService] Resend error:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('[EmailService] Password reset email sent via Resend:', {
+        id: data.id,
+        recipient: email
+      });
+      return true;
+    } catch (error) {
+      console.error('[EmailService] Failed to send via Resend:', error.message);
+      throw new Error(`Email sending failed: ${error.message}`);
+    }
   }
 
-  // Generate reset URL
-  const resetUrl = generatePasswordResetUrl(token);
+  // Fallback to Nodemailer (for local development)
+  const transporter = createTransporter();
 
-  // Email options
+  if (!transporter) {
+    console.log('[EmailService] SIMULATED: Would send password reset email to:', email);
+    console.log('[EmailService] SIMULATED: Reset URL:', resetUrl);
+    return true;
+  }
+
   const mailOptions = {
     from: {
       name: 'Interview Intel',
@@ -340,22 +400,19 @@ async function sendPasswordResetEmail(email, token) {
     },
     to: email,
     subject: 'Reset Your Password - Interview Intel',
-    html: generatePasswordResetEmailHTML(email, resetUrl),
-    text: `Password Reset Request\n\nWe received a request to reset your password for your Interview Intel account.\n\nClick the link below to reset your password:\n${resetUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't request a password reset, you can safely ignore this email.\n\nYour password will not change unless you click the link above and create a new one.`
+    html: html,
+    text: text
   };
 
-  // Send email with timeout handling
   try {
     const info = await transporter.sendMail(mailOptions);
-
-    console.log('[EmailService] Password reset email sent successfully:', {
+    console.log('[EmailService] Password reset email sent via Nodemailer:', {
       messageId: info.messageId,
       recipient: email
     });
     return true;
   } catch (error) {
     console.error('[EmailService] Failed to send password reset email:', error.message);
-    // Throw error so the route handler knows sending failed
     throw new Error(`Email sending failed: ${error.message}`);
   }
 }
