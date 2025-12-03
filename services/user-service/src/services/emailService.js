@@ -365,11 +365,14 @@ function generatePasswordResetEmailHTML(email, resetUrl) {
  * @throws {Error} - Throws if email sending fails (for proper error handling)
  */
 async function sendPasswordResetEmail(email, token) {
+  console.log('[EmailService] sendPasswordResetEmail called for:', email);
+
   const resetUrl = generatePasswordResetUrl(token);
   const html = generatePasswordResetEmailHTML(email, resetUrl);
   const text = `Password Reset Request\n\nWe received a request to reset your password for your Interview Intel account.\n\nClick the link below to reset your password:\n${resetUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't request a password reset, you can safely ignore this email.\n\nYour password will not change unless you click the link above and create a new one.`;
 
   // Try Resend first (works on Railway/cloud)
+  console.log('[EmailService] Getting Resend client...');
   const resend = getResendClient();
   if (resend) {
     try {
