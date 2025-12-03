@@ -194,7 +194,7 @@ async function sendVerificationEmail(email, token) {
     try {
       console.log('[EmailService] Sending verification email via Resend to:', email);
       const { data, error } = await resend.emails.send({
-        from: 'LabZero <onboarding@resend.dev>',
+        from: 'LabZero <noreply@labzero.ai>',
         to: [email],
         subject: 'Verify Your Email - LabZero',
         html: html,
@@ -380,7 +380,7 @@ async function sendPasswordResetEmail(email, token) {
     try {
       console.log('[EmailService] Sending password reset email via Resend to:', normalizedEmail);
       const { data, error } = await resend.emails.send({
-        from: 'LabZero <onboarding@resend.dev>',
+        from: 'LabZero <noreply@labzero.ai>',
         to: [normalizedEmail],
         subject: 'Reset Your Password - LabZero',
         html: html,
