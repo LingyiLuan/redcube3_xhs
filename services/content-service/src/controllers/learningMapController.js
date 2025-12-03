@@ -137,7 +137,7 @@ async function generateLearningMap(req, res) {
           company_tracks: learningMap.company_tracks,
           analytics: learningMap.analytics,
           // NEW: LLM-generated fields (Migration 26)
-          skills_roadmap: learningMap.skills_roadmap || {},
+          skills_roadmap: {}, // Removed - was just a problem list without real roadmap structure
           knowledge_gaps: learningMap.knowledge_gaps || {},
           curated_resources: learningMap.curated_resources || [],
           timeline: learningMap.timeline || {},

@@ -32,42 +32,6 @@
         </div>
       </div>
 
-      <!-- Skills Roadmap Section -->
-      <div v-if="map.skills_roadmap && map.skills_roadmap.modules && map.skills_roadmap.modules.length > 0" class="skills-roadmap-section">
-        <h3 class="section-title">Skills Roadmap</h3>
-        <p class="section-description">
-          Practice problems and skill modules derived from {{ map.skills_roadmap.metadata?.total_posts || map.analysis_count }} real interview experiences. Each module is prioritized based on frequency of mention across analyzed posts.
-        </p>
-
-        <div class="skills-metadata">
-          <div class="metadata-badge">
-            <span class="metadata-label">Total Problems</span>
-            <span class="metadata-value">{{ map.skills_roadmap.metadata?.total_problems || 0 }}</span>
-          </div>
-          <div class="metadata-badge">
-            <span class="metadata-label">Modules</span>
-            <span class="metadata-value">{{ map.skills_roadmap.modules.length }}</span>
-          </div>
-          <div class="metadata-badge">
-            <span class="metadata-label">Estimated Hours</span>
-            <span class="metadata-value">{{ map.skills_roadmap.metadata?.total_estimated_hours || 0 }}hrs</span>
-          </div>
-          <div class="metadata-badge" v-if="map.skills_roadmap.metadata?.priority_breakdown">
-            <span class="metadata-label">Critical Modules</span>
-            <span class="metadata-value">{{ map.skills_roadmap.metadata.priority_breakdown.Critical || 0 }}</span>
-          </div>
-        </div>
-
-        <div class="skills-modules-list">
-          <SkillModule
-            v-for="(module, idx) in map.skills_roadmap.modules"
-            :key="idx"
-            :module="module"
-            @view-sources="handleViewSources"
-          />
-        </div>
-      </div>
-
       <!-- Week-by-Week Collapsible Timeline (Professional McKinsey Style) -->
       <div v-if="map.timeline && map.timeline.weeks && map.timeline.weeks.length > 0" class="professional-timeline-section">
         <div class="timeline-header">
@@ -753,7 +717,6 @@ import { useLearningMapStore } from '@/stores/learningMapStore'
 import { useUIStore } from '@/stores/uiStore'
 import LearningMapHeader from '@/components/LearningMap/LearningMapHeader.vue'
 import MilestoneCard from '@/components/LearningMap/MilestoneCard.vue'
-import SkillModule from '@/components/LearningMap/SkillModule.vue'
 import SourcePostsModal from '@/components/LearningMap/SourcePostsModal.vue'
 import DetailedDailySchedule from '@/components/LearningMap/DetailedDailySchedule.vue'
 
@@ -1166,68 +1129,6 @@ function downloadICS() {
 .meta-badge-clean.difficulty {
   background: #F9FAFB;
   color: #374151;
-}
-
-/* Skills Roadmap Section */
-.skills-roadmap-section {
-  padding: 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  background: #FFFFFF;
-  border-top: 1px solid #E5E7EB;
-}
-
-.section-description {
-  font-size: 15px;
-  color: #6B7280;
-  line-height: 1.6;
-  max-width: 800px;
-}
-
-.skills-metadata {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.metadata-badge {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 16px;
-  background: #F9FAFB;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-.metadata-badge:hover {
-  border-color: #1E3A5F;
-  box-shadow: 0 2px 8px rgba(30, 58, 95, 0.06);
-}
-
-.metadata-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: #6B7280;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-family: 'Inter', -apple-system, sans-serif;
-}
-
-.metadata-value {
-  font-family: 'Inter', -apple-system, sans-serif;
-  font-size: 24px;
-  font-weight: 700;
-  color: #111827;
-}
-
-.skills-modules-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 /* Milestones Section */

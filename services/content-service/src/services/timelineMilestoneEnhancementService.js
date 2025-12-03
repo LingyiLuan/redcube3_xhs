@@ -470,7 +470,22 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
 
   try {
     const response = await analyzeWithOpenRouter(prompt, { max_tokens: 4000, temperature: 0.7 });
-    const milestones = extractJsonFromString(response);
+    let milestones = extractJsonFromString(response);
+
+    // Ensure milestones is an array - LLM might return object with milestones property
+    if (!Array.isArray(milestones)) {
+      if (milestones && typeof milestones === 'object') {
+        // Try to extract array from common wrapper properties
+        milestones = milestones.milestones || milestones.data || Object.values(milestones);
+        if (!Array.isArray(milestones)) {
+          logger.warn('[TimelineEnhancement] Could not extract milestones array, using fallback');
+          return generateFallbackMilestones(totalWeeks, totalPosts);
+        }
+      } else {
+        logger.warn('[TimelineEnhancement] Milestones is not an array, using fallback');
+        return generateFallbackMilestones(totalWeeks, totalPosts);
+      }
+    }
 
     logger.info(`[TimelineEnhancement] Generated ${milestones.length} milestones successfully`);
     return milestones;

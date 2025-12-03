@@ -77,24 +77,14 @@ function getCompanyFocus(map: any): string {
 }
 
 function getSkillCount(map: any): number {
-  // Count from skills_roadmap.modules if available (correct structure)
-  if (map.skills_roadmap?.modules?.length) {
-    return map.skills_roadmap.modules.length
-  }
-  
-  // Try legacy structure (array directly)
-  if (Array.isArray(map.skills_roadmap) && map.skills_roadmap.length > 0) {
-    return map.skills_roadmap.length
+  // Count from timeline weeks if available
+  if (map.timeline?.weeks?.length) {
+    return map.timeline.weeks.length
   }
 
   // Fallback to nodes count
   if (map.nodes?.length) {
     return map.nodes.length
-  }
-  
-  // Count from timeline weeks if available
-  if (map.timeline?.weeks?.length) {
-    return map.timeline.weeks.length
   }
 
   return 0

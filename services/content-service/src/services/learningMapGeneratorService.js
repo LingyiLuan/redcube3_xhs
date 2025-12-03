@@ -17,7 +17,6 @@
 const pool = require('../config/database');
 const logger = require('../utils/logger');
 const { getCachedBatchData } = require('../controllers/analysisController');
-const skillModuleGeneratorService = require('./skillModuleGeneratorService');
 const { generateEnhancedTimeline, generateEnhancedMilestones } = require('./timelineMilestoneEnhancementService');
 const {
   extractKnowledgeGaps,
@@ -83,10 +82,7 @@ async function generateLearningMapFromReport(reportId, userGoals = {}) {
   logger.info('[Learning Map] Phase 1: Starting fast parallel operations...');
   const phase1Start = Date.now();
 
-  const [timelineData, skillsRoadmap] = await Promise.all([
-    extractTimelineData(sourcePosts),
-    buildSkillsRoadmapNew(sourcePosts.map(p => p.post_id))
-  ]);
+  const timelineData = await extractTimelineData(sourcePosts);
 
   // Sync operations (instant)
   const foundation = buildFoundationMetadata(patterns, sourcePosts, individualAnalyses, timelineData);
@@ -101,7 +97,7 @@ async function generateLearningMapFromReport(reportId, userGoals = {}) {
   const phase2Start = Date.now();
 
   // These can all run in parallel:
-  // - Timeline generation needs skillsRoadmap (which we have)
+  // - Timeline generation
   // - Knowledge gaps and curated resources are independent
   // - DB aggregations are fast and independent
   const [
@@ -114,7 +110,7 @@ async function generateLearningMapFromReport(reportId, userGoals = {}) {
     commonPitfallsData,
     readinessChecklistData
   ] = await Promise.all([
-    generateEnhancedTimeline(sourcePosts, timelineData, skillsRoadmap, userGoals),
+    generateEnhancedTimeline(sourcePosts, timelineData, null, userGoals),
     extractKnowledgeGaps(sourcePosts, userGoals),
     extractCuratedResources(sourcePosts),
     aggregateSuccessFactors(sourcePosts),
@@ -132,7 +128,7 @@ async function generateLearningMapFromReport(reportId, userGoals = {}) {
   logger.info('[Learning Map] Phase 3: Generating milestones (needs timeline)...');
   const phase3Start = Date.now();
 
-  const milestones = await generateEnhancedMilestones(sourcePosts, timeline, skillsRoadmap);
+  const milestones = await generateEnhancedMilestones(sourcePosts, timeline, null);
 
   logger.info(`[Learning Map] Phase 3 completed in ${Date.now() - phase3Start}ms`);
   logger.info(`[Learning Map] Total generation time: ${Date.now() - startTime}ms`);
@@ -169,9 +165,6 @@ async function generateLearningMapFromReport(reportId, userGoals = {}) {
 
     // Milestones
     milestones,
-
-    // Skills roadmap
-    skills_roadmap: skillsRoadmap,
 
     // Knowledge gaps
     knowledge_gaps: knowledgeGaps,
@@ -438,72 +431,6 @@ function generateMilestones(patterns, timeline) {
   });
 
   return milestones;
-}
-
-/**
- * NEW: Build comprehensive skills roadmap using skill module generator
- * Extracts real LeetCode problems from database and groups them by category
- */
-async function buildSkillsRoadmapNew(postIds) {
-  try {
-    logger.info('[LearningMap] Building skills roadmap with new generator');
-
-    const result = await skillModuleGeneratorService.generateSkillModules(postIds);
-
-    logger.info(`[LearningMap] Generated ${result.modules.length} skill modules`);
-    logger.info(`[LearningMap] Total problems: ${result.metadata.total_problems}`);
-    logger.info(`[LearningMap] Estimated time: ${result.metadata.total_estimated_hours} hours`);
-
-    return result;
-  } catch (error) {
-    logger.error('[LearningMap] Error building skills roadmap:', error);
-    // Fallback to empty roadmap
-    return {
-      modules: [],
-      metadata: {
-        total_problems: 0,
-        total_posts: postIds.length,
-        categories_covered: 0
-      }
-    };
-  }
-}
-
-/**
- * LEGACY: Build skills roadmap from skill frequency and success correlation
- * DEPRECATED - Use buildSkillsRoadmapNew instead
- */
-function buildSkillsRoadmap(patterns) {
-  const skillFrequency = patterns.skill_frequency || [];
-
-  // CRITICAL FIX: Ensure skillSuccess is always an array
-  // Sometimes skill_success_correlation might be an object or undefined
-  let skillSuccess = patterns.skill_success_correlation || [];
-  if (!Array.isArray(skillSuccess)) {
-    // If it's an object, try to convert it to an array of values
-    skillSuccess = Object.values(skillSuccess);
-  }
-
-  return {
-    critical_skills: skillSuccess.filter(s => s.impact > 10).map(s => ({
-      skill: s.skill,
-      demand: parseFloat(skillFrequency.find(f => f.skill === s.skill)?.percentage || 0),
-      impact: s.impact,
-      priority: 'Critical'
-    })),
-    high_priority_skills: skillSuccess.filter(s => s.impact >= 5 && s.impact <= 10).map(s => ({
-      skill: s.skill,
-      demand: parseFloat(skillFrequency.find(f => f.skill === s.skill)?.percentage || 0),
-      impact: s.impact,
-      priority: 'High'
-    })),
-    medium_priority_skills: skillSuccess.filter(s => s.impact < 5).map(s => ({
-      skill: s.skill,
-      demand: parseFloat(skillFrequency.find(f => f.skill === s.skill)?.percentage || 0),
-      impact: s.impact,
-      priority: 'Medium'
-    }))
-  };
 }
 
 /**
