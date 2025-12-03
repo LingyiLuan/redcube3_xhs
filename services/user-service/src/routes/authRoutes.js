@@ -1108,6 +1108,7 @@ router.post('/forgot-password', async (req, res) => {
 
     // Log attempt (before checking if user exists)
     await logPasswordResetAttempt(sanitizedEmail, ipAddress, !!user);
+    console.log('[Forgot Password] User lookup result:', user ? `Found user ID ${user.id}` : 'Not found');
 
     if (!user) {
       // For security, don't reveal if email exists
@@ -1133,9 +1134,11 @@ router.post('/forgot-password', async (req, res) => {
     const { sendPasswordResetEmail } = require('../services/emailService');
 
     const token = generatePasswordResetToken();
+    console.log('[Forgot Password] Token generated, saving to database...');
 
     // Save token to database (hashed with SHA-256)
     await createPasswordResetToken(user.id, token);
+    console.log('[Forgot Password] Token saved to database, sending email...');
 
     // Send password reset email ASYNCHRONOUSLY (fire-and-forget)
     // This prevents Cloudflare timeout issues - email sending can take 2+ minutes
