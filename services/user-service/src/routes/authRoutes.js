@@ -611,29 +611,19 @@ router.post('/register', async (req, res) => {
       client.release();
     }
 
-    // Log user in immediately after registration
-    req.login(newUser, (err) => {
-      if (err) {
-        console.error('[Register] Login error after registration:', err);
-        return res.status(500).json({
-          success: false,
-          error: 'Registration successful but login failed. Please try logging in.'
-        });
+    // Return immediately - DON'T use req.login() as it can timeout
+    // User must verify email before they can login anyway
+    console.log('[Register] Returning success response immediately');
+    return res.status(201).json({
+      success: true,
+      requiresVerification: true,
+      message: 'Registration successful! Please check your email to verify your account. The email may take a few minutes to arrive.',
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        display_name: newUser.display_name,
+        email_verified: false
       }
-
-      res.status(201).json({
-        success: true,
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          display_name: newUser.display_name,
-          role: newUser.role,
-          status: newUser.status,
-          email_verified: newUser.email_verified,
-          created_at: newUser.created_at
-        },
-        message: 'Registration successful'
-      });
     });
 
   } catch (error) {
@@ -998,34 +988,53 @@ router.get('/verify-email', async (req, res) => {
     // Update last login timestamp
     await updateUserLastLogin(userId);
 
-    // Auto-login: Create session using Passport
-    req.login(user, (err) => {
-      if (err) {
-        console.error('[Verify Email] Auto-login failed:', err);
-        // Email is verified but login failed - user can manually login
-        return res.json({
-          success: true,
-          autoLoginFailed: true,
-          message: 'Your email has been verified successfully! Please sign in to continue.',
-          user: null
-        });
+    console.log('[Verify Email] Email verified successfully for user:', userId);
+
+    // Try auto-login with a 3-second timeout to avoid Cloudflare 504 timeout
+    // If Redis/session save is slow, we still return success
+    let autoLoginSuccess = false;
+
+    try {
+      autoLoginSuccess = await Promise.race([
+        // Promise that resolves when req.login completes
+        new Promise((resolve) => {
+          req.login(user, (err) => {
+            if (err) {
+              console.warn('[Verify Email] Auto-login failed:', err.message);
+              resolve(false);
+            } else {
+              console.log('[Verify Email] Auto-login successful');
+              resolve(true);
+            }
+          });
+        }),
+        // Timeout after 3 seconds
+        new Promise((resolve) => {
+          setTimeout(() => {
+            console.log('[Verify Email] Auto-login timeout after 3s, continuing without session');
+            resolve(false);
+          }, 3000);
+        })
+      ]);
+    } catch (loginErr) {
+      console.error('[Verify Email] Unexpected login error:', loginErr);
+      autoLoginSuccess = false;
+    }
+
+    // Return success with or without auto-login
+    return res.json({
+      success: true,
+      verified: true,
+      autoLoginSuccess: autoLoginSuccess,
+      message: autoLoginSuccess
+        ? 'Your email has been verified successfully! Redirecting to dashboard...'
+        : 'Your email has been verified successfully! Please sign in to continue.',
+      user: {
+        id: user.id,
+        email: user.email,
+        display_name: user.display_name,
+        email_verified: true
       }
-
-      console.log('[Verify Email] Email verified and user auto-logged in:', userId);
-
-      // Return success with user info for frontend
-      res.json({
-        success: true,
-        autoLoginSuccess: true,
-        message: 'Your email has been verified successfully! Redirecting to dashboard...',
-        user: {
-          id: user.id,
-          email: user.email,
-          display_name: user.display_name,
-          avatar_url: user.avatar_url,
-          role: user.role
-        }
-      });
     });
 
   } catch (error) {

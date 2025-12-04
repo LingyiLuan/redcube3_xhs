@@ -38,9 +38,14 @@
             </div>
             <h2>Email Verified Successfully!</h2>
             <p class="success-message">
-              Your email address has been verified. Redirecting to dashboard...
+              {{ autoLoginSuccess ? 'Redirecting to dashboard...' : 'You can now sign in to your account.' }}
             </p>
-            <div class="loading-spinner small-spinner"></div>
+            <div v-if="autoLoginSuccess" class="loading-spinner small-spinner"></div>
+            <div v-else class="action-buttons">
+              <button @click="router.push({ name: 'login' })" class="primary-btn">
+                SIGN IN NOW
+              </button>
+            </div>
           </div>
 
           <!-- Error State -->
@@ -117,6 +122,7 @@ const isResending = ref(false)
 const resendMessage = ref('')
 const resendSuccess = ref(false)
 const userEmail = ref('') // Store email for resend
+const autoLoginSuccess = ref(false) // Track if auto-login succeeded
 
 async function verifyEmail(token: string) {
   isVerifying.value = true
@@ -139,22 +145,17 @@ async function verifyEmail(token: string) {
     }
 
     verificationStatus.value = 'success'
+    autoLoginSuccess.value = data.autoLoginSuccess || false
     console.log('[VerifyEmailPage] Email verified successfully', data)
 
-    // Auto-login successful - redirect to dashboard after brief delay
-    if (data.autoLoginSuccess && data.user) {
-      console.log('[VerifyEmailPage] User auto-logged in:', data.user)
+    // If auto-login succeeded, redirect to landing after 2 seconds
+    if (data.autoLoginSuccess) {
+      console.log('[VerifyEmailPage] Auto-login succeeded, redirecting to landing...')
       setTimeout(() => {
         router.push({ name: 'landing' })
-      }, 2000) // 2 second delay to show success message
+      }, 2000)
     }
-    // Auto-login failed - user needs to manually sign in
-    else if (data.autoLoginFailed) {
-      console.log('[VerifyEmailPage] Auto-login failed, redirecting to login')
-      setTimeout(() => {
-        router.push({ name: 'login' })
-      }, 3000)
-    }
+    // Otherwise user will click "Sign In Now" button to navigate to login
   } catch (error: any) {
     console.error('[VerifyEmailPage] Verification failed:', error)
     verificationStatus.value = 'error'
