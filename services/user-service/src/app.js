@@ -256,7 +256,11 @@ app.use('*', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('User service error:', err);
+  // Always log the full error for debugging
+  console.error('[Global Error Handler] Request:', req.method, req.originalUrl);
+  console.error('[Global Error Handler] Error name:', err.name);
+  console.error('[Global Error Handler] Error message:', err.message);
+  console.error('[Global Error Handler] Error stack:', err.stack);
 
   if (err.name === 'ValidationError') {
     return res.status(400).json({
