@@ -115,7 +115,7 @@ async function generateLearningMapStream(req, res) {
       FROM interview_questions iq
       WHERE iq.post_id = ANY($1)
         AND iq.question_text IS NOT NULL
-      ORDER BY iq.difficulty, iq.llm_category
+      ORDER BY difficulty, category
       LIMIT 200
     `, [postIds]);
     const allProblems = problemsResult.rows;
