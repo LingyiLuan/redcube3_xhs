@@ -154,8 +154,15 @@ const sessionMiddleware = session(sessionConfig);
 
 // CRITICAL: Skip session middleware for endpoints that don't need sessions
 // This prevents Redis session save from blocking the response
-// Registration and email verification don't need sessions - user logs in after
-const sessionlessRoutes = ['/api/auth/register', '/api/auth/verify-email'];
+// These endpoints don't require user to be logged in - they work with tokens instead
+const sessionlessRoutes = [
+  '/api/auth/register',       // User registering - not logged in yet
+  '/api/auth/verify-email',   // Email verification via token
+  '/api/auth/forgot-password', // Password reset request - not logged in
+  '/api/auth/reset-password', // Password reset with token - not logged in
+  '/api/auth/resend-verification', // Resend verification email
+  '/api/auth/check-email'     // Check if email exists - public endpoint
+];
 app.use((req, res, next) => {
   if (sessionlessRoutes.some(route => req.path === route || req.path.startsWith(route + '?'))) {
     console.log(`[Session] Skipping session middleware for: ${req.path}`);
