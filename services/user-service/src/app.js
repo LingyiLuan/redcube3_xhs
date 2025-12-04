@@ -212,7 +212,16 @@ app.use((req, res, next) => {
 
 // Passport middleware
 app.use(passport.initialize());
-app.use(passport.session());
+
+// CRITICAL: Skip passport.session() for sessionless routes
+// passport.session() requires req.session to exist, which is skipped for sessionless routes
+app.use((req, res, next) => {
+  if (sessionlessRoutes.some(route => req.path === route || req.path.startsWith(route + '?'))) {
+    console.log(`[Passport] Skipping passport.session() for: ${req.path}`);
+    return next();
+  }
+  return passport.session()(req, res, next);
+});
 
 // Debug middleware for authentication
 app.use((req, res, next) => {
