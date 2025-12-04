@@ -1,3 +1,14 @@
+// CRITICAL: Force IPv4 first to fix 2-minute DNS resolution delays on Railway
+// Node.js 17+ prefers IPv6 by default, but Railway's internal network may not respond on IPv6
+// This causes a 2-minute TCP timeout before falling back to IPv4
+const dns = require('node:dns');
+try {
+  dns.setDefaultResultOrder('ipv4first');
+  console.log('[Network] DNS default result order set to: ipv4first');
+} catch (e) {
+  console.warn('[Network] Could not set DNS result order (Node < 17?), ignoring.');
+}
+
 require('dotenv').config();
 const app = require('./app');
 const pool = require('./database/connection');
