@@ -96,37 +96,43 @@ async function generateLearningMapStream(req, res) {
     sendEvent('progress', { phase: 2, message: 'Base learning map generated', percent: 55 });
 
     // Phase 2.5: Generate detailed hour-by-hour schedules for timeline weeks
+    // DEBUG MODE: No fallbacks - let errors surface so we can fix them
     sendEvent('progress', { phase: 2, message: 'Generating detailed daily schedules...', percent: 58 });
 
-    try {
-      const pool = require('../config/database');
-      // Get all curated problems from the database for scheduling
-      logger.info('[LearningMapStream] Fetching curated problems for scheduling...');
-      const problemsResult = await pool.query(`
-        SELECT id, name, difficulty, category, module, leetcode_number
-        FROM curated_problems
-        ORDER BY module, difficulty_order
-        LIMIT 200
-      `);
-      const allProblems = problemsResult.rows;
-      logger.info(`[LearningMapStream] Found ${allProblems.length} curated problems`);
+    const pool = require('../config/database');
 
-      // Enhance timeline weeks with hour-by-hour schedules (disable LLM for speed)
-      if (baseLearningMap.timeline && baseLearningMap.timeline.weeks) {
-        logger.info(`[LearningMapStream] Enhancing ${baseLearningMap.timeline.weeks.length} weeks with detailed schedules...`);
-        const enhancedWeeks = await timelineMilestoneEnhancementService.enhanceWeeksWithDetailedSchedules(
-          baseLearningMap.timeline.weeks,
-          allProblems,
-          6, // hours per day
-          false // disable LLM enhancement for speed
-        );
-        baseLearningMap.timeline.weeks = enhancedWeeks;
-        logger.info(`[LearningMapStream] Added detailed_daily_schedules to ${enhancedWeeks.filter(w => w.detailed_daily_schedules).length}/${enhancedWeeks.length} weeks`);
-      }
-    } catch (scheduleError) {
-      logger.error('[LearningMapStream] Failed to generate detailed schedules:', scheduleError);
-      logger.error('[LearningMapStream] Error stack:', scheduleError?.stack || 'no stack');
-      // Continue without detailed schedules - frontend will fall back to simple daily_plan
+    // Get interview questions from source posts (real data, NOT curated_problems fallback)
+    const postIds = cachedData.patternAnalysis?.source_posts?.map(p => p.post_id) || [];
+    logger.info(`[LearningMapStream] Fetching interview questions from ${postIds.length} source posts...`);
+
+    const problemsResult = await pool.query(`
+      SELECT DISTINCT
+        iq.id,
+        COALESCE(iq.question_text, iq.raw_question) as name,
+        COALESCE(iq.difficulty, 'Medium') as difficulty,
+        COALESCE(iq.llm_category, iq.question_type, 'Algorithm') as category,
+        COALESCE(iq.llm_category, 'General') as module,
+        iq.leetcode_number
+      FROM interview_questions iq
+      WHERE iq.post_id = ANY($1)
+        AND (iq.question_text IS NOT NULL OR iq.raw_question IS NOT NULL)
+      ORDER BY iq.difficulty, iq.llm_category
+      LIMIT 200
+    `, [postIds]);
+    const allProblems = problemsResult.rows;
+    logger.info(`[LearningMapStream] Found ${allProblems.length} interview questions from source posts`);
+
+    // Enhance timeline weeks with hour-by-hour schedules (disable LLM for speed)
+    if (baseLearningMap.timeline && baseLearningMap.timeline.weeks) {
+      logger.info(`[LearningMapStream] Enhancing ${baseLearningMap.timeline.weeks.length} weeks with detailed schedules...`);
+      const enhancedWeeks = await timelineMilestoneEnhancementService.enhanceWeeksWithDetailedSchedules(
+        baseLearningMap.timeline.weeks,
+        allProblems,
+        6, // hours per day
+        false // disable LLM enhancement for speed
+      );
+      baseLearningMap.timeline.weeks = enhancedWeeks;
+      logger.info(`[LearningMapStream] Added detailed_daily_schedules to ${enhancedWeeks.filter(w => w.detailed_daily_schedules).length}/${enhancedWeeks.length} weeks`);
     }
 
     sendEvent('progress', { phase: 2, message: 'Daily schedules generated', percent: 60 });
