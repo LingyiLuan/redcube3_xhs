@@ -719,9 +719,15 @@ CRITICAL: Return ONLY the JSON array, no explanation. Maximum 8 gaps.`;
 
     // Fill in source_post_ids from actual evidence
     gaps.forEach(gap => {
-      const matchingArea = strugglePatterns.struggle_areas.find(a =>
-        a.area.toLowerCase().includes(gap.area.toLowerCase()) ||
-        gap.area.toLowerCase().includes(a.area.toLowerCase())
+      // Skip gaps without valid area field
+      if (!gap.area || typeof gap.area !== 'string') {
+        gap.source_post_ids = [];
+        return;
+      }
+      const matchingArea = strugglePatterns.struggle_areas?.find(a =>
+        a.area && typeof a.area === 'string' &&
+        (a.area.toLowerCase().includes(gap.area.toLowerCase()) ||
+        gap.area.toLowerCase().includes(a.area.toLowerCase()))
       );
       if (matchingArea) {
         gap.source_post_ids = matchingArea.posts.slice(0, 20);

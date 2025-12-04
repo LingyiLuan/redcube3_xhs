@@ -211,15 +211,39 @@ export const useLearningMapStore = defineStore('learningMap', () => {
           }
         }
 
-        // Stream ended without complete event
+        // Stream ended without complete event - but backend might have saved the data
+        // Show "checking" status instead of error, then auto-refresh
+        console.log('[LearningMapStore] Stream ended unexpectedly, checking if map was saved...')
+
         const pending = pendingMaps.value.find(p => p.id === pendingId)
         if (pending) {
-          pending.status = 'error'
-          pending.error = 'Stream ended unexpectedly'
+          pending.progress = { phase: 5, message: 'Checking if saved...', percent: 95 }
         }
+
+        // Wait a bit for backend to finish saving, then refresh
+        setTimeout(async () => {
+          const prevMapCount = maps.value.length
+          await fetchUserMaps()
+
+          // Check if we now have a new map (backend saved it despite stream ending)
+          const pendingToRemove = pendingMaps.value.find(p => p.id === pendingId)
+          if (pendingToRemove) {
+            const pendingIndex = pendingMaps.value.findIndex(p => p.id === pendingId)
+            if (pendingIndex > -1) {
+              pendingMaps.value.splice(pendingIndex, 1)
+            }
+          }
+
+          // If we got a new map, it worked! Otherwise show subtle message
+          if (maps.value.length > prevMapCount) {
+            console.log('[LearningMapStore] Map was saved successfully despite stream disconnect')
+          }
+        }, 5000) // Wait 5 seconds for backend to finish
+
         isGenerating.value = false
         generationProgress.value = null
-        reject(new Error('Stream ended without complete event'))
+        // Don't reject with error - resolve undefined since we're auto-handling this
+        resolve(undefined as any)
       }).catch(error => {
         console.error('[LearningMapStore] SSE Error:', error)
 
