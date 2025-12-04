@@ -19,24 +19,40 @@
         <div class="register-body">
           <!-- Success Message (shown after successful registration) -->
           <div v-if="registrationSuccess" class="success-message-container">
-            <div class="success-icon">
-              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#10b981" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M9 12l2 2 4-4"/>
+            <div class="email-icon">
+              <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#10b981" stroke-width="1.5">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <path d="M22 6l-10 7L2 6"/>
               </svg>
             </div>
-            <h2 class="success-title">Account Created Successfully!</h2>
+            <h2 class="success-title">Check Your Inbox</h2>
             <p class="success-message">
-              Welcome to LabZero. A verification email is being sent to <strong>{{ email }}</strong>.
+              A verification link has been sent to <strong>{{ email }}</strong>
             </p>
             <p class="success-note">
-              This may take a few minutes to arrive. Please check your inbox and spam folder.
+              If you don't see it within a few minutes, check your spam folder.
             </p>
-            <div class="redirect-notice">
-              <p>Redirecting to dashboard in <strong>{{ redirectCountdown }}</strong> seconds...</p>
-              <button @click="router.push({ name: 'landing' })" class="continue-btn">
-                Continue Now
+
+            <!-- Resend Section -->
+            <div class="resend-section">
+              <button
+                @click="handleResendVerification"
+                class="resend-btn"
+                :disabled="isResending || resendCooldown > 0"
+              >
+                <span v-if="isResending">Sending...</span>
+                <span v-else-if="resendCooldown > 0">Resend in {{ resendCooldown }}s</span>
+                <span v-else>Resend verification email</span>
               </button>
+              <p v-if="resendMessage" :class="['resend-feedback', resendSuccess ? 'success' : 'error']">
+                {{ resendMessage }}
+              </p>
+            </div>
+
+            <div class="action-links">
+              <router-link to="/login" class="back-to-login">
+                Back to Sign In
+              </router-link>
             </div>
           </div>
 
@@ -243,7 +259,12 @@ const errorMessages = ref<string[]>([])
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const registrationSuccess = ref(false)
-const redirectCountdown = ref(3)
+
+// Resend verification state
+const isResending = ref(false)
+const resendCooldown = ref(30) // Start with 30s cooldown after registration
+const resendMessage = ref('')
+const resendSuccess = ref(false)
 
 // Field-level error states
 const displayNameError = ref('')
@@ -496,19 +517,11 @@ async function handleEmailRegister() {
     await authStore.registerWithEmail(email.value, password.value, displayName.value)
     console.log('[RegisterPage] Registration successful, showing success message')
 
-    // Set success state
+    // Set success state - show "Check your inbox" page
     registrationSuccess.value = true
 
-    // Start countdown and redirect after 3 seconds
-    const countdownInterval = setInterval(() => {
-      redirectCountdown.value--
-
-      if (redirectCountdown.value <= 0) {
-        clearInterval(countdownInterval)
-        console.log('[RegisterPage] Redirecting to landing page')
-        router.push({ name: 'landing' })
-      }
-    }, 1000)
+    // Start resend cooldown timer (30 seconds)
+    startResendCooldown()
   } catch (error: any) {
     console.error('[RegisterPage] Email registration failed:', error)
     const message = error.message || 'Failed to create account'
@@ -535,6 +548,55 @@ async function handleEmailRegister() {
     }
   } finally {
     isLoading.value = false
+  }
+}
+
+// Start the resend cooldown timer
+function startResendCooldown() {
+  resendCooldown.value = 30
+  const cooldownInterval = setInterval(() => {
+    resendCooldown.value--
+    if (resendCooldown.value <= 0) {
+      clearInterval(cooldownInterval)
+    }
+  }, 1000)
+}
+
+// Handle resend verification email
+async function handleResendVerification() {
+  if (isResending.value || resendCooldown.value > 0) return
+
+  isResending.value = true
+  resendMessage.value = ''
+  resendSuccess.value = false
+
+  try {
+    const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+    const response = await fetch(`${apiGatewayUrl}/api/auth/resend-verification`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email: email.value })
+    })
+
+    const data = await response.json()
+
+    if (response.ok) {
+      resendSuccess.value = true
+      resendMessage.value = 'Verification email sent! Please check your inbox.'
+      // Start cooldown again
+      startResendCooldown()
+    } else {
+      resendSuccess.value = false
+      resendMessage.value = data.message || 'Failed to resend verification email'
+    }
+  } catch (error: any) {
+    console.error('[RegisterPage] Resend verification failed:', error)
+    resendSuccess.value = false
+    resendMessage.value = 'Failed to resend verification email. Please try again.'
+  } finally {
+    isResending.value = false
   }
 }
 </script>
@@ -1018,7 +1080,7 @@ async function handleEmailRegister() {
   padding: 2rem 1rem;
 }
 
-.success-icon {
+.email-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1030,7 +1092,6 @@ async function handleEmailRegister() {
   font-weight: 700;
   color: #10b981;
   margin: 0 0 1rem;
-  text-transform: uppercase;
   letter-spacing: -0.02em;
 }
 
@@ -1049,47 +1110,71 @@ async function handleEmailRegister() {
 .success-note {
   color: var(--industrial-text-secondary);
   font-size: 0.875rem;
-  margin: 0 0 2rem;
+  margin: 0 0 1.5rem;
   line-height: 1.5;
 }
 
-.redirect-notice {
-  padding: 1.5rem;
-  background: var(--industrial-bg-page);
-  border: 1px solid var(--industrial-border);
-  border-radius: var(--radius-sm);
-  margin-top: 2rem;
+/* Resend Section */
+.resend-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--industrial-divider);
 }
 
-.redirect-notice p {
-  color: var(--industrial-text-secondary);
-  font-size: 0.875rem;
-  margin: 0 0 1rem;
-}
-
-.redirect-notice strong {
-  color: var(--industrial-text-primary);
-  font-weight: 600;
-}
-
-.continue-btn {
+.resend-btn {
   width: 100%;
-  padding: 0.875rem 1.5rem;
-  background: var(--industrial-accent);
+  padding: 0.75rem 1.5rem;
+  background: transparent;
   border: 1px solid var(--industrial-border-strong);
   border-radius: var(--radius-sm);
   font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--industrial-text-primary);
+  font-weight: 500;
+  color: var(--industrial-text-secondary);
   cursor: pointer;
   transition: all var(--transition-fast);
-  text-transform: uppercase;
 }
 
-.continue-btn:hover {
-  background: var(--industrial-icon);
-  transform: translateY(-1px);
-  box-shadow: var(--industrial-shadow-sm);
+.resend-btn:hover:not(:disabled) {
+  background: var(--industrial-accent);
+  border-color: var(--industrial-icon);
+  color: var(--industrial-text-primary);
+}
+
+.resend-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.resend-feedback {
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.resend-feedback.success {
+  color: #10b981;
+}
+
+.resend-feedback.error {
+  color: #ef4444;
+}
+
+/* Action Links */
+.action-links {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--industrial-divider);
+}
+
+.back-to-login {
+  display: inline-block;
+  color: var(--industrial-text-secondary);
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.back-to-login:hover {
+  color: var(--industrial-text-primary);
 }
 </style>
