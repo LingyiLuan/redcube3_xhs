@@ -108,14 +108,13 @@ async function generateLearningMapStream(req, res) {
     const problemsResult = await pool.query(`
       SELECT DISTINCT
         iq.id,
-        COALESCE(iq.question_text, iq.raw_question) as name,
+        iq.question_text as name,
         COALESCE(iq.difficulty, 'Medium') as difficulty,
         COALESCE(iq.llm_category, iq.question_type, 'Algorithm') as category,
-        COALESCE(iq.llm_category, 'General') as module,
-        iq.leetcode_number
+        COALESCE(iq.llm_category, 'General') as module
       FROM interview_questions iq
       WHERE iq.post_id = ANY($1)
-        AND (iq.question_text IS NOT NULL OR iq.raw_question IS NOT NULL)
+        AND iq.question_text IS NOT NULL
       ORDER BY iq.difficulty, iq.llm_category
       LIMIT 200
     `, [postIds]);
