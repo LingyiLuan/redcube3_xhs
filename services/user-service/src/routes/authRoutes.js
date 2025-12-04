@@ -614,6 +614,11 @@ router.post('/register', async (req, res) => {
     // Return immediately - DON'T use req.login() as it can timeout
     // User must verify email before they can login anyway
     console.log('[Register] Returning success response immediately');
+
+    // Prevent session middleware from saving (which can cause Cloudflare timeout)
+    // We don't need a session for registration - user must verify email first
+    req.session = null;
+
     return res.status(201).json({
       success: true,
       requiresVerification: true,
