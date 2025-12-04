@@ -151,7 +151,18 @@ if (process.env.SESSION_COOKIE_DOMAIN) {
 }
 
 const sessionMiddleware = session(sessionConfig);
-app.use(sessionMiddleware);
+
+// CRITICAL: Skip session middleware for endpoints that don't need sessions
+// This prevents Redis session save from blocking the response
+// Registration and email verification don't need sessions - user logs in after
+const sessionlessRoutes = ['/api/auth/register', '/api/auth/verify-email'];
+app.use((req, res, next) => {
+  if (sessionlessRoutes.some(route => req.path === route || req.path.startsWith(route + '?'))) {
+    console.log(`[Session] Skipping session middleware for: ${req.path}`);
+    return next();
+  }
+  return sessionMiddleware(req, res, next);
+});
 
 // Middleware to fix cookie attributes - must run after session middleware
 // Express session sometimes ignores cookie config, so we fix it using onHeaders event
