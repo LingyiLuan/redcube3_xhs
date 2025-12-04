@@ -558,6 +558,7 @@ router.post('/register', async (req, res) => {
  * Handles slow DB operations and email sending after response is sent
  */
 async function processRegistrationInBackground(email, password, displayName) {
+  const startTime = Date.now();
   console.log('[Register Background] Starting processing for:', email);
 
   try {
@@ -568,32 +569,47 @@ async function processRegistrationInBackground(email, password, displayName) {
     const { sendVerificationEmail } = require('../services/emailService');
     const pool = require('../database/connection');
 
-    // Check if user already exists (DB query - might be slow on cold start)
+    // DEBUG: Check if user already exists (DB query - might be slow on cold start)
+    console.log('[DEBUG] Step 1: Starting findUserByEmail...');
+    const step1Start = Date.now();
     const existingUser = await findUserByEmail(email);
+    console.log(`[DEBUG] Step 1: findUserByEmail completed in ${Date.now() - step1Start}ms`);
+
     if (existingUser) {
       console.log('[Register Background] Email already exists:', email);
-      // User already exists - they'll find out when they try to verify or login
-      // Could send "email already registered" email here if desired
       return;
     }
 
-    // Hash password (CPU-intensive but not DB-dependent)
+    // DEBUG: Hash password (CPU-intensive but not DB-dependent)
+    console.log('[DEBUG] Step 2: Starting hashPassword...');
+    const step2Start = Date.now();
     const passwordHash = await hashPassword(password);
+    console.log(`[DEBUG] Step 2: hashPassword completed in ${Date.now() - step2Start}ms`);
 
-    // Create user and verification token in transaction
+    // DEBUG: Create user and verification token in transaction
+    console.log('[DEBUG] Step 3: Starting pool.connect()...');
+    const step3Start = Date.now();
     const client = await pool.connect();
+    console.log(`[DEBUG] Step 3: pool.connect() completed in ${Date.now() - step3Start}ms`);
+
     let newUser;
     let verificationToken;
 
     try {
+      console.log('[DEBUG] Step 4: Starting BEGIN transaction...');
+      const step4Start = Date.now();
       await client.query('BEGIN');
+      console.log(`[DEBUG] Step 4: BEGIN completed in ${Date.now() - step4Start}ms`);
 
+      console.log('[DEBUG] Step 5: Starting createUserWithEmail...');
+      const step5Start = Date.now();
       newUser = await createUserWithEmail(
         email,
         passwordHash,
         displayName,
         client
       );
+      console.log(`[DEBUG] Step 5: createUserWithEmail completed in ${Date.now() - step5Start}ms`);
 
       console.log('[Register Background] User created:', {
         id: newUser.id,
@@ -601,10 +617,16 @@ async function processRegistrationInBackground(email, password, displayName) {
         displayName: newUser.display_name
       });
 
+      console.log('[DEBUG] Step 6: Starting generateVerificationToken + createVerificationToken...');
+      const step6Start = Date.now();
       verificationToken = generateVerificationToken();
       await createVerificationToken(newUser.id, verificationToken, client);
+      console.log(`[DEBUG] Step 6: createVerificationToken completed in ${Date.now() - step6Start}ms`);
 
+      console.log('[DEBUG] Step 7: Starting COMMIT...');
+      const step7Start = Date.now();
       await client.query('COMMIT');
+      console.log(`[DEBUG] Step 7: COMMIT completed in ${Date.now() - step7Start}ms`);
       console.log('[Register Background] Transaction committed successfully');
 
     } catch (dbError) {
@@ -615,14 +637,18 @@ async function processRegistrationInBackground(email, password, displayName) {
       client.release();
     }
 
-    // Send verification email
+    // DEBUG: Send verification email
+    console.log('[DEBUG] Step 8: Starting sendVerificationEmail...');
+    const step8Start = Date.now();
     await sendVerificationEmail(newUser.email, verificationToken);
+    console.log(`[DEBUG] Step 8: sendVerificationEmail completed in ${Date.now() - step8Start}ms`);
     console.log('[Register Background] Verification email sent to:', newUser.email);
+
+    console.log(`[DEBUG] TOTAL background processing time: ${Date.now() - startTime}ms`);
 
   } catch (error) {
     console.error('[Register Background] Error processing registration:', error);
-    // Registration failed silently - user will need to try again
-    // Could implement retry logic or admin notification here
+    console.log(`[DEBUG] TOTAL time before error: ${Date.now() - startTime}ms`);
   }
 }
 
