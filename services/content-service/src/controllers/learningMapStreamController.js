@@ -12,6 +12,7 @@
 
 const learningMapGeneratorService = require('../services/learningMapGeneratorService');
 const learningMapEnhancementsService = require('../services/learningMapEnhancementsService');
+const timelineMilestoneEnhancementService = require('../services/timelineMilestoneEnhancementService');
 const learningMapsQueries = require('../database/learningMapsQueries');
 const logger = require('../utils/logger');
 
@@ -92,7 +93,39 @@ async function generateLearningMapStream(req, res) {
       (progress) => sendEvent('progress', progress)
     );
 
-    sendEvent('progress', { phase: 2, message: 'Base learning map generated', percent: 60 });
+    sendEvent('progress', { phase: 2, message: 'Base learning map generated', percent: 55 });
+
+    // Phase 2.5: Generate detailed hour-by-hour schedules for timeline weeks
+    sendEvent('progress', { phase: 2, message: 'Generating detailed daily schedules...', percent: 58 });
+
+    try {
+      const pool = require('../config/database');
+      // Get all curated problems from the database for scheduling
+      const problemsResult = await pool.query(`
+        SELECT id, name, difficulty, category, module, leetcode_number
+        FROM curated_problems
+        ORDER BY module, difficulty_order
+        LIMIT 200
+      `);
+      const allProblems = problemsResult.rows;
+
+      // Enhance timeline weeks with hour-by-hour schedules (disable LLM for speed)
+      if (baseLearningMap.timeline && baseLearningMap.timeline.weeks) {
+        const enhancedWeeks = await timelineMilestoneEnhancementService.enhanceWeeksWithDetailedSchedules(
+          baseLearningMap.timeline.weeks,
+          allProblems,
+          6, // hours per day
+          false // disable LLM enhancement for speed
+        );
+        baseLearningMap.timeline.weeks = enhancedWeeks;
+        logger.info(`[LearningMapStream] Added detailed_daily_schedules to ${enhancedWeeks.filter(w => w.detailed_daily_schedules).length}/${enhancedWeeks.length} weeks`);
+      }
+    } catch (scheduleError) {
+      logger.warn('[LearningMapStream] Failed to generate detailed schedules, continuing without:', scheduleError.message);
+      // Continue without detailed schedules - frontend will fall back to simple daily_plan
+    }
+
+    sendEvent('progress', { phase: 2, message: 'Daily schedules generated', percent: 60 });
 
     // Phase 3: Apply enhancements
     sendEvent('progress', { phase: 3, message: 'Enhancing with company tracks...', percent: 65 });

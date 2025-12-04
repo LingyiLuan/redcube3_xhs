@@ -487,8 +487,22 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
       }
     }
 
-    logger.info(`[TimelineEnhancement] Generated ${milestones.length} milestones successfully`);
-    return milestones;
+    // Normalize milestones - ensure each has a 'week' property
+    // LLM sometimes uses different property names or omits week entirely
+    const normalizedMilestones = milestones.map((m, idx) => {
+      // Try to find week from various possible property names
+      const week = m.week || m.week_number || m.checkpoint_week || m.target_week;
+      if (!week) {
+        // Calculate week based on position in the milestone list
+        const calculatedWeek = Math.max(1, Math.round((idx + 1) * totalWeeks / milestones.length));
+        logger.warn(`[TimelineEnhancement] Milestone ${idx + 1} "${m.title || m.name}" missing week property, calculated as week ${calculatedWeek}`);
+        return { ...m, week: calculatedWeek };
+      }
+      return { ...m, week: parseInt(week, 10) || week };
+    });
+
+    logger.info(`[TimelineEnhancement] Generated ${normalizedMilestones.length} milestones successfully`);
+    return normalizedMilestones;
   } catch (error) {
     logger.error('[TimelineEnhancement] LLM generation failed, using fallback:', error);
     return generateFallbackMilestones(totalWeeks, totalPosts);
