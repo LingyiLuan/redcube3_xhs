@@ -587,21 +587,6 @@ router.post('/register', async (req, res) => {
 
       console.log('[Register] User and verification token created successfully');
 
-      // Send verification email ASYNCHRONOUSLY (fire-and-forget)
-      // This prevents Cloudflare timeout issues - email sending can take 2+ minutes
-      // The API returns immediately, and email is sent in the background
-      const { sendVerificationEmail } = require('../services/emailService');
-      setImmediate(async () => {
-        try {
-          await sendVerificationEmail(newUser.email, token);
-          console.log('[Register] Verification email sent to:', newUser.email);
-        } catch (emailError) {
-          // Log error but registration already succeeded
-          console.error('[Register] Failed to send verification email:', emailError);
-          // User can resend later via /api/auth/resend-verification
-        }
-      });
-      console.log('[Register] Email queued for background sending');
     } catch (dbError) {
       // Rollback transaction on any error
       await client.query('ROLLBACK');
@@ -611,15 +596,12 @@ router.post('/register', async (req, res) => {
       client.release();
     }
 
-    // Return immediately - DON'T use req.login() as it can timeout
-    // User must verify email before they can login anyway
-    console.log('[Register] Returning success response immediately');
+    // CRITICAL: Send response FIRST, before any email operations
+    // This prevents Cloudflare 30s timeout from killing the request
+    // Reference: https://stackoverflow.com/questions/40491222
+    console.log('[Register] Sending response NOW (before email)');
 
-    // Prevent session middleware from saving (which can cause Cloudflare timeout)
-    // We don't need a session for registration - user must verify email first
-    req.session = null;
-
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       requiresVerification: true,
       message: 'Registration successful! Please check your email to verify your account. The email may take a few minutes to arrive.',
@@ -630,6 +612,18 @@ router.post('/register', async (req, res) => {
         email_verified: false
       }
     });
+
+    // Fire-and-forget email - NO await, use .catch() for error handling
+    // This runs AFTER the response is sent
+    // Reference: https://www.bennadel.com/blog/3275
+    const { sendVerificationEmail } = require('../services/emailService');
+    sendVerificationEmail(newUser.email, token).catch((emailError) => {
+      console.error('[Register] Failed to send verification email:', emailError);
+      // User can resend later via /api/auth/resend-verification
+    });
+
+    console.log('[Register] Email queued for background sending');
+    return;
 
   } catch (error) {
     console.error('[Register] Error:', error);
@@ -990,50 +984,19 @@ router.get('/verify-email', async (req, res) => {
       });
     }
 
-    // Update last login timestamp
-    await updateUserLastLogin(userId);
-
     console.log('[Verify Email] Email verified successfully for user:', userId);
 
-    // Try auto-login with a 3-second timeout to avoid Cloudflare 504 timeout
-    // If Redis/session save is slow, we still return success
-    let autoLoginSuccess = false;
+    // CRITICAL: Send response IMMEDIATELY - no req.login() or session operations
+    // Session/login operations can cause Cloudflare 30s timeout
+    // User will log in manually after verification
+    // Reference: https://stackoverflow.com/questions/40491222
+    console.log('[Verify Email] Sending response NOW (no auto-login)');
 
-    try {
-      autoLoginSuccess = await Promise.race([
-        // Promise that resolves when req.login completes
-        new Promise((resolve) => {
-          req.login(user, (err) => {
-            if (err) {
-              console.warn('[Verify Email] Auto-login failed:', err.message);
-              resolve(false);
-            } else {
-              console.log('[Verify Email] Auto-login successful');
-              resolve(true);
-            }
-          });
-        }),
-        // Timeout after 3 seconds
-        new Promise((resolve) => {
-          setTimeout(() => {
-            console.log('[Verify Email] Auto-login timeout after 3s, continuing without session');
-            resolve(false);
-          }, 3000);
-        })
-      ]);
-    } catch (loginErr) {
-      console.error('[Verify Email] Unexpected login error:', loginErr);
-      autoLoginSuccess = false;
-    }
-
-    // Return success with or without auto-login
-    return res.json({
+    res.json({
       success: true,
       verified: true,
-      autoLoginSuccess: autoLoginSuccess,
-      message: autoLoginSuccess
-        ? 'Your email has been verified successfully! Redirecting to dashboard...'
-        : 'Your email has been verified successfully! Please sign in to continue.',
+      autoLoginSuccess: false, // Always false - user must log in manually
+      message: 'Your email has been verified successfully! Please sign in to continue.',
       user: {
         id: user.id,
         email: user.email,
@@ -1041,6 +1004,13 @@ router.get('/verify-email', async (req, res) => {
         email_verified: true
       }
     });
+
+    // Fire-and-forget: Update last login timestamp AFTER response
+    updateUserLastLogin(userId).catch((err) => {
+      console.error('[Verify Email] Failed to update last login:', err);
+    });
+
+    return;
 
   } catch (error) {
     console.error('[Verify Email] Error:', error);
