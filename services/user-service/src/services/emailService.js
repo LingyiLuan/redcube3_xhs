@@ -13,23 +13,20 @@
 const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
 
-// Lazily initialized Resend client
+// Eagerly initialized Resend client at module load (avoids cold start delay on first email)
 let resendClient = null;
+if (process.env.RESEND_API_KEY) {
+  resendClient = new Resend(process.env.RESEND_API_KEY);
+  console.log('[EmailService] Initialized Resend API client (eager)');
+} else {
+  console.log('[EmailService] No RESEND_API_KEY found - email sending will be simulated');
+}
 
 /**
- * Get or initialize Resend client
+ * Get Resend client (already initialized at module load)
  */
 function getResendClient() {
-  if (resendClient) return resendClient;
-
-  if (process.env.RESEND_API_KEY) {
-    resendClient = new Resend(process.env.RESEND_API_KEY);
-    console.log('[EmailService] Initialized Resend API client');
-    return resendClient;
-  }
-
-  console.log('[EmailService] No RESEND_API_KEY found');
-  return null;
+  return resendClient;
 }
 
 /**
