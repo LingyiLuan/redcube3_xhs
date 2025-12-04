@@ -587,7 +587,9 @@ async function aggregateTimelineData(sourcePosts) {
 
     const stats = result.rows[0];
 
-    logger.info(`[TimelineData] Stats: avg_prep=${stats.avg_prep_days?.toFixed(0)} days, median=${stats.median_prep_days}, posts_with_data=${stats.posts_with_prep_time}`);
+    // Convert PostgreSQL numeric types to JavaScript numbers for logging
+    const avgPrepDays = stats.avg_prep_days ? Number(stats.avg_prep_days) : null;
+    logger.info(`[TimelineData] Stats: avg_prep=${avgPrepDays ? Math.round(avgPrepDays) : 'N/A'} days, median=${stats.median_prep_days}, posts_with_data=${stats.posts_with_prep_time}`);
 
     return {
       preparation: {
@@ -735,8 +737,10 @@ CRITICAL: Return ONLY the JSON array, no explanation. Maximum 8 gaps.`;
         (a.area.toLowerCase().includes(gap.area.toLowerCase()) ||
         gap.area.toLowerCase().includes(a.area.toLowerCase()))
       );
-      if (matchingArea) {
+      if (matchingArea && matchingArea.posts && Array.isArray(matchingArea.posts)) {
         gap.source_post_ids = matchingArea.posts.slice(0, 20);
+      } else {
+        gap.source_post_ids = [];
       }
     });
 
