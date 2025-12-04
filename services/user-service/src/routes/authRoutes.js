@@ -557,6 +557,7 @@ router.post('/register', async (req, res) => {
     const client = await pool.connect();
 
     let newUser;
+    let verificationToken; // Declare outside try block so it's accessible after
     try {
       await client.query('BEGIN');
 
@@ -577,10 +578,10 @@ router.post('/register', async (req, res) => {
       // Generate verification token
       const { generateVerificationToken } = require('../utils/tokenUtils');
       const { createVerificationToken } = require('../database/verificationTokenQueries');
-      const token = generateVerificationToken();
+      verificationToken = generateVerificationToken();
 
       // Save token to database (within same transaction)
-      await createVerificationToken(newUser.id, token, client);
+      await createVerificationToken(newUser.id, verificationToken, client);
 
       // Commit transaction - both user and token are now persisted
       await client.query('COMMIT');
@@ -617,7 +618,7 @@ router.post('/register', async (req, res) => {
     // This runs AFTER the response is sent
     // Reference: https://www.bennadel.com/blog/3275
     const { sendVerificationEmail } = require('../services/emailService');
-    sendVerificationEmail(newUser.email, token).catch((emailError) => {
+    sendVerificationEmail(newUser.email, verificationToken).catch((emailError) => {
       console.error('[Register] Failed to send verification email:', emailError);
       // User can resend later via /api/auth/resend-verification
     });
