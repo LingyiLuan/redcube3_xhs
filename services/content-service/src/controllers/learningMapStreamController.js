@@ -101,6 +101,7 @@ async function generateLearningMapStream(req, res) {
     try {
       const pool = require('../config/database');
       // Get all curated problems from the database for scheduling
+      logger.info('[LearningMapStream] Fetching curated problems for scheduling...');
       const problemsResult = await pool.query(`
         SELECT id, name, difficulty, category, module, leetcode_number
         FROM curated_problems
@@ -108,9 +109,11 @@ async function generateLearningMapStream(req, res) {
         LIMIT 200
       `);
       const allProblems = problemsResult.rows;
+      logger.info(`[LearningMapStream] Found ${allProblems.length} curated problems`);
 
       // Enhance timeline weeks with hour-by-hour schedules (disable LLM for speed)
       if (baseLearningMap.timeline && baseLearningMap.timeline.weeks) {
+        logger.info(`[LearningMapStream] Enhancing ${baseLearningMap.timeline.weeks.length} weeks with detailed schedules...`);
         const enhancedWeeks = await timelineMilestoneEnhancementService.enhanceWeeksWithDetailedSchedules(
           baseLearningMap.timeline.weeks,
           allProblems,
@@ -121,7 +124,8 @@ async function generateLearningMapStream(req, res) {
         logger.info(`[LearningMapStream] Added detailed_daily_schedules to ${enhancedWeeks.filter(w => w.detailed_daily_schedules).length}/${enhancedWeeks.length} weeks`);
       }
     } catch (scheduleError) {
-      logger.warn('[LearningMapStream] Failed to generate detailed schedules, continuing without:', scheduleError.message);
+      logger.error('[LearningMapStream] Failed to generate detailed schedules:', scheduleError);
+      logger.error('[LearningMapStream] Error stack:', scheduleError?.stack || 'no stack');
       // Continue without detailed schedules - frontend will fall back to simple daily_plan
     }
 
