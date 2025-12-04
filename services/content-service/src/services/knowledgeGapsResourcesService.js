@@ -618,13 +618,19 @@ async function aggregateTimelineData(sourcePosts) {
       }
     };
   } catch (error) {
-    logger.error('[TimelineData] Database aggregation failed:', error.message);
+    logger.error('[TimelineData] Database aggregation failed:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint,
+      postIdsCount: postIds?.length
+    });
     return {
       preparation: { avg_days: null, median_days: null, posts_with_data: 0 },
       interview_process: { avg_rounds: null, median_rounds: null, posts_with_data: 0 },
       practice: { avg_problems_solved: null, avg_mock_interviews: null },
       success_correlation: {},
-      data_quality: { total_posts: postIds.length, coverage_prep_time: 0, coverage_rounds: 0 }
+      data_quality: { total_posts: postIds?.length || 0, coverage_prep_time: 0, coverage_rounds: 0 }
     };
   }
 }

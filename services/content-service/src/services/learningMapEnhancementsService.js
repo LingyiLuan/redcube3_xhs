@@ -386,14 +386,20 @@ function enrichMilestonesFromTimeline(baseMilestones, enhancedTimeline, patterns
     }));
   }
 
-  const enrichedMilestones = baseMilestones.map(milestone => {
+  const enrichedMilestones = baseMilestones.map((milestone, index) => {
+    // Get milestone week number - handle both 'week' and 'week_number' properties
+    // Also handle undefined by calculating from index
+    const milestoneWeek = milestone.week || milestone.week_number || ((index + 1) * Math.ceil(enhancedTimeline.weeks.length / baseMilestones.length));
+
     // Find ALL weeks up to this milestone
-    const relevantWeeks = enhancedTimeline.weeks.filter(week =>
-      week.week_number <= milestone.week
-    );
+    // Handle both 'week' and 'week_number' properties in timeline weeks
+    const relevantWeeks = enhancedTimeline.weeks.filter(week => {
+      const weekNum = week.week || week.week_number;
+      return weekNum <= milestoneWeek;
+    });
 
     if (relevantWeeks.length === 0) {
-      logger.warn(`[EnrichMilestones] No timeline weeks found for milestone week ${milestone.week}, using fallback`);
+      logger.warn(`[EnrichMilestones] No timeline weeks found for milestone week ${milestoneWeek}, using fallback`);
       // Fallback to using all available weeks
       const allWeeks = enhancedTimeline.weeks || [];
       if (allWeeks.length === 0) {
