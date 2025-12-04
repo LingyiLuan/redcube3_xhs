@@ -483,158 +483,148 @@ router.get('/check-email', async (req, res) => {
 /**
  * Register with email and password
  * POST /api/auth/register
+ *
+ * ARCHITECTURE: Immediate Response Pattern
+ * -----------------------------------------
+ * Railway free-tier PostgreSQL has 2-5 minute cold starts.
+ * Cloudflare times out at 30 seconds.
+ * Solution: Validate input immediately, respond with "processing",
+ * then do DB + email in background.
  */
 router.post('/register', async (req, res) => {
+  const { email, password, displayName } = req.body;
+  const {
+    hashPassword,
+    validatePassword,
+    validateEmail,
+    sanitizeEmail
+  } = require('../utils/passwordUtils');
+
+  // === PHASE 1: SYNCHRONOUS VALIDATION (instant, no DB) ===
+
+  // Validate email format
+  const emailValidation = validateEmail(email);
+  if (!emailValidation.valid) {
+    return res.status(400).json({
+      success: false,
+      error: 'VALIDATION_ERROR',
+      details: emailValidation.errors
+    });
+  }
+
+  // Validate password strength
+  const passwordValidation = validatePassword(password);
+  if (!passwordValidation.valid) {
+    return res.status(400).json({
+      success: false,
+      error: 'VALIDATION_ERROR',
+      details: passwordValidation.errors
+    });
+  }
+
+  // Validate display name
+  if (!displayName || displayName.trim().length < 2 || displayName.trim().length > 100) {
+    return res.status(400).json({
+      success: false,
+      error: 'VALIDATION_ERROR',
+      details: ['Display name must be between 2 and 100 characters']
+    });
+  }
+
+  // Sanitize email (fast, in-memory operation)
+  const sanitizedEmail = sanitizeEmail(email);
+  const trimmedDisplayName = displayName.trim();
+
+  // === PHASE 2: IMMEDIATE RESPONSE ===
+  // Respond immediately with "processing" status
+  // This prevents Cloudflare 30s timeout from showing "Something went wrong"
+  console.log('[Register] Responding immediately, processing in background for:', sanitizedEmail);
+
+  res.status(202).json({
+    success: true,
+    processing: true,
+    requiresVerification: true,
+    message: 'Registration is being processed. Please check your email in a few minutes to verify your account.',
+    email: sanitizedEmail
+  });
+
+  // === PHASE 3: BACKGROUND PROCESSING (DB + Email) ===
+  // This runs AFTER response is sent - user won't wait for it
+  processRegistrationInBackground(sanitizedEmail, password, trimmedDisplayName);
+});
+
+/**
+ * Background registration processor
+ * Handles slow DB operations and email sending after response is sent
+ */
+async function processRegistrationInBackground(email, password, displayName) {
+  console.log('[Register Background] Starting processing for:', email);
+
   try {
-    const { email, password, displayName } = req.body;
-    const {
-      hashPassword,
-      validatePassword,
-      validateEmail,
-      sanitizeEmail
-    } = require('../utils/passwordUtils');
-    const {
-      findUserByEmail,
-      createUserWithEmail
-    } = require('../database/userQueries');
+    const { hashPassword } = require('../utils/passwordUtils');
+    const { findUserByEmail, createUserWithEmail } = require('../database/userQueries');
+    const { generateVerificationToken } = require('../utils/tokenUtils');
+    const { createVerificationToken } = require('../database/verificationTokenQueries');
+    const { sendVerificationEmail } = require('../services/emailService');
+    const pool = require('../database/connection');
 
-    // Validate email
-    const emailValidation = validateEmail(email);
-    if (!emailValidation.valid) {
-      return res.status(400).json({
-        success: false,
-        error: 'VALIDATION_ERROR',
-        details: emailValidation.errors
-      });
-    }
-
-    // Validate password
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.valid) {
-      return res.status(400).json({
-        success: false,
-        error: 'VALIDATION_ERROR',
-        details: passwordValidation.errors
-      });
-    }
-
-    // Validate display name
-    if (!displayName || displayName.trim().length < 2 || displayName.trim().length > 100) {
-      return res.status(400).json({
-        success: false,
-        error: 'VALIDATION_ERROR',
-        details: ['Display name must be between 2 and 100 characters']
-      });
-    }
-
-    // Sanitize email
-    const sanitizedEmail = sanitizeEmail(email);
-
-    // Check if user already exists
-    const existingUser = await findUserByEmail(sanitizedEmail);
+    // Check if user already exists (DB query - might be slow on cold start)
+    const existingUser = await findUserByEmail(email);
     if (existingUser) {
-      if (existingUser.google_id) {
-        return res.status(409).json({
-          success: false,
-          error: 'EMAIL_EXISTS_WITH_GOOGLE',
-          message: 'This email is already registered with Google. Please sign in with Google.'
-        });
-      } else {
-        return res.status(409).json({
-          success: false,
-          error: 'EMAIL_ALREADY_REGISTERED',
-          message: 'This email is already registered. Please log in instead.'
-        });
-      }
+      console.log('[Register Background] Email already exists:', email);
+      // User already exists - they'll find out when they try to verify or login
+      // Could send "email already registered" email here if desired
+      return;
     }
 
-    // Hash password
+    // Hash password (CPU-intensive but not DB-dependent)
     const passwordHash = await hashPassword(password);
 
-    // Create user and verification token in a single transaction
-    // This ensures both operations succeed together or fail together
-    const pool = require('../database/connection');
+    // Create user and verification token in transaction
     const client = await pool.connect();
-
     let newUser;
-    let verificationToken; // Declare outside try block so it's accessible after
+    let verificationToken;
+
     try {
       await client.query('BEGIN');
 
-      // Create user within transaction
       newUser = await createUserWithEmail(
-        sanitizedEmail,
+        email,
         passwordHash,
-        displayName.trim(),
-        client // Pass client for transaction
+        displayName,
+        client
       );
 
-      console.log('[Register] New user created:', {
+      console.log('[Register Background] User created:', {
         id: newUser.id,
         email: newUser.email,
         displayName: newUser.display_name
       });
 
-      // Generate verification token
-      const { generateVerificationToken } = require('../utils/tokenUtils');
-      const { createVerificationToken } = require('../database/verificationTokenQueries');
       verificationToken = generateVerificationToken();
-
-      // Save token to database (within same transaction)
       await createVerificationToken(newUser.id, verificationToken, client);
 
-      // Commit transaction - both user and token are now persisted
       await client.query('COMMIT');
-
-      console.log('[Register] User and verification token created successfully');
+      console.log('[Register Background] Transaction committed successfully');
 
     } catch (dbError) {
-      // Rollback transaction on any error
       await client.query('ROLLBACK');
-      console.error('[Register] Transaction failed, rolled back:', dbError);
-      throw dbError; // Re-throw to be caught by outer try-catch
+      console.error('[Register Background] Transaction failed, rolled back:', dbError);
+      throw dbError;
     } finally {
       client.release();
     }
 
-    // CRITICAL: Send response FIRST, before any email operations
-    // This prevents Cloudflare 30s timeout from killing the request
-    // Reference: https://stackoverflow.com/questions/40491222
-    console.log('[Register] Sending response NOW (before email)');
-
-    res.status(201).json({
-      success: true,
-      requiresVerification: true,
-      message: 'Registration successful! Please check your email to verify your account. The email may take a few minutes to arrive.',
-      user: {
-        id: newUser.id,
-        email: newUser.email,
-        display_name: newUser.display_name,
-        email_verified: false
-      }
-    });
-
-    // Fire-and-forget email - NO await, use .catch() for error handling
-    // This runs AFTER the response is sent
-    // Reference: https://www.bennadel.com/blog/3275
-    const { sendVerificationEmail } = require('../services/emailService');
-    sendVerificationEmail(newUser.email, verificationToken).catch((emailError) => {
-      console.error('[Register] Failed to send verification email:', emailError);
-      // User can resend later via /api/auth/resend-verification
-    });
-
-    console.log('[Register] Email queued for background sending');
-    return;
+    // Send verification email
+    await sendVerificationEmail(newUser.email, verificationToken);
+    console.log('[Register Background] Verification email sent to:', newUser.email);
 
   } catch (error) {
-    console.error('[Register] Error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Registration failed',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error('[Register Background] Error processing registration:', error);
+    // Registration failed silently - user will need to try again
+    // Could implement retry logic or admin notification here
   }
-});
+}
 
 /**
  * Login with email and password

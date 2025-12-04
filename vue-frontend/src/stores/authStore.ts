@@ -117,15 +117,28 @@ const userId = computed(() => user.value?.id || null) // No fallback - real auth
 
       const data = await response.json()
 
-      const userData: User = {
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.display_name || data.user.email.split('@')[0],
-        emailVerified: data.user.email_verified,
-        createdAt: data.user.created_at
+      // Handle the immediate "processing" response (202 Accepted)
+      // User and account are created in the background - user will verify via email
+      if (data.processing) {
+        console.log('[AuthStore] Registration processing in background, email:', data.email)
+        // Don't set auth data - user hasn't verified yet
+        // Frontend will show success message and redirect
+        return
       }
 
-      setAuthData(userData, data.token)
+      // Handle the legacy synchronous response (201 Created) - if user data is returned
+      if (data.user) {
+        const userData: User = {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.display_name || data.user.email.split('@')[0],
+          emailVerified: data.user.email_verified,
+          createdAt: data.user.created_at
+        }
+
+        setAuthData(userData, data.token)
+      }
+
       console.log('[AuthStore] Email registration successful')
     } catch (error: any) {
       console.error('[AuthStore] Email registration failed:', error)
