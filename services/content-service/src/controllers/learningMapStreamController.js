@@ -478,18 +478,19 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
 
     let weeks = extractJsonFromString(response);
 
+    // DEBUG MODE: No fallbacks - throw error if LLM response is invalid
     if (!Array.isArray(weeks)) {
       if (weeks && typeof weeks === 'object') {
         weeks = weeks.weeks || weeks.timeline || weeks.data || Object.values(weeks);
       }
       if (!Array.isArray(weeks)) {
-        weeks = generateFallbackWeeks(totalWeeks, sourcePosts.length);
+        throw new Error(`[DEBUG] LLM returned invalid weeks format: ${typeof weeks}. Raw response: ${JSON.stringify(weeks).substring(0, 500)}`);
       }
     }
 
-    // Pad if needed
-    while (weeks.length < totalWeeks) {
-      weeks.push(generateFallbackWeek(weeks.length + 1, totalWeeks));
+    // DEBUG MODE: Log if we don't have enough weeks instead of padding
+    if (weeks.length < totalWeeks) {
+      logger.warn(`[TimelineOptimized] [DEBUG] LLM returned only ${weeks.length} weeks but we need ${totalWeeks}. NOT padding with fallback.`);
     }
 
     return {
@@ -508,17 +509,9 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
       }
     };
   } catch (error) {
-    logger.error('[TimelineOptimized] LLM failed, using fallback:', error);
-    return {
-      total_weeks: totalWeeks,
-      weeks: generateFallbackWeeks(totalWeeks, sourcePosts.length),
-      data_warning: null,
-      evidence_quality: {
-        posts_analyzed: sourcePosts.length,
-        has_sufficient_data: sourcePosts.length >= 20,
-        confidence: 'low'
-      }
-    };
+    // DEBUG MODE: Re-throw error instead of using fallback
+    logger.error('[TimelineOptimized] [DEBUG] LLM failed - NO FALLBACK:', error);
+    throw error;
   }
 }
 

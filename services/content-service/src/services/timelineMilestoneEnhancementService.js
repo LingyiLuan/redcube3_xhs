@@ -372,37 +372,29 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
     const response = await analyzeWithOpenRouter(prompt, { max_tokens: estimatedTokens, temperature: 0.7 });
     let weeks = extractJsonFromString(response);
 
-    // Ensure weeks is an array
+    // DEBUG MODE: No fallbacks - throw error if LLM returns invalid format
     if (!Array.isArray(weeks)) {
       if (weeks && typeof weeks === 'object') {
         // Try to extract array from common wrapper properties
         weeks = weeks.weeks || weeks.timeline || weeks.data || Object.values(weeks);
         if (!Array.isArray(weeks)) {
-          logger.warn('[TimelineEnhancement] Could not extract array from object, using fallback');
-          weeks = generateFallbackWeeks(totalWeeks, allProblems, totalPosts);
+          throw new Error(`[DEBUG] LLM returned object but could not extract weeks array. Keys: ${Object.keys(weeks || {}).join(', ')}`);
         }
       } else {
-        logger.warn('[TimelineEnhancement] Weeks is not an array, using fallback');
-        weeks = generateFallbackWeeks(totalWeeks, allProblems, totalPosts);
+        throw new Error(`[DEBUG] LLM returned invalid format: ${typeof weeks}. Expected array.`);
       }
     }
 
+    // DEBUG MODE: No fallbacks - throw error if LLM fails
     if (!weeks || weeks.length === 0) {
-      logger.warn(`[TimelineEnhancement] LLM returned no weeks, using fallback`);
-      weeks = generateFallbackWeeks(totalWeeks, allProblems, totalPosts);
+      throw new Error(`[DEBUG] LLM returned no weeks. Cannot generate timeline without LLM response.`);
     }
 
     logger.info(`[TimelineEnhancement] Generated ${weeks.length} weeks successfully (requested: ${totalWeeks})`);
 
-    // If LLM didn't generate all weeks, pad with fallback weeks
+    // DEBUG MODE: Log if LLM didn't generate all weeks instead of padding
     if (weeks.length < totalWeeks) {
-      logger.warn(`[TimelineEnhancement] LLM only generated ${weeks.length}/${totalWeeks} weeks, padding with fallback`);
-      const fallbackWeeks = generateFallbackWeeks(totalWeeks - weeks.length, allProblems, totalPosts);
-      // Adjust week numbers for fallback weeks
-      fallbackWeeks.forEach((w, i) => {
-        w.week = weeks.length + i + 1;
-      });
-      weeks = [...weeks, ...fallbackWeeks];
+      logger.warn(`[TimelineEnhancement] [DEBUG] LLM only generated ${weeks.length}/${totalWeeks} weeks. NOT padding with fallback.`);
     }
 
     // Enhance each week with detailed daily schedules
@@ -411,9 +403,9 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
 
     return enhancedWeeks;
   } catch (error) {
-    logger.error('[TimelineEnhancement] LLM generation failed, using fallback:', error);
-    const fallbackWeeks = generateFallbackWeeks(totalWeeks, allProblems, totalPosts);
-    return enhanceWeeksWithDetailedSchedules(fallbackWeeks, allProblems);
+    // DEBUG MODE: Re-throw error instead of using fallback
+    logger.error('[TimelineEnhancement] [DEBUG] LLM generation failed - NO FALLBACK:', error);
+    throw error;
   }
 }
 
@@ -592,15 +584,9 @@ async function enhanceWeeksWithDetailedSchedules(weeks, allProblems, availableHo
         llm_enhanced: enableLLMEnhancement
       });
     } catch (error) {
-      logger.error(`[TimelineEnhancement] Failed to generate detailed schedule for week ${week.week}:`, error);
-      // Keep original week without detailed schedules
-      enhancedWeeks.push({
-        ...week,
-        detailed_daily_schedules: null,
-        week_summary: null,
-        focus_area: focusArea,
-        llm_enhanced: false
-      });
+      // DEBUG MODE: Re-throw error instead of continuing without detailed schedules
+      logger.error(`[TimelineEnhancement] [DEBUG] Failed to generate detailed schedule for week ${week.week} - NO FALLBACK:`, error);
+      throw error;
     }
   }
 
