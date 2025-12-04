@@ -46,6 +46,22 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
 
+// DEBUG: Log raw body for /api/auth/register to debug JSON parse errors
+app.use('/api/auth/register', (req, res, next) => {
+  let rawBody = '';
+  req.on('data', chunk => {
+    rawBody += chunk.toString();
+  });
+  req.on('end', () => {
+    console.log('[DEBUG] Raw body received for /api/auth/register:');
+    console.log('[DEBUG] Raw body length:', rawBody.length);
+    console.log('[DEBUG] Raw body content:', rawBody);
+    console.log('[DEBUG] Content-Type header:', req.headers['content-type']);
+    // Don't call next() here - let express.json() handle parsing on original stream
+  });
+  next(); // Continue immediately, logging happens async
+});
+
 // Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
