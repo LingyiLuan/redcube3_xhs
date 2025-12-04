@@ -13,6 +13,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoading = ref(false)
   const isConnecting = ref(false) // True when API is unreachable (504/network error)
   const connectionError = ref<string | null>(null)
+  const justLoggedOut = ref(false) // Prevents race condition after logout
 
   // ===== GETTERS =====
   const isAuthenticated = computed(() => !!token.value && !!user.value)
@@ -151,7 +152,16 @@ const userId = computed(() => user.value?.id || null) // No fallback - real auth
   }
 
   async function logout() {
-    // Call backend to destroy session
+    // Set flag FIRST to prevent race condition with checkAuthStatus
+    justLoggedOut.value = true
+
+    // Clear local state immediately (don't wait for API)
+    user.value = null
+    token.value = null
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('authUser')
+
+    // Call backend to destroy session (fire and forget)
     try {
       const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
       await fetch(`${apiGatewayUrl}/api/auth/logout`, {
@@ -165,13 +175,6 @@ const userId = computed(() => user.value?.id || null) // No fallback - real auth
       console.error('[AuthStore] Logout API call failed:', error)
     }
 
-    // Clear local state
-    user.value = null
-    token.value = null
-
-    localStorage.removeItem('authToken')
-    localStorage.removeItem('authUser')
-
     const reportsStore = useReportsStore()
     const learningMapStore = useLearningMapStore()
     const workflowStore = useWorkflowStore()
@@ -182,6 +185,11 @@ const userId = computed(() => user.value?.id || null) // No fallback - real auth
     workflowLibraryStore.reset()
 
     console.log('[AuthStore] Logout successful')
+
+    // Reset flag after a delay (allow components to remount)
+    setTimeout(() => {
+      justLoggedOut.value = false
+    }, 2000)
   }
 
   function setAuthData(userData: User, authToken: string) {
@@ -194,10 +202,16 @@ const userId = computed(() => user.value?.id || null) // No fallback - real auth
   }
 
   async function checkAuthStatus() {
+    // Skip if we just logged out (prevents race condition)
+    if (justLoggedOut.value) {
+      console.log('[AuthStore] Skipping checkAuthStatus - just logged out')
+      return
+    }
+
     isConnecting.value = true
     connectionError.value = null
 
-    // Then, verify session authentication via API (this is the source of truth)
+    // Verify session authentication via API (this is the source of truth)
     try {
       const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
       const response = await fetch(`${apiGatewayUrl}/api/auth/me`, {
