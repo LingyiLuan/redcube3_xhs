@@ -11,6 +11,8 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const token = ref<string | null>(null)
   const isLoading = ref(false)
+  const isConnecting = ref(false) // True when API is unreachable (504/network error)
+  const connectionError = ref<string | null>(null)
 
   // ===== GETTERS =====
   const isAuthenticated = computed(() => !!token.value && !!user.value)
@@ -192,28 +194,8 @@ const userId = computed(() => user.value?.id || null) // No fallback - real auth
   }
 
   async function checkAuthStatus() {
-    // ✅ AUTH FIX: First, try optimistic restore from localStorage for instant UI update
-    // This prevents the "flash" of "Sign in" messages before API check completes
-    const savedToken = localStorage.getItem('authToken')
-    const savedUser = localStorage.getItem('authUser')
-    
-    if (savedToken && savedUser) {
-      try {
-        const userData = JSON.parse(savedUser)
-        // Optimistically restore auth state (will be verified by API call below)
-        user.value = userData
-        token.value = savedToken
-        console.log('[AuthStore] Optimistically restored auth from localStorage:', {
-          userId: userData.id,
-          email: userData.email
-        })
-      } catch (error) {
-        console.error('[AuthStore] Failed to parse saved user data:', error)
-        // Clear invalid data
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('authUser')
-      }
-    }
+    isConnecting.value = true
+    connectionError.value = null
 
     // Then, verify session authentication via API (this is the source of truth)
     try {
@@ -225,6 +207,8 @@ const userId = computed(() => user.value?.id || null) // No fallback - real auth
           'Content-Type': 'application/json'
         }
       })
+
+      isConnecting.value = false
 
       if (response.ok) {
         const data = await response.json()
@@ -261,14 +245,16 @@ const userId = computed(() => user.value?.id || null) // No fallback - real auth
         localStorage.removeItem('authUser')
       }
     } catch (error) {
-      console.log('[AuthStore] Session check failed:', error)
-      // If API check fails but we have localStorage data, keep it (offline mode)
-      // The optimistic restore above already set the state
-      if (!savedToken || !savedUser) {
-        // No localStorage data either - clear state
-        user.value = null
-        token.value = null
-      }
+      console.log('[AuthStore] Session check failed (network error):', error)
+      isConnecting.value = false
+      connectionError.value = 'Unable to connect to server'
+
+      // IMPORTANT: On network error, clear auth state to prevent inconsistency
+      // User will need to log in again when server is reachable
+      user.value = null
+      token.value = null
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('authUser')
     }
   }
 
@@ -279,6 +265,8 @@ const userId = computed(() => user.value?.id || null) // No fallback - real auth
     user,
     token,
     isLoading,
+    isConnecting,
+    connectionError,
 
     // Getters
     isAuthenticated,
