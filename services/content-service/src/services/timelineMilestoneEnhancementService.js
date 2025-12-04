@@ -850,5 +850,6 @@ function generateFallbackMilestones(totalWeeks, totalPosts) {
 
 module.exports = {
   generateEnhancedTimeline,
-  generateEnhancedMilestones
+  generateEnhancedMilestones,
+  enhanceWeeksWithDetailedSchedules
 };
