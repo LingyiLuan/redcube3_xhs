@@ -26,12 +26,8 @@ const { generateWeeklyDetailedSchedule, enhanceScheduleWithLLM } = require('./da
  * @returns {Object} Enhanced timeline with weekly and daily breakdowns
  */
 async function generateEnhancedTimeline(sourcePosts, timelineData, skillModules, userGoals = {}) {
-  logger.info('[TimelineEnhancement] Generating enhanced timeline');
-
   // Priority: 1. User's requested timeline, 2. Database average, 3. Default 12 weeks
   const totalWeeks = userGoals.timelineWeeks || timelineData.avg_prep_weeks || timelineData.median_prep_weeks || 12;
-
-  logger.info(`[TimelineEnhancement] Using ${totalWeeks} weeks (user requested: ${userGoals.timelineWeeks || 'none'}, data average: ${timelineData.avg_prep_weeks || 'none'})`);
 
   // Extract real evidence from posts for LLM context
   const evidenceContext = await extractTimelineEvidence(sourcePosts);
@@ -69,8 +65,6 @@ async function generateEnhancedTimeline(sourcePosts, timelineData, skillModules,
  * @returns {Array} Enhanced milestones with criteria and evidence
  */
 async function generateEnhancedMilestones(sourcePosts, timeline, skillModules) {
-  logger.info('[TimelineEnhancement] Generating enhanced milestones');
-
   // Extract real success patterns from posts
   const successPatterns = await extractSuccessPatterns(sourcePosts);
 
@@ -305,8 +299,6 @@ function extractSkillProgression(skillModules) {
  * Generate weekly structure with daily breakdowns via LLM
  */
 async function generateWeeklyStructure(totalWeeks, evidenceContext, allProblems, totalPosts) {
-  logger.info(`[TimelineEnhancement] Generating ${totalWeeks} weeks with LLM`);
-
   // Prepare real evidence for LLM context
   const evidenceSummary = {
     successful_prep_durations: evidenceContext.prep_durations.slice(0, 10),
@@ -390,15 +382,12 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
       throw new Error(`[DEBUG] LLM returned no weeks. Cannot generate timeline without LLM response.`);
     }
 
-    logger.info(`[TimelineEnhancement] Generated ${weeks.length} weeks successfully (requested: ${totalWeeks})`);
-
     // DEBUG MODE: Log if LLM didn't generate all weeks instead of padding
     if (weeks.length < totalWeeks) {
       logger.warn(`[TimelineEnhancement] [DEBUG] LLM only generated ${weeks.length}/${totalWeeks} weeks. NOT padding with fallback.`);
     }
 
     // Enhance each week with detailed daily schedules
-    logger.info(`[TimelineEnhancement] Enhancing weeks with detailed daily schedules...`);
     const enhancedWeeks = await enhanceWeeksWithDetailedSchedules(weeks, allProblems);
 
     return enhancedWeeks;
@@ -413,7 +402,6 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
  * Generate milestones with evidence via LLM
  */
 async function generateMilestonesWithEvidence(totalWeeks, successPatterns, skillProgression, totalPosts) {
-  logger.info(`[TimelineEnhancement] Generating evidence-based milestones`);
 
   const prompt = `You are an interview preparation expert analyzing ${totalPosts} real Reddit interview experiences.
 
@@ -493,7 +481,6 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
       return { ...m, week: parseInt(week, 10) || week };
     });
 
-    logger.info(`[TimelineEnhancement] Generated ${normalizedMilestones.length} milestones successfully`);
     return normalizedMilestones;
   } catch (error) {
     logger.error('[TimelineEnhancement] LLM generation failed, using fallback:', error);
@@ -528,8 +515,6 @@ async function enhanceWeeksWithDetailedSchedules(weeks, allProblems, availableHo
     return [];
   }
 
-  logger.info(`[TimelineEnhancement] Enhancing ${weeks.length} weeks with detailed schedules (LLM: ${enableLLMEnhancement})`);
-
   const enhancedWeeks = [];
   const problemsPerWeek = Math.ceil(allProblems.length / weeks.length);
 
@@ -555,8 +540,6 @@ async function enhanceWeeksWithDetailedSchedules(weeks, allProblems, availableHo
       let enhancedDailySchedules = detailedSchedule.dailySchedules;
 
       if (enableLLMEnhancement) {
-        logger.info(`[TimelineEnhancement] Applying LLM enhancement to Week ${week.week} schedules...`);
-
         enhancedDailySchedules = await Promise.all(
           detailedSchedule.dailySchedules.map(async (daySchedule) => {
             // Skip rest days - no problems to enhance
@@ -574,7 +557,6 @@ async function enhanceWeeksWithDetailedSchedules(weeks, allProblems, availableHo
           })
         );
 
-        logger.info(`[TimelineEnhancement] Week ${week.week} LLM enhancement complete`);
       }
 
       enhancedWeeks.push({
@@ -591,7 +573,6 @@ async function enhanceWeeksWithDetailedSchedules(weeks, allProblems, availableHo
     }
   }
 
-  logger.info(`[TimelineEnhancement] Enhanced ${enhancedWeeks.length} weeks with detailed schedules`);
   return enhancedWeeks;
 }
 

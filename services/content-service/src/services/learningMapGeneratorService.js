@@ -51,9 +51,6 @@ const THRESHOLDS = {
  * @returns {Object} Structured learning map (100% real data)
  */
 async function generateLearningMapFromReport(reportId, userGoals = {}) {
-  const startTime = Date.now();
-  logger.info(`[Learning Map] Starting generation for report: ${reportId}`);
-
   // 1. Load comprehensive analysis report from cache
   const cachedData = await getCachedBatchData(reportId);
   if (!cachedData || !cachedData.patternAnalysis) {
@@ -62,7 +59,6 @@ async function generateLearningMapFromReport(reportId, userGoals = {}) {
 
   const patterns = cachedData.patternAnalysis;
   const sourcePosts = patterns.source_posts || [];  // Foundation pool (seed + RAG)
-  const seedCompanies = patterns.seed_companies || [];
   const individualAnalyses = patterns.individual_analyses || [];
 
   // 2. VALIDATE: Ensure we have sufficient foundation data
@@ -73,28 +69,16 @@ async function generateLearningMapFromReport(reportId, userGoals = {}) {
     );
   }
 
-  logger.info(`[Learning Map] Foundation pool: ${sourcePosts.length} posts (seed companies: ${seedCompanies.join(', ')})`);
-  logger.info(`[Learning Map] Individual analyses: ${individualAnalyses.length} seed posts`);
-
   // ============================================================================
-  // PHASE 1: Fast operations (run in parallel) - ~500ms total
+  // PHASE 1: Fast operations (run in parallel)
   // ============================================================================
-  logger.info('[Learning Map] Phase 1: Starting fast parallel operations...');
-  const phase1Start = Date.now();
-
   const timelineData = await extractTimelineData(sourcePosts);
-
-  // Sync operations (instant)
   const foundation = buildFoundationMetadata(patterns, sourcePosts, individualAnalyses, timelineData);
   const companyTracks = buildCompanyTracks(patterns, userGoals);
 
-  logger.info(`[Learning Map] Phase 1 completed in ${Date.now() - phase1Start}ms`);
-
   // ============================================================================
-  // PHASE 2: LLM-heavy operations (run in parallel where possible) - ~30-60s total
+  // PHASE 2: LLM-heavy operations (run in parallel where possible)
   // ============================================================================
-  logger.info('[Learning Map] Phase 2: Starting LLM parallel operations...');
-  const phase2Start = Date.now();
 
   // These can all run in parallel:
   // - Timeline generation
@@ -120,19 +104,10 @@ async function generateLearningMapFromReport(reportId, userGoals = {}) {
     aggregateReadinessChecklist(sourcePosts)
   ]);
 
-  logger.info(`[Learning Map] Phase 2 completed in ${Date.now() - phase2Start}ms`);
-
   // ============================================================================
-  // PHASE 3: Sequential operations that depend on timeline - ~20-40s
+  // PHASE 3: Sequential operations that depend on timeline
   // ============================================================================
-  logger.info('[Learning Map] Phase 3: Generating milestones (needs timeline)...');
-  const phase3Start = Date.now();
-
   const milestones = await generateEnhancedMilestones(sourcePosts, timeline, null);
-
-  logger.info(`[Learning Map] Phase 3 completed in ${Date.now() - phase3Start}ms`);
-  logger.info(`[Learning Map] Total generation time: ${Date.now() - startTime}ms`);
-  logger.info(`[Learning Map] Aggregated: ${successFactorsData.length} success factors, ${databaseResourcesData.length} resources, ${commonPitfallsData.pitfalls?.length || 0} pitfalls, ${readinessChecklistData.checklist_items?.length || 0} checklist items`);
 
   // 11. Map knowledge gaps to remediation (combine Phase 5 with old logic)
   const knowledgeGaps = {
@@ -196,9 +171,6 @@ async function generateLearningMapFromReport(reportId, userGoals = {}) {
     analytics
   };
 
-  logger.info(`[Learning Map] Generated successfully: ${learningMap.id}`);
-  logger.info(`[Learning Map] Total weeks: ${timeline.total_weeks}, Company tracks: ${companyTracks.length}`);
-
   return learningMap;
 }
 
@@ -232,8 +204,6 @@ async function extractTimelineData(sourcePosts) {
   const coverage = row.total_posts > 0
     ? (row.posts_with_timeline / row.total_posts * 100).toFixed(1)
     : 0;
-
-  logger.info(`[Timeline Data] Coverage: ${row.posts_with_timeline}/${row.total_posts} posts (${coverage}%)`);
 
   if (row.posts_with_timeline === 0) {
     throw new Error(
@@ -348,8 +318,6 @@ function buildCompanyTracks(patterns, userGoals) {
       }
     });
   }
-
-  logger.info(`[Company Tracks] Generated ${tracks.length} tracks (${tracks.filter(t => t.track_type === 'primary').length} primary, ${tracks.filter(t => t.track_type === 'secondary').length} secondary)`);
 
   return tracks;
 }
@@ -518,18 +486,6 @@ function buildAnalytics(patterns, timeline, sourcePosts = []) {
     }
   };
 
-  logger.info(`[LearningMapGenerator] Built analytics:`, {
-    hasTopicFrequency: !!analytics.topicFrequency,
-    topicCount: Object.keys(analytics.topicFrequency || {}).length,
-    hasCompanyBreakdown: !!analytics.companyBreakdown,
-    companyCount: Object.keys(analytics.companyBreakdown || {}).length,
-    hasSuccessRate: !!analytics.successRateByTopic,
-    totalCompanies: analytics.totalCompanies,
-    totalPosts: analytics.totalPosts,
-    overallSuccessRate: analytics.overallSuccessRate,
-    outcomeCoverage: analytics.dataQuality.outcomeCoverage
-  });
-
   return analytics;
 }
 
@@ -555,9 +511,6 @@ function calculateRealSuccessRate(sourcePosts) {
   });
 
   const successRate = successfulPosts.length / postsWithOutcome.length;
-
-  logger.info(`[LearningMapGenerator] Real success rate: ${(successRate * 100).toFixed(1)}% (${successfulPosts.length}/${postsWithOutcome.length} posts with outcomes)`);
-
   return Math.round(successRate * 100) / 100; // Round to 2 decimal places
 }
 

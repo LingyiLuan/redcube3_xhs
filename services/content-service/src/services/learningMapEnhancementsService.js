@@ -35,7 +35,6 @@ const { getTopResources } = require('./resourceExtractionService');
  * @returns {Object} Company track with real questions
  */
 async function buildCompanySpecificTrack(company, sourcePosts) {
-  logger.info(`[CompanyTrack] Building track for ${company}`);
 
   // 1. Fetch real interview questions for this company
   const questionsResult = await pool.query(`
@@ -60,7 +59,6 @@ async function buildCompanySpecificTrack(company, sourcePosts) {
 
   const questions = questionsResult.rows;
 
-  logger.info(`[CompanyTrack] Found ${questions.length} real questions for ${company}`);
 
   if (questions.length === 0) {
     return null; // No data for this company
@@ -112,7 +110,6 @@ async function buildAllCompanyTracks(patterns, sourcePosts) {
   const companies = patterns.company_trends ? patterns.company_trends.map(c => c.company) : [];
 
   if (companies.length === 0) {
-    logger.warn('[CompanyTracks] No companies found in patterns');
     return [];
   }
 
@@ -124,7 +121,6 @@ async function buildAllCompanyTracks(patterns, sourcePosts) {
     }
   }
 
-  logger.info(`[CompanyTracks] Built ${tracks.length} company tracks`);
   return tracks;
 }
 
@@ -202,8 +198,6 @@ async function addDailyBreakdownsToTimeline(timeline, patterns, questions, resou
     return timeline;
   }
 
-  logger.info('[DailyBreakdown] Adding daily plans to timeline');
-
   const enhancedWeeks = await Promise.all(timeline.weeks.map(async (week, index) => {
     // Get questions relevant to this week's focus
     const weekQuestions = questions.slice(index * 10, (index + 1) * 10);
@@ -245,7 +239,6 @@ async function addDailyBreakdownsToTimeline(timeline, patterns, questions, resou
  * @returns {Array} Curated resources with evidence
  */
 async function curateResources(patterns, targetCompany = null) {
-  logger.info('[ResourceCuration] Curating resources');
 
   // Get top skills from analysis
   const topSkills = patterns.skill_frequency
@@ -284,8 +277,6 @@ async function curateResources(patterns, targetCompany = null) {
       });
     }
   });
-
-  logger.info(`[ResourceCuration] Curated ${resources.length} resources across ${Object.keys(resourcesByType).length} types`);
 
   return resourcesByType;
 }
@@ -342,8 +333,6 @@ Keep it professional, evidence-based, NO emojis.`;
  * @returns {Array} Enriched milestones with skills, tasks, resources, real_examples
  */
 function enrichMilestonesFromTimeline(baseMilestones, enhancedTimeline, patterns, allResources) {
-  logger.info('[EnrichMilestones] Starting milestone enrichment');
-
   // Defensive type checking - ensure baseMilestones is an array
   if (!baseMilestones) {
     logger.warn('[EnrichMilestones] No base milestones provided');
@@ -548,12 +537,9 @@ function enrichMilestonesFromTimeline(baseMilestones, enhancedTimeline, patterns
       based_on_posts: patterns.source_posts ? patterns.source_posts.length : 0
     };
 
-    logger.info(`[EnrichMilestones] Week ${milestone.week}: ${skills.length} skills, ${tasks.length} tasks, ${resources.length} resources`);
-
     return enrichedMilestone;
   });
 
-  logger.info(`[EnrichMilestones] Enriched ${enrichedMilestones.length} milestones`);
   return enrichedMilestones;
 }
 
@@ -605,7 +591,6 @@ async function fetchRealLeetCodeProblems(sourcePosts) {
 
     const result = await pool.query(query, [postIds]);
 
-    logger.info(`[FetchLeetCodeProblems] Found ${result.rows.length} real coding problems from ${postIds.length} source posts`);
 
     return result.rows.map(row => ({
       id: row.id,
@@ -633,8 +618,6 @@ async function fetchRealLeetCodeProblems(sourcePosts) {
  * @returns {Object} Enhanced learning map
  */
 async function enhanceLearningMap(baseLearningMap, patterns, targetCompany = null) {
-  logger.info('[EnhanceLearningMap] Starting enhancement process');
-
   try {
     // Import curriculum builder service
     const { buildCurriculum } = require('./curriculumBuilderService');
@@ -644,11 +627,8 @@ async function enhanceLearningMap(baseLearningMap, patterns, targetCompany = nul
     const companyTracks = await buildAllCompanyTracks(patterns, patterns.source_posts || []);
 
     // 2. Get questions from database and match to curated problems
-    logger.info('[EnhanceLearningMap] Fetching and matching questions to curated problems');
     const extractedQuestions = await fetchRealLeetCodeProblems(patterns.source_posts || []);
     const matchedQuestions = await matchMultipleQuestions(extractedQuestions);
-
-    logger.info(`[EnhanceLearningMap] Matched ${matchedQuestions.length}/${extractedQuestions.length} questions to curated problems`);
 
     // 3. Build curated curriculum matching the base timeline week count
     // CRITICAL: Use the actual number of weeks from base timeline to ensure consistency
@@ -662,7 +642,6 @@ async function enhanceLearningMap(baseLearningMap, patterns, targetCompany = nul
     };
 
     const curatedCurriculum = await buildCurriculum(userGoals, []);
-    logger.info(`[EnhanceLearningMap] Built ${curatedCurriculum.total_weeks}-week curated curriculum (matching base timeline: ${baseTimelineWeekCount} weeks) with ${curatedCurriculum.metadata.total_problems} problems`);
 
     // 4. Merge curated curriculum into timeline format
     // CRITICAL: Preserve detailed_daily_schedules from baseLearningMap.timeline if they exist
@@ -686,8 +665,6 @@ async function enhanceLearningMap(baseLearningMap, patterns, targetCompany = nul
       })
     };
 
-    logger.info(`[EnhanceLearningMap] Preserved detailed_daily_schedules for ${enhancedTimeline.weeks.filter(w => w.detailed_daily_schedules).length}/${enhancedTimeline.weeks.length} weeks`);
-
     // 5. Curate resources
     const curatedResources = await curateResources(patterns, targetCompany);
 
@@ -709,8 +686,6 @@ async function enhanceLearningMap(baseLearningMap, patterns, targetCompany = nul
       Object.values(curatedResources).flat()
     );
 
-    logger.info(`[EnhanceLearningMap] Enriched ${enrichedMilestones.length} milestones`);
-
     // 6. Synthesize database-first fields into narrative insights
     const targetRole = baseLearningMap.title?.split(' at ')[0] || 'Software Engineer';
     const synthesizedInsights = await synthesizeDatabaseFirstInsights(
@@ -719,8 +694,6 @@ async function enhanceLearningMap(baseLearningMap, patterns, targetCompany = nul
       targetCompany || 'Target Company',
       targetRole
     );
-
-    logger.info('[EnhanceLearningMap] Database-first synthesis complete');
 
     // 7. Assemble enhanced learning map
     const enhancedMap = {
@@ -977,8 +950,6 @@ ${JSON.stringify(synthesisContext.rawData.timelineStats, null, 2)}
 ✗ BAD (resource_recommendations): {"name": "LeetCode", "how_to_use": "Complete exercises"} (NO URL, NO ACTION_PLAN)`;
 
 
-    logger.info('[DatabaseFirstSynthesis] Calling LLM for narrative synthesis');
-
     const llmResponse = await analyzeWithOpenRouter(prompt, {
       model: 'anthropic/claude-3.5-sonnet',
       temperature: 0.3,
@@ -997,11 +968,6 @@ ${JSON.stringify(synthesisContext.rawData.timelineStats, null, 2)}
         preparation_expectations: rawTimelineStats
       };
     }
-
-    logger.info('[DatabaseFirstSynthesis] Successfully synthesized narrative insights');
-    logger.info(`  - Pitfalls: ${synthesizedInsights.pitfalls_narrative?.top_pitfalls?.length || 0} items`);
-    logger.info(`  - Improvement areas: ${synthesizedInsights.improvement_areas?.priority_skills?.length || 0} skills`);
-    logger.info(`  - Resources: ${synthesizedInsights.resource_recommendations?.ranked_resources?.length || 0} items`);
 
     return synthesizedInsights;
 
