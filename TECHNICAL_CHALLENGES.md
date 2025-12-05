@@ -336,3 +336,89 @@ problem: {
 - **Schema mismatch debugging** between different data sources
 - **Backward-compatible solution** that handles both interview questions and LeetCode problems
 - Real production issue affecting core feature (learning map schedules)
+
+---
+
+## Challenge 21: Redis Session Store Idle Timeout Causing Login Failures (Dec 2025)
+
+### Problem
+Users experienced intermittent login failures on production (labzero.io):
+- Hard refresh after ~15 minutes of inactivity → logged out
+- Attempting to log back in → failed silently
+- **Redeploying the API service → fixed temporarily**
+- Pattern repeated consistently after 5-15 minutes idle
+
+### Investigation
+1. Session cookie maxAge was 24 hours - not the cause
+2. Logout route cleared wrong cookie (`connect.sid` instead of `redcube.sid`) - secondary bug
+3. Railway logs showed Redis disconnection messages during idle periods
+
+### Root Cause
+**Railway Redis idle connection timeout (5-15 minutes)**
+
+Railway's managed Redis service closes connections after extended idle periods. The node-redis client:
+1. Lost connection during idle time
+2. `connect-redis` store couldn't retrieve sessions → user appeared logged out
+3. `connect-redis` store couldn't save new sessions → new logins failed
+4. Redeploying restarted Node.js → created fresh Redis connection → temporary fix
+
+The existing `keepAlive: 30000` (30 seconds) wasn't aggressive enough to prevent Railway's idle timeout.
+
+### Solution
+**Three-pronged fix:**
+
+1. **More aggressive keepalive (10s instead of 30s)**:
+```javascript
+socket: {
+  keepAlive: 10000 // More frequent keepalive
+},
+pingInterval: 15000 // Ping every 15 seconds
+```
+
+2. **Periodic health check with auto-reconnect**:
+```javascript
+setInterval(async () => {
+  try {
+    await redisClient.ping();
+  } catch (err) {
+    // Force reconnect if stale connection
+    await redisClient.disconnect();
+    await redisClient.connect();
+  }
+}, 30000); // Every 30 seconds
+```
+
+3. **Fixed logout cookie name bug**:
+```javascript
+// BEFORE (wrong cookie name)
+res.clearCookie('connect.sid');
+
+// AFTER (correct cookie name with options)
+res.clearCookie('redcube.sid', {
+  path: '/',
+  domain: process.env.SESSION_COOKIE_DOMAIN,
+  secure: true,
+  sameSite: 'none'
+});
+```
+
+4. **Added Redis status to health endpoint** for monitoring
+
+### Files Modified
+- [app.js:70-186](services/user-service/src/app.js#L70-L186) - Redis health check & reconnection
+- [app.js:309-343](services/user-service/src/app.js#L309-L343) - Health endpoint with Redis status
+- [authRoutes.js:273-279](services/user-service/src/routes/authRoutes.js#L273-L279) - Logout cookie fix
+
+### Lessons Learned
+1. **Cloud Redis has idle timeouts** - Managed Redis services like Railway may disconnect idle connections
+2. **keepAlive alone isn't enough** - Active pinging and health checks are needed
+3. **Always match cookie names** - Session name (`redcube.sid`) must match `clearCookie()` call
+4. **Add observability** - Health endpoints should show dependency status (Redis, DB)
+5. **Redeployment as fix is a symptom** - When redeploying fixes an issue, investigate what state isn't persisting correctly
+
+### Interview Talking Points
+- **Debugging intermittent production issues** using symptom patterns
+- **Cloud infrastructure quirks** (Railway Redis idle timeout behavior)
+- **Resilient connection handling** with auto-reconnect and health checks
+- **Defense in depth** - multiple strategies (keepalive + ping + health check)
+- Real production bug affecting user authentication

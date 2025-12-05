@@ -70,6 +70,7 @@ app.use(cookieParser());
 // Redis client for session store (production-ready)
 let redisClient = null;
 let sessionStore = null;
+let redisReady = false; // Track Redis connection state for health monitoring
 
 // Initialize Redis client for session storage
 if (process.env.REDIS_URL) {
@@ -87,12 +88,17 @@ if (process.env.REDIS_URL) {
           return delay;
         },
         // Keepalive to prevent Railway/Redis from closing idle connections
-        keepAlive: 30000 // Send keepalive every 30 seconds
-      }
+        // More aggressive keepalive (10s) to prevent 5-15 minute idle disconnects
+        keepAlive: 10000
+      },
+      // CRITICAL: Ping Redis every 15 seconds to prevent idle timeout
+      // Railway Redis disconnects after ~5-15 minutes of inactivity
+      pingInterval: 15000
     });
 
     redisClient.on('error', (err) => {
       console.error('[Session] Redis client error:', err.message);
+      redisReady = false;
     });
 
     redisClient.on('connect', () => {
@@ -101,26 +107,32 @@ if (process.env.REDIS_URL) {
 
     redisClient.on('ready', () => {
       console.log('[Session] ✅ Redis ready for session storage');
+      redisReady = true;
     });
 
     redisClient.on('reconnecting', () => {
       console.log('[Session] 🔄 Redis reconnecting...');
+      redisReady = false;
     });
 
     redisClient.on('end', () => {
       console.warn('[Session] ⚠️ Redis connection closed');
+      redisReady = false;
     });
 
     // Connect Redis client (async, but we'll handle it)
     redisClient.connect().catch((err) => {
       console.error('[Session] ❌ Failed to connect to Redis:', err);
       console.warn('[Session] ⚠️  Sessions will use MemoryStore until Redis connects');
+      redisReady = false;
     });
 
-    // Create Redis session store
+    // Create Redis session store with error handling
     sessionStore = new RedisStore({
       client: redisClient,
-      prefix: 'redcube:sess:'
+      prefix: 'redcube:sess:',
+      // CRITICAL: Don't let store errors crash the app
+      disableTouch: false // Keep session TTL updated on every request
     });
 
     console.log('[Session] ✅ Using Redis session store (production-ready)');
@@ -129,9 +141,48 @@ if (process.env.REDIS_URL) {
     console.warn('[Session] ⚠️  Falling back to MemoryStore (not recommended for production)');
     redisClient = null;
     sessionStore = null;
+    redisReady = false;
   }
 } else {
   console.warn('[Session] ⚠️  REDIS_URL not set, using MemoryStore (not recommended for production)');
+}
+
+// CRITICAL: Periodic Redis health check and reconnection
+// This ensures Redis stays connected even during long idle periods
+// Railway Redis has known idle timeout issues (5-15 minutes)
+if (redisClient) {
+  setInterval(async () => {
+    try {
+      if (redisClient.isOpen) {
+        // Ping to keep connection alive and verify it works
+        await redisClient.ping();
+        if (!redisReady) {
+          console.log('[Session] ✅ Redis connection restored');
+          redisReady = true;
+        }
+      } else {
+        console.warn('[Session] ⚠️ Redis client not open, attempting reconnect...');
+        redisReady = false;
+        // The reconnectStrategy will handle reconnection automatically
+      }
+    } catch (err) {
+      console.error('[Session] Redis health check failed:', err.message);
+      redisReady = false;
+      // If ping fails but client thinks it's open, force reconnect
+      if (redisClient.isOpen) {
+        try {
+          console.log('[Session] Force disconnecting stale Redis connection...');
+          await redisClient.disconnect();
+          console.log('[Session] Attempting to reconnect to Redis...');
+          await redisClient.connect();
+          console.log('[Session] ✅ Redis reconnected after health check failure');
+          redisReady = true;
+        } catch (reconnectErr) {
+          console.error('[Session] ❌ Redis reconnect failed:', reconnectErr.message);
+        }
+      }
+    }
+  }, 30000); // Check every 30 seconds
 }
 
 // Session configuration
@@ -255,17 +306,39 @@ app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', subscriptionRoutes);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
+// Health check endpoint with Redis status
+app.get('/health', async (req, res) => {
   const features = ['Google OAuth', 'Session Management', 'User Profiles'];
   if (process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_CLIENT_SECRET) {
     features.push('LinkedIn OAuth');
   }
+
+  // Check Redis status
+  let redisStatus = 'not_configured';
+  if (redisClient) {
+    try {
+      if (redisClient.isOpen && redisReady) {
+        await redisClient.ping();
+        redisStatus = 'connected';
+      } else if (redisClient.isOpen) {
+        redisStatus = 'connecting';
+      } else {
+        redisStatus = 'disconnected';
+      }
+    } catch (err) {
+      redisStatus = 'error: ' + err.message;
+    }
+  }
+
   res.json({
     status: 'OK',
     service: 'user-service',
     timestamp: new Date().toISOString(),
-    features
+    features,
+    redis: {
+      status: redisStatus,
+      ready: redisReady
+    }
   });
 });
 

@@ -270,7 +270,13 @@ router.post('/logout', (req, res) => {
         return res.status(500).json({ error: 'Session cleanup failed' });
       }
 
-      res.clearCookie('connect.sid');
+      // FIXED: Clear the correct session cookie name (was 'connect.sid', should be 'redcube.sid')
+      res.clearCookie('redcube.sid', {
+        path: '/',
+        domain: process.env.SESSION_COOKIE_DOMAIN || undefined,
+        secure: process.env.SESSION_COOKIE_SECURE === 'true',
+        sameSite: 'none'
+      });
       res.json({ message: 'Logged out successfully' });
     });
   });
