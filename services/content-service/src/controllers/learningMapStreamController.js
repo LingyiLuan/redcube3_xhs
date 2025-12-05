@@ -51,10 +51,36 @@ async function generateLearningMapStream(req, res) {
   res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
   res.flushHeaders();
 
-  // Helper to send SSE events
+  // Track if client is still connected
+  let clientConnected = true;
+
+  // Listen for client disconnection
+  req.on('close', () => {
+    clientConnected = false;
+    logger.warn(`[LM] Client disconnected for report=${reportId}, stopping processing`);
+  });
+
+  req.on('aborted', () => {
+    clientConnected = false;
+    logger.warn(`[LM] Client aborted for report=${reportId}, stopping processing`);
+  });
+
+  // Helper to send SSE events (check connection first)
   const sendEvent = (event, data) => {
-    res.write(`event: ${event}\n`);
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
+    if (!clientConnected) {
+      logger.debug(`[LM] Skipping event ${event} - client disconnected`);
+      return false;
+    }
+    try {
+      res.write(`event: ${event}\n`);
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+      return true;
+    } catch (error) {
+      // Client disconnected during write
+      clientConnected = false;
+      logger.warn(`[LM] Error writing event ${event}: ${error.message}`);
+      return false;
+    }
   };
 
   // Send initial connection confirmation
@@ -65,10 +91,18 @@ async function generateLearningMapStream(req, res) {
     logger.info(`[LM] START report=${reportId} user=${userId}`);
 
     // Phase 1: Load cached report data
-    sendEvent('progress', { phase: 1, message: 'Loading analysis report...', percent: 5 });
+    if (!sendEvent('progress', { phase: 1, message: 'Loading analysis report...', percent: 5 })) {
+      logger.warn(`[LM] Client disconnected before phase 1, aborting`);
+      return res.end();
+    }
 
     const { getCachedBatchData } = require('./analysisController');
     const cachedData = await getCachedBatchData(reportId);
+
+    if (!clientConnected) {
+      logger.warn(`[LM] Client disconnected during data load, aborting`);
+      return res.end();
+    }
 
     if (!cachedData || !cachedData.patternAnalysis) {
       logger.error(`[LM] ERROR: Report not found - ${reportId}`);
@@ -79,26 +113,46 @@ async function generateLearningMapStream(req, res) {
     const patterns = cachedData.patternAnalysis;
     const sourcePosts = patterns.source_posts || [];
 
-    sendEvent('progress', {
+    if (!sendEvent('progress', {
       phase: 1,
       message: `Loaded ${sourcePosts.length} posts from analysis`,
       percent: 10
-    });
+    })) {
+      logger.warn(`[LM] Client disconnected after data load, aborting`);
+      return res.end();
+    }
 
     // Phase 2: Generate base learning map (this is the heavy LLM work)
-    sendEvent('progress', { phase: 2, message: 'Generating learning map structure...', percent: 15 });
+    if (!sendEvent('progress', { phase: 2, message: 'Generating learning map structure...', percent: 15 })) {
+      logger.warn(`[LM] Client disconnected before phase 2, aborting`);
+      return res.end();
+    }
 
     // Use the optimized generator that skips detailed daily schedules
     const baseLearningMap = await generateOptimizedLearningMap(
       reportId,
       { ...userGoals, userId },
-      (progress) => sendEvent('progress', progress)
+      (progress) => {
+        if (!clientConnected) return false; // Stop sending progress if disconnected
+        return sendEvent('progress', progress);
+      }
     );
 
-    sendEvent('progress', { phase: 2, message: 'Base learning map generated', percent: 55 });
+    if (!clientConnected) {
+      logger.warn(`[LM] Client disconnected during base map generation, aborting`);
+      return res.end();
+    }
+
+    if (!sendEvent('progress', { phase: 2, message: 'Base learning map generated', percent: 55 })) {
+      logger.warn(`[LM] Client disconnected after base map, aborting`);
+      return res.end();
+    }
 
     // Phase 2.5: Generate detailed hour-by-hour schedules for timeline weeks
-    sendEvent('progress', { phase: 2, message: 'Generating detailed daily schedules...', percent: 58 });
+    if (!sendEvent('progress', { phase: 2, message: 'Generating detailed daily schedules...', percent: 58 })) {
+      logger.warn(`[LM] Client disconnected before daily schedules, aborting`);
+      return res.end();
+    }
 
     const pool = require('../config/database');
 
@@ -124,6 +178,11 @@ async function generateLearningMapStream(req, res) {
     const allProblems = problemsResult.rows;
 
     // Enhance timeline weeks with hour-by-hour schedules (LLM cached for fast response)
+    if (!clientConnected) {
+      logger.warn(`[LM] Client disconnected before daily schedules, aborting`);
+      return res.end();
+    }
+
     if (baseLearningMap.timeline && baseLearningMap.timeline.weeks) {
       const enhancedWeeks = await timelineMilestoneEnhancementService.enhanceWeeksWithDetailedSchedules(
         baseLearningMap.timeline.weeks,
@@ -134,7 +193,15 @@ async function generateLearningMapStream(req, res) {
       baseLearningMap.timeline.weeks = enhancedWeeks;
     }
 
-    sendEvent('progress', { phase: 2, message: 'Daily schedules generated', percent: 60 });
+    if (!clientConnected) {
+      logger.warn(`[LM] Client disconnected during daily schedules, aborting`);
+      return res.end();
+    }
+
+    if (!sendEvent('progress', { phase: 2, message: 'Daily schedules generated', percent: 60 })) {
+      logger.warn(`[LM] Client disconnected after daily schedules, aborting`);
+      return res.end();
+    }
 
     // Phase 3: Apply enhancements
     sendEvent('progress', { phase: 3, message: 'Enhancing with company tracks...', percent: 65 });
