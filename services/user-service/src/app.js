@@ -77,7 +77,8 @@ if (process.env.REDIS_URL) {
     redisClient = redis.createClient({
       url: process.env.REDIS_URL,
       socket: {
-        family: 0, // Enable dual-stack (IPv4 + IPv6) for Railway private network
+        family: 4, // Force IPv4 for Railway private network (IPv6 DNS returns IPv4 addresses)
+        connectTimeout: 10000, // 10 second connection timeout
         reconnectStrategy: (retries) => {
           if (retries > 10) {
             console.error('[Session] Redis reconnection failed after 10 retries');
