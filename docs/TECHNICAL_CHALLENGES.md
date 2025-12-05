@@ -3823,3 +3823,318 @@ This challenge demonstrates:
 **Last Updated:** December 4, 2025
 **Total Challenges Documented:** 17
 **Categories:** Debugging (9), Architecture (3), Cost Optimization (1), DevOps (2), Data Persistence (4), API Migration (2), Performance (2), Race Conditions (1), System Design (1), OAuth Integration (2), Database Schema (1)
+
+---
+
+## Challenge 18: Railway Private Network IPv6/IPv4 Mismatch
+
+**Date:** December 5, 2025  
+**Symptom:** Login and Redis connections timing out with 504 Gateway Timeout and "Connection timeout" errors  
+**Root Cause:** Railway's private networking uses IPv6 DNS but services only bind to IPv4  
+**Category:** DevOps, Networking  
+**Time to Debug:** ~2 hours  
+
+### The Problem
+
+After deploying to Railway, users couldn't log in. The login page would hang at "Signing in..." and eventually show "NetworkError when attempting to fetch resource."
+
+**nginx error logs showed:**
+```
+upstream timed out (110: Operation timed out) while connecting to upstream
+```
+
+**user-service logs showed:**
+```
+[Session] Redis client error: ConnectionTimeoutError: Connection timeout
+[Session] Redis reconnection failed after 10 retries
+[Global Error Handler] Error message: The client is closed
+```
+
+### Why This Was Confusing
+
+1. **Everything worked locally** - Docker Compose had no issues
+2. **The timeout was 60+ seconds** - Looked like a network/firewall issue
+3. **Railway services were "healthy"** - Dashboard showed all services running
+4. **DNS resolved correctly** - `.railway.internal` hostnames resolved
+
+### Root Cause Discovery
+
+Railway's private networking has a quirk:
+- **DNS uses IPv6** - Internal DNS resolver is at `fd12::10` (IPv6 address)
+- **Services bind to IPv4** - Actual microservices only listen on IPv4 addresses
+- **Dual-stack tries IPv6 first** - Node.js and nginx try IPv6, wait for timeout, then fall back to IPv4
+
+When a client (nginx or Node.js) tries to connect:
+1. DNS lookup returns the hostname resolution
+2. Client tries IPv6 first (default dual-stack behavior)
+3. Connection hangs because service doesn't have IPv6 listener
+4. After 60+ second timeout, falls back to IPv4
+5. IPv4 works, but the timeout already exceeded HTTP limits → 504
+
+### The Fix
+
+**Two places needed IPv4 forcing:**
+
+#### 1. nginx.conf (api-gateway)
+
+```nginx
+# Before (broken):
+resolver [fd12::10] valid=5s ipv6=on;
+
+# After (fixed):
+resolver [fd12::10]:53 valid=5s;  # No ipv6=on flag
+```
+
+The `ipv6=on` flag was forcing nginx to only accept IPv6 DNS responses. Removing it allows the resolver to return IPv4 addresses that nginx can actually connect to.
+
+#### 2. Redis client (user-service/src/app.js)
+
+```javascript
+// Before (broken):
+redisClient = redis.createClient({
+  url: process.env.REDIS_URL,
+  socket: {
+    family: 0,  // dual-stack, tries IPv6 first
+    ...
+  }
+});
+
+// After (fixed):
+redisClient = redis.createClient({
+  url: process.env.REDIS_URL,
+  socket: {
+    family: 4,  // Force IPv4 only
+    ...
+  }
+});
+```
+
+#### 3. PostgreSQL DNS lookup (user-service/src/database/connection.js)
+
+```javascript
+// Custom DNS lookup to force IPv4
+dns.lookup(hostname, { ...options, family: 4 }, callback);
+```
+
+#### 4. Global Node.js DNS order (user-service/src/index.js)
+
+```javascript
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+```
+
+### Why Dual-Stack Doesn't Work
+
+| Setting | Behavior | Result on Railway |
+|---------|----------|-------------------|
+| `family: 0` (dual-stack) | Tries IPv6 first, then IPv4 | ❌ 60s timeout, then works |
+| `family: 4` (IPv4 only) | Uses IPv4 directly | ✅ Works immediately |
+| `family: 6` (IPv6 only) | Only tries IPv6 | ❌ Never connects |
+
+Railway's services don't have IPv6 listeners, so IPv6 connections will always fail. Using dual-stack just adds a 60-second penalty before falling back to IPv4.
+
+### Alternative: Environment Variable
+
+Instead of code changes, you can set:
+```bash
+NODE_OPTIONS=--dns-result-order=ipv4first
+```
+
+This does the same as `dns.setDefaultResultOrder('ipv4first')` but applies globally via environment variable.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `api-gateway/nginx.conf` | Removed `ipv6=on` from resolver |
+| `services/user-service/src/app.js` | Redis `family: 4` |
+| `services/user-service/src/index.js` | `dns.setDefaultResultOrder('ipv4first')` |
+| `services/user-service/src/database/connection.js` | PostgreSQL lookup `family: 4` |
+
+### Key Lessons Learned
+
+1. **Railway's DNS is IPv6, Services are IPv4:** This mismatch causes dual-stack to fail. Always force IPv4 for Railway internal networking.
+
+2. **"Connection Timeout" ≠ Network Down:** A timeout can mean "wrong IP version" not "unreachable host." Check IPv4/IPv6 before blaming firewalls.
+
+3. **Check All Clients:** nginx, Redis, PostgreSQL - each has its own DNS resolution. Fix all of them.
+
+4. **Dual-Stack is Not Always Better:** On networks that only support one IP version, dual-stack adds latency (timeout + fallback). Force the correct version.
+
+5. **Railway-Specific:** This is specific to Railway's private networking. Other platforms may behave differently.
+
+### Quick Diagnostic
+
+If you see 60+ second timeouts on Railway:
+
+```bash
+# In your Node.js service, add this early in startup:
+const dns = require('dns');
+console.log('DNS result order:', dns.getDefaultResultOrder());
+```
+
+If it says `verbatim` (which tries IPv6 first on dual-stack systems), you need to force `ipv4first`.
+
+### Why This Is Interview Gold
+
+This challenge demonstrates:
+
+- ✅ **Network Debugging:** Understood IPv4/IPv6 dual-stack behavior and DNS resolution
+- ✅ **Platform-Specific Knowledge:** Learned Railway's private networking quirks
+- ✅ **Multi-Layer Fix:** Fixed nginx, Redis, PostgreSQL - understood that each client resolves DNS independently
+- ✅ **Root Cause vs Symptom:** Didn't just increase timeouts (symptom fix), found the real cause (IPv6 mismatch)
+- ✅ **Documentation:** Recorded for future team members who might hit the same issue
+
+---
+
+## Challenge 19: Redis Reconnection Strategy Causing Session Loss
+
+**Category:** Session Management / Debugging
+**Date Encountered:** December 5, 2025
+**Severity:** Critical (Production Auth Broken)
+**Commit:** `5f3323f`
+
+### The Problem
+
+Users experienced a frustrating pattern:
+1. Login works fine initially
+2. Hard refresh the page → Auto logged out
+3. Try to log in again → Fails with "Something went wrong"
+4. Redeploy the API service → Login works again
+
+### Root Cause: Reconnection Strategy Giving Up
+
+The Redis client was configured with a `reconnectStrategy` that returned `false` after 10 failed reconnection attempts:
+
+```javascript
+// BROKEN: This kills the Redis client permanently
+reconnectStrategy: (retries) => {
+  if (retries > 10) {
+    console.error('[Session] Redis reconnection failed after 10 retries');
+    return false; // ← THIS IS THE BUG - client stops forever
+  }
+  return Math.min(retries * 100, 3000);
+}
+```
+
+### Why This Causes the Session Loss Pattern
+
+| Step | What Happens | Result |
+|------|--------------|--------|
+| 1. Startup | Redis connects successfully | ✅ Sessions work |
+| 2. Idle period | Railway/Redis closes idle connection | Connection lost |
+| 3. Reconnect | Client tries to reconnect 10 times | May fail (transient issues) |
+| 4. After retry 11 | `reconnectStrategy` returns `false` | ❌ Client permanently closed |
+| 5. Hard refresh | Session lookup hits closed client | ❌ Error, user logged out |
+| 6. Login attempt | Session write hits closed client | ❌ "client is closed" error |
+| 7. Redeploy | Fresh Redis client created | ✅ Works again |
+
+The key insight: **Returning `false` from `reconnectStrategy` permanently kills the Redis client.** It doesn't just pause reconnection—it closes the client forever. All subsequent session operations fail with "client is closed."
+
+### The Fix
+
+Never give up reconnecting. Always return a delay:
+
+```javascript
+// FIXED: Never give up, always return a delay
+redisClient = redis.createClient({
+  url: process.env.REDIS_URL,
+  socket: {
+    family: 4, // Force IPv4 for Railway
+    connectTimeout: 10000,
+    reconnectStrategy: (retries) => {
+      // CRITICAL: Never return false - always return a delay
+      const delay = Math.min(retries * 500, 30000); // Max 30s between retries
+      console.log(`[Session] Redis reconnecting in ${delay}ms (attempt ${retries})`);
+      return delay;
+    },
+    // Keepalive prevents idle disconnections
+    keepAlive: 30000 // Send keepalive every 30 seconds
+  }
+});
+
+// Better event logging for debugging
+redisClient.on('reconnecting', () => {
+  console.log('[Session] 🔄 Redis reconnecting...');
+});
+
+redisClient.on('end', () => {
+  console.warn('[Session] ⚠️ Redis connection closed');
+});
+```
+
+### Key Changes
+
+| Setting | Before | After | Why |
+|---------|--------|-------|-----|
+| Max retries | 10 (then give up) | ∞ (never give up) | Client stays alive |
+| Retry delay | Max 3s | Max 30s | Backoff for transient issues |
+| Keepalive | Not set | 30s | Prevents idle disconnections |
+| Event logging | Basic | Comprehensive | Better debugging |
+
+### Why keepAlive Matters
+
+Railway (and many cloud providers) close idle TCP connections after a timeout. Without keepAlive:
+- Connection sits idle for 5-10 minutes
+- Cloud provider closes it
+- Next request hits a dead connection
+- Reconnection logic kicks in
+
+With `keepAlive: 30000`:
+- Client sends TCP keepalive every 30 seconds
+- Connection stays warm
+- No reconnection needed for normal use
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `services/user-service/src/app.js` | Redis reconnectStrategy + keepAlive |
+
+### Why This Is a Common Pitfall
+
+Many Redis client examples show:
+```javascript
+reconnectStrategy: (retries) => {
+  if (retries > MAX) return false;
+  return delay;
+}
+```
+
+This pattern makes sense for **CLI tools** (fail fast, let user retry) but is **disastrous for servers** (client dies, all subsequent requests fail until redeploy).
+
+For long-running servers, the correct pattern is:
+```javascript
+reconnectStrategy: (retries) => {
+  // Always return a delay, never return false
+  return Math.min(retries * 500, 30000);
+}
+```
+
+### Key Lessons Learned
+
+1. **`return false` = Client Death:** In node-redis, returning `false` from `reconnectStrategy` permanently closes the client. Not "pause" or "retry later"—permanently dead.
+
+2. **Servers vs CLIs:** Server reconnection strategies should never give up. CLI tools can fail fast. Different use cases, different patterns.
+
+3. **keepAlive Prevents Idle Drops:** Cloud providers close idle connections. keepAlive keeps them warm.
+
+4. **Session Failures Are Cryptic:** "Something went wrong" on login could mean Redis is dead. Add comprehensive Redis event logging to make debugging easier.
+
+5. **The Pattern Is Diagnostic:** If login works → hard refresh breaks → redeploy fixes, suspect client lifecycle issues (Redis, database pools, etc.).
+
+### Why This Is Interview Gold
+
+This challenge demonstrates:
+
+- ✅ **Production Debugging:** Identified a subtle pattern (redeploy fixes it = fresh client)
+- ✅ **Library Internals:** Understood node-redis client lifecycle and reconnection behavior
+- ✅ **Root Cause Analysis:** Didn't just increase retries—understood WHY `return false` is catastrophic
+- ✅ **Prevention:** Added keepAlive to prevent the issue from occurring
+- ✅ **Logging:** Added comprehensive event logging for future debugging
+
+---
+
+**Last Updated:** December 5, 2025
+**Total Challenges Documented:** 19
+**Categories:** Debugging (10), Architecture (3), Cost Optimization (1), DevOps (3), Data Persistence (4), API Migration (2), Performance (2), Race Conditions (1), System Design (1), OAuth Integration (2), Database Schema (1), Networking (1), Session Management (1)

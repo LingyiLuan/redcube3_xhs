@@ -253,3 +253,86 @@ Chrome no longer sees username + password combination on visible fields → no p
 - Highlights **attention to UX details** - small issues can confuse users significantly
 - Real production bug affecting user registration flow
 - Solution uses **industry-standard patterns** validated by major platforms
+
+---
+
+## Challenge 20: Learning Map Problem Slots Empty - Interview Questions vs LeetCode Data Model Mismatch
+
+### Problem
+Learning maps were displaying "mock" placeholder activities instead of real interview questions:
+- Slots showed: `"Guided practice: System Design & Mock Interviews"` (generic)
+- Instead of: `"System Design Question" (Interview question from Google)`
+- All 15 slots had `problem: null`
+- LLM enhancement ran but had nothing to enhance
+
+### Investigation
+1. **Database query verified** - 874 interview questions exist for the batch
+2. **`source_posts` array verified** - 200 posts with proper `post_id` fields
+3. **Schema verified** - All tables exist (`daily_schedule_llm_cache`, `learning_maps_history`)
+
+### Root Cause
+**Data model mismatch between interview questions and LeetCode problems:**
+
+The schedule generator expected LeetCode problem format:
+```javascript
+// Expected: problem.number (LeetCode #)
+activity = `"${problem.name}" (LC #${problem.number})`
+```
+
+But the query returned interview questions:
+```sql
+SELECT id, question_text as name, difficulty, llm_category as category
+-- Missing: "number" field (LeetCode problem number)
+```
+
+Without `problem.number`, the slot generation silently failed to assign problems.
+
+### Solution
+1. **Fixed query** - Added `id as number` alias and `source_type`, `company` fields:
+```sql
+SELECT
+  iq.id,
+  iq.id as number,
+  iq.question_text as name,
+  'interview_question' as source_type,
+  iq.company
+FROM interview_questions iq
+```
+
+2. **Updated schedule generator** - Handle interview questions differently:
+```javascript
+if (problem.source_type === 'interview_question') {
+  activity = `"${problem.name}"`;  // No LC # prefix
+  details = problem.company
+    ? `Interview question from ${problem.company}`
+    : 'Interview question - Follow along with solution approach';
+}
+```
+
+3. **Updated slot object** - Include source metadata:
+```javascript
+problem: {
+  source_type: problem.source_type || 'leetcode',
+  company: problem.company || null,
+  url: problem.source_type === 'interview_question'
+    ? null  // No LeetCode URL
+    : `https://leetcode.com/problems/...`
+}
+```
+
+### Files Modified
+- [learningMapStreamController.js:108-123](services/content-service/src/controllers/learningMapStreamController.js#L108-L123) - Query fix
+- [dailyScheduleGeneratorService.js:379-416](services/content-service/src/services/dailyScheduleGeneratorService.js#L379-L416) - GUIDED/SOLO handling
+- [dailyScheduleGeneratorService.js:452-470](services/content-service/src/services/dailyScheduleGeneratorService.js#L452-L470) - Slot object
+
+### Lessons Learned
+1. **Data model compatibility is critical** - When integrating different data sources (interview questions vs LeetCode), ensure field names match expected interfaces
+2. **Silent failures are dangerous** - The code didn't error, it just used fallback text, making the bug hard to spot
+3. **Production database queries are essential for debugging** - Local mocks can't reveal data schema issues
+4. **Add source_type metadata** - When data comes from multiple sources, include type info for conditional handling
+
+### Interview Talking Points
+- **Root cause analysis** through production database queries
+- **Schema mismatch debugging** between different data sources
+- **Backward-compatible solution** that handles both interview questions and LeetCode problems
+- Real production issue affecting core feature (learning map schedules)

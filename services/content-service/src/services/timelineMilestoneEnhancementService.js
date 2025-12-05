@@ -536,6 +536,7 @@ async function enhanceWeeksWithDetailedSchedules(weeks, allProblems, availableHo
   for (const week of weeks) {
     // Get problems for this week based on skills covered
     const weekProblems = selectProblemsForWeek(allProblems, week, problemsPerWeek);
+    logger.debug(`[TimelineEnhancement] Week ${week.week}: Selected ${weekProblems.length} problems from ${allProblems.length} total`);
 
     // Determine focus area from week title, skills, or problems
     const focusArea = extractFocusArea(week, allProblems);

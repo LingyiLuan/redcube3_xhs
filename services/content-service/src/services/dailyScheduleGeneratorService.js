@@ -379,8 +379,16 @@ async function generateScheduleWithLLM(params) {
       case 'GUIDED':
         if (problems[problemIndex]) {
           problem = problems[problemIndex];
-          activity = `"${problem.name}" (LC #${problem.number})`;
-          details = 'Follow along with solution explanation, understand each step';
+          // Check if this is an interview question (source_type) or LeetCode problem
+          if (problem.source_type === 'interview_question') {
+            activity = `"${problem.name}"`;
+            details = problem.company
+              ? `Interview question from ${problem.company} - Follow along with solution approach`
+              : 'Interview question - Follow along with solution approach';
+          } else {
+            activity = `"${problem.name}" (LC #${problem.number})`;
+            details = 'Follow along with solution explanation, understand each step';
+          }
           problemIndex++;
         } else {
           activity = `Guided practice: ${focusArea}`;
@@ -391,8 +399,16 @@ async function generateScheduleWithLLM(params) {
       case 'SOLO':
         if (problems[problemIndex]) {
           problem = problems[problemIndex];
-          activity = `"${problem.name}" (LC #${problem.number})`;
-          details = `Solve independently (${problem.difficulty}). Time yourself!`;
+          // Check if this is an interview question or LeetCode problem
+          if (problem.source_type === 'interview_question') {
+            activity = `"${problem.name}"`;
+            details = problem.company
+              ? `Interview question from ${problem.company} (${problem.difficulty}). Solve independently!`
+              : `Interview question (${problem.difficulty}). Solve independently!`;
+          } else {
+            activity = `"${problem.name}" (LC #${problem.number})`;
+            details = `Solve independently (${problem.difficulty}). Time yourself!`;
+          }
           problemIndex++;
         } else {
           activity = `Solo practice: ${focusArea}`;
@@ -445,7 +461,11 @@ async function generateScheduleWithLLM(params) {
         name: problem.name,
         number: problem.number,
         difficulty: problem.difficulty,
-        url: `https://leetcode.com/problems/${problem.name.toLowerCase().replace(/\s+/g, '-')}/`
+        source_type: problem.source_type || 'leetcode',
+        company: problem.company || null,
+        url: problem.source_type === 'interview_question'
+          ? null // No URL for interview questions
+          : `https://leetcode.com/problems/${problem.name.toLowerCase().replace(/\s+/g, '-')}/`
       } : null
     });
 

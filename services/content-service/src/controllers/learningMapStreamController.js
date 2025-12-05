@@ -108,10 +108,13 @@ async function generateLearningMapStream(req, res) {
     const problemsResult = await pool.query(`
       SELECT DISTINCT
         iq.id,
+        iq.id as number,
         iq.question_text as name,
         COALESCE(iq.difficulty, 'Medium') as difficulty,
         COALESCE(iq.llm_category, iq.question_type, 'Algorithm') as category,
-        COALESCE(iq.llm_category, 'General') as module
+        COALESCE(iq.llm_category, 'General') as module,
+        'interview_question' as source_type,
+        iq.company
       FROM interview_questions iq
       WHERE iq.post_id = ANY($1)
         AND iq.question_text IS NOT NULL
@@ -119,7 +122,15 @@ async function generateLearningMapStream(req, res) {
       LIMIT 200
     `, [postIds]);
     const allProblems = problemsResult.rows;
-    logger.info(`[LearningMapStream] Found ${allProblems.length} interview questions from source posts`);
+    logger.info(`[LearningMapStream] Found ${allProblems.length} interview questions from ${postIds.length} source posts`);
+    if (allProblems.length > 0) {
+      logger.info(`[LearningMapStream] Sample problems:`, allProblems.slice(0, 3).map(p => ({
+        name: p.name?.substring(0, 50),
+        category: p.category,
+        difficulty: p.difficulty,
+        company: p.company
+      })));
+    }
 
     // Enhance timeline weeks with hour-by-hour schedules (LLM cached for fast response)
     if (baseLearningMap.timeline && baseLearningMap.timeline.weeks) {
