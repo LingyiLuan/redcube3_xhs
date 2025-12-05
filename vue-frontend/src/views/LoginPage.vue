@@ -112,10 +112,10 @@ const errorMessage = ref('')
 const emailError = ref('')
 const passwordError = ref('')
 
-// Get returnUrl from query parameter, default to /workflow
+// Get returnUrl from query parameter, default to landing page
 const getReturnUrl = () => {
   const returnUrl = route.query.returnUrl as string | undefined
-  return returnUrl || '/workflow'
+  return returnUrl || '/'
 }
 
 async function handleGoogleLogin() {
