@@ -1,0 +1,18 @@
+# Example nginx.conf for Railway
+# Replace YOUR_SERVICE_DOMAINS with actual Railway public domains
+
+upstream user-service {
+    server user-service-production-xxxx.up.railway.app:443;
+}
+
+upstream interview-service {
+    server interview-service-production-xxxx.up.railway.app:443;
+}
+
+upstream content-service {
+    server content-service-production-xxxx.up.railway.app:443;
+}
+
+upstream notification-service {
+    server notification-service-production-xxxx.up.railway.app:443;
+}

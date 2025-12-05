@@ -3584,3 +3584,242 @@ This challenge demonstrates:
 **Last Updated:** December 2, 2025
 **Total Challenges Documented:** 16
 **Categories:** Debugging (8), Architecture (3), Cost Optimization (1), DevOps (2), Data Persistence (4), API Migration (2), Performance (2), Race Conditions (1), System Design (1), OAuth Integration (2)
+
+---
+
+## Challenge 17: The 2-Minute Registration Timeout - A Case Study in Systematic Debugging
+
+### Context (Situation)
+
+User registration on labzero.io was timing out after 2+ minutes, causing container restarts on Railway. Users would submit the registration form and see an endless spinner, eventually getting a timeout error. The verification email was never sent.
+
+**Date:** December 4, 2025
+**Environment:** Railway Pro (upgraded during debugging), PostgreSQL (pgvector), Node.js 18
+**Estimated debugging time:** 4+ hours across multiple sessions
+
+### Problem (Task)
+
+Registration requests were hanging for 2+ minutes before failing. Railway's health check would kill the container during this hang, causing even more chaos. The symptom appeared to be a simple "slow API" but the root cause was far more sinister.
+
+### The Debugging Journey (Action)
+
+This bug is worth documenting in detail because **the debugging process itself was flawed**, and understanding why helps prevent similar mistakes in the future.
+
+#### Phase 1: The Wrong Hypotheses (Hours 1-2)
+
+**Initial Symptom:** Registration takes 2+ minutes, container restarts
+
+**Hypothesis 1: Railway Free Tier Cold Start**
+- Reasoning: "Railway free tier has cold starts, maybe the container is sleeping"
+- Action: Upgraded to Railway Pro plan ($20/month)
+- Result: ❌ Problem persisted. Wasted money and time.
+
+**Hypothesis 2: IPv6/IPv4 DNS Resolution**
+- Reasoning: "Node.js 17+ prefers IPv6, Railway internal network might not respond on IPv6"
+- Action: Added `dns.setDefaultResultOrder('ipv4first')` to code, added `NODE_OPTIONS=--dns-result-order=ipv4first` to Railway env
+- Result: ❌ Problem persisted. This was a real issue but not THE issue.
+
+**Hypothesis 3: Redis Session Store Blocking**
+- Reasoning: "Maybe Redis is slow on Railway's internal network"
+- Action: Reviewed Redis connection code, checked session middleware
+- Result: ❌ Not the issue. Redis was connecting in <10ms.
+
+**Hypothesis 4: Email Service Timeout**
+- Reasoning: "Resend API might be blocking"
+- Action: Added eager initialization of Resend client at module load
+- Result: ❌ Not the issue. Email was never even reached.
+
+**What Went Wrong in Phase 1:**
+- We were debugging **application-level code** when the problem was in the **database schema**
+- We never queried the database directly to verify the schema
+- We assumed the database was "just a database" without triggers or functions
+
+#### Phase 2: Adding Granular Logging (Hour 3)
+
+**Key Insight:** Stop guessing, start measuring.
+
+Added step-by-step timing to `processRegistrationInBackground()`:
+
+```javascript
+console.log('[DEBUG] Step 1: Starting findUserByEmail...');
+const step1Start = Date.now();
+const existingUser = await findUserByEmail(email);
+console.log(`[DEBUG] Step 1: findUserByEmail completed in ${Date.now() - step1Start}ms`);
+
+// ... repeated for all 8 steps
+```
+
+**Results revealed:**
+```
+Step 1 (findUserByEmail): 2ms ✅
+Step 2 (hashPassword): 276ms ✅
+Step 3 (pool.connect): 0ms ✅
+Step 4 (BEGIN): 2ms ✅
+Step 5 (createUserWithEmail): 135,089ms ❌ <-- 2+ MINUTES!
+Step 6 (createVerificationToken): never reached
+```
+
+**Breakthrough:** The problem was specifically in `createUserWithEmail` - a simple INSERT query.
+
+#### Phase 3: Adding Fail-Fast Timeouts (Hour 3.5)
+
+To get better error messages, added timeouts to the PostgreSQL connection pool:
+
+```javascript
+const pool = new Pool({
+  // ... existing config
+  statement_timeout: 15000, // 15s max for any SQL statement
+  query_timeout: 20000, // 20s client-side timeout
+  idle_in_transaction_session_timeout: 30000,
+});
+```
+
+**New Error Message (The Real Clue):**
+```
+error: canceling statement due to statement timeout
+where: 'SQL statement "SELECT dblink_exec(
+      'dbname=postgres user=postgres password=postgres',
+      format(
+        'INSERT INTO users (id, email, created_at, updated_at, email_verified)
+         VALUES (%L, %L, %L, %L, %L)
+         ON CONFLICT (id) DO UPDATE...'
+      )
+    )"
+PL/pgSQL function sync_user_to_postgres() line 6 at PERFORM'
+```
+
+**FOUND IT:** A PostgreSQL trigger `sync_user_to_postgres()` was running on every INSERT to the `users` table!
+
+#### Phase 4: Root Cause Analysis (Hour 4)
+
+Queried the database to understand the trigger:
+
+```sql
+SELECT tgname, pg_get_triggerdef(t.oid) 
+FROM pg_trigger t
+JOIN pg_class c ON t.tgrelid = c.oid
+WHERE c.relname = 'users';
+```
+
+**The Broken Trigger:**
+```sql
+CREATE TRIGGER trigger_sync_user_to_postgres 
+AFTER INSERT OR UPDATE ON public.users 
+FOR EACH ROW EXECUTE FUNCTION sync_user_to_postgres();
+```
+
+**The Broken Function:**
+```sql
+PERFORM dblink_exec(
+  'dbname=postgres user=postgres password=postgres',  -- WRONG PASSWORD!
+  format('INSERT INTO users ...')
+);
+```
+
+**Problems:**
+1. Using hardcoded `password=postgres` instead of actual Railway password
+2. Trying to connect to `dbname=postgres` (which exists but has no `users` table)
+3. The target table `railway.users` didn't even exist!
+4. Using `dblink` (cross-database sync) for a table that only existed in one database
+
+#### Phase 5: The Fix (5 minutes)
+
+```sql
+DROP TRIGGER IF EXISTS trigger_sync_user_to_postgres ON users;
+DROP FUNCTION IF EXISTS sync_user_to_postgres();
+```
+
+**Result:** Registration now completes in **~800ms** instead of timing out.
+
+### Why This Bug Existed (Post-Mortem)
+
+**Origin:** This trigger was likely created during an experimental migration or data sync attempt. Someone (possibly me, possibly Claude during an earlier session) tried to sync users between databases but:
+1. Never tested it properly
+2. Used hardcoded credentials that worked locally but not on Railway
+3. Never cleaned it up when the experiment was abandoned
+
+**Why It Wasn't Caught:**
+1. The trigger only fires on INSERT/UPDATE - existing users weren't affected
+2. Local Docker uses `password=postgres` so it might have worked locally
+3. Railway uses a different password, so production always failed
+4. No one was registering new users in production until beta launch
+
+### The Correct Debugging Sequence (Retrospective)
+
+If I had to debug this again, here's the optimal order:
+
+**Step 1: Check Database Schema (5 minutes)**
+```sql
+-- Check for triggers on affected tables
+SELECT tgname, tgrelid::regclass, pg_get_triggerdef(oid) 
+FROM pg_trigger 
+WHERE NOT tgisinternal;
+
+-- Check for functions that might be called
+SELECT proname, prosrc FROM pg_proc WHERE prosrc LIKE '%dblink%';
+```
+
+**Step 2: Add Granular Timing (10 minutes)**
+Instrument the slow operation with step-by-step timing.
+
+**Step 3: Add Fail-Fast Timeouts (5 minutes)**
+Force the operation to fail quickly with a meaningful error instead of hanging.
+
+**Step 4: Check Production vs Local Differences (5 minutes)**
+- Different passwords?
+- Different schemas?
+- Different extensions?
+
+**Step 5: Only Then Consider Infrastructure**
+- Railway tier
+- DNS resolution
+- Network latency
+
+### Is This a Common Issue?
+
+**Yes and No.**
+
+- **Common:** Database triggers causing unexpected performance issues
+- **Common:** Hardcoded credentials working locally but failing in production
+- **Uncommon:** Using `dblink` for cross-database sync (most people use application-level sync)
+- **Uncommon:** Trigger trying to sync to a non-existent table
+
+**Why We Didn't Research It:**
+- The error message (2-minute timeout) pointed to network/infra, not database
+- PostgreSQL triggers are "invisible" - they don't show up in application code
+- We trusted that the database schema was correct
+
+### Key Lessons Learned
+
+1. **"Invisible" Database Objects:** Triggers, functions, and stored procedures can cause issues that don't appear in application code. Always check the database schema when debugging database-related slowness.
+
+2. **Fail-Fast Over Hang:** A 15-second timeout that fails with a clear error is infinitely better than a 2-minute hang that times out. Add timeouts to all database operations.
+
+3. **Production Credential Drift:** Hardcoded credentials (even in database objects) will eventually break. Use environment variables everywhere.
+
+4. **Granular Logging is King:** Without step-by-step timing, we would have blamed the network forever. Instrument before theorizing.
+
+5. **Don't Upgrade to Fix Unknowns:** We upgraded to Railway Pro hoping it would fix the issue. Diagnose first, spend money second.
+
+6. **Check Triggers on Slow INSERTs:** If an INSERT is slow, the first question should be "are there triggers on this table?"
+
+### Why This Is Interview Gold
+
+This challenge demonstrates:
+
+- ✅ **Systematic Debugging:** Progressed from symptoms → hypotheses → measurement → root cause
+- ✅ **Database Expertise:** Knew how to query pg_trigger, pg_proc, and interpret PostgreSQL internals
+- ✅ **Production Debugging:** Found a bug that only manifested in production with different credentials
+- ✅ **Self-Criticism:** Acknowledged that the debugging process was inefficient and documented the optimal approach
+- ✅ **Fail-Fast Design:** Implemented timeouts to surface errors faster in the future
+- ✅ **Post-Mortem Analysis:** Explained not just the fix, but why the bug existed and how to prevent it
+
+**The "Growth Mindset" Angle:**
+
+"This bug taught me a hard lesson about database debugging. I spent 3+ hours chasing network issues when a 5-minute database schema check would have found the trigger. Now, whenever I see a slow database operation, my first step is always `SELECT * FROM pg_trigger WHERE NOT tgisinternal`. The debugging process was inefficient, but I documented it thoroughly so I (and my team) never make the same mistake again."
+
+---
+
+**Last Updated:** December 4, 2025
+**Total Challenges Documented:** 17
+**Categories:** Debugging (9), Architecture (3), Cost Optimization (1), DevOps (2), Data Persistence (4), API Migration (2), Performance (2), Race Conditions (1), System Design (1), OAuth Integration (2), Database Schema (1)
