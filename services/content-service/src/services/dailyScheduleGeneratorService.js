@@ -910,16 +910,36 @@ function generateFallbackEnhancement(focusArea, weekNumber, problems) {
 async function enhanceScheduleWithLLM(schedule, problems, skipLLM = false) {
   const { focusArea, weekNumber, slots } = schedule;
 
+  logger.info(`[DailySchedule] 🔍 enhanceScheduleWithLLM called:`, {
+    focusArea,
+    weekNumber,
+    problemCount: problems?.length || 0,
+    slotCount: slots?.length || 0,
+    skipLLM
+  });
+
   // Generate cache key
   const cacheKey = generateCacheKey(focusArea, weekNumber, problems);
+  logger.info(`[DailySchedule] 🔑 Cache key: ${cacheKey}`);
 
   // Check cache first
   const cached = await getCachedEnhancement(cacheKey);
 
   if (cached) {
+    logger.info(`[DailySchedule] ✅ CACHE HIT! Applying cached enhancement`);
+    logger.info(`[DailySchedule] 📦 Cached data has:`, {
+      learning_objectives: cached.learning_objectives?.length || 0,
+      problem_insights: Object.keys(cached.problem_insights || {}).length,
+      enhanced_slots: cached.enhanced_slots?.length || 0
+    });
     // Apply cached enhancement to schedule
-    return applyEnhancementToSchedule(schedule, cached);
+    const enhanced = applyEnhancementToSchedule(schedule, cached);
+    logger.info(`[DailySchedule] 📊 After applying cache, slots with enhanced_details:`,
+      enhanced.slots?.filter(s => s.enhanced_details !== s.details).length || 0);
+    return enhanced;
   }
+
+  logger.info(`[DailySchedule] ❌ CACHE MISS for key: ${cacheKey}`);
 
   // Skip LLM if requested (for testing or rate limiting)
   if (skipLLM) {
@@ -927,14 +947,23 @@ async function enhanceScheduleWithLLM(schedule, problems, skipLLM = false) {
     return schedule;
   }
 
+  logger.info(`[DailySchedule] 🤖 Generating new LLM enhancement...`);
   // Generate new enhancement via LLM
   const enhancement = await generateLLMEnhancement(focusArea, weekNumber, problems, slots);
+  logger.info(`[DailySchedule] 🎯 LLM enhancement generated:`, {
+    hasLearningObjectives: !!enhancement.learning_objectives,
+    hasProblemInsights: !!enhancement.problem_insights,
+    hasEnhancedSlots: !!enhancement.enhanced_slots
+  });
 
   // Cache the enhancement for future use
   await cacheEnhancement(cacheKey, focusArea, weekNumber, problems, enhancement, enhancement._metadata);
+  logger.info(`[DailySchedule] 💾 Enhancement cached`);
 
   // Apply enhancement to schedule
-  return applyEnhancementToSchedule(schedule, enhancement);
+  const result = applyEnhancementToSchedule(schedule, enhancement);
+  logger.info(`[DailySchedule] ✨ Enhancement applied, llm_enhanced flag:`, result.llm_enhanced);
+  return result;
 }
 
 /**
