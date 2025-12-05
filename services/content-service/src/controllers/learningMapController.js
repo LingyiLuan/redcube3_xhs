@@ -38,31 +38,14 @@ async function generateLearningMap(req, res) {
 
     // NEW PATH: Generate from comprehensive analysis report (reportId)
     if (reportId) {
-      logger.info(`[Learning Map] Generating from report: ${reportId} for user: ${userId}`);
+      logger.info(`[LM] START report=${reportId} user=${userId}`);
 
       try {
-        // ===== STEP 0: Log the cached report data to understand what we're working with =====
         const { getCachedBatchData } = require('./analysisController');
         const cachedData = await getCachedBatchData(reportId);
 
-        logger.info(`[Learning Map Controller] 🔍 Checking cached report data for: ${reportId}`);
         if (!cachedData) {
-          logger.error(`[Learning Map Controller] ❌ No cached data found for reportId: ${reportId}`);
-        } else {
-          logger.info(`[Learning Map Controller] ✅ Cached data exists`);
-          const patterns = cachedData.patternAnalysis;
-          if (patterns) {
-            logger.info(`[Learning Map Controller] 📊 Pattern Analysis Data:`);
-            logger.info(`  - source_posts count: ${patterns.source_posts?.length || 0}`);
-            logger.info(`  - individual_analyses count: ${patterns.individual_analyses?.length || 0}`);
-            logger.info(`  - seed_companies: ${JSON.stringify(patterns.seed_companies || [])}`);
-            logger.info(`  - skill_frequency keys: ${patterns.skill_frequency ? Object.keys(patterns.skill_frequency).length : 0}`);
-            if (patterns.individual_analyses) {
-              logger.info(`  - First analysis sample: ${JSON.stringify(patterns.individual_analyses[0]?.post_url || 'NO POST URL')}`);
-            }
-          } else {
-            logger.error(`[Learning Map Controller] ❌ Pattern analysis is missing in cached data`);
-          }
+          logger.error(`[LM] ERROR: No cached data for report=${reportId}`);
         }
 
         // Step 1: Generate base learning map
@@ -70,14 +53,6 @@ async function generateLearningMap(req, res) {
           reportId,
           { ...userGoals, userId }
         );
-
-        // DEBUG: Check what fields baseLearningMap has
-        logger.info(`[Learning Map Controller] 🔍 baseLearningMap fields check:`);
-        logger.info(`  - common_pitfalls: ${baseLearningMap.common_pitfalls ? 'EXISTS' : 'NULL/MISSING'}`);
-        logger.info(`  - readiness_checklist: ${baseLearningMap.readiness_checklist ? 'EXISTS' : 'NULL/MISSING'}`);
-        logger.info(`  - success_factors length: ${baseLearningMap.success_factors?.length || 0}`);
-        logger.info(`  - database_resources length: ${baseLearningMap.database_resources?.length || 0}`);
-        logger.info(`  - timeline_statistics: ${baseLearningMap.timeline_statistics ? 'EXISTS' : 'NULL/MISSING'}`);
 
         // Step 2: Fetch patterns from the report for enhancement
         const patterns = cachedData ? cachedData.patternAnalysis : null;
@@ -90,31 +65,6 @@ async function generateLearningMap(req, res) {
               userGoals?.targetCompany || null
             )
           : baseLearningMap;
-
-        // DEBUG: Check what fields learningMap has after enhancement
-        logger.info(`[Learning Map Controller] 🔍 After enhancement fields check:`);
-        logger.info(`  - common_pitfalls: ${learningMap.common_pitfalls ? 'EXISTS' : 'NULL/MISSING'}`);
-        logger.info(`  - readiness_checklist: ${learningMap.readiness_checklist ? 'EXISTS' : 'NULL/MISSING'}`);
-        logger.info(`  - success_factors length: ${learningMap.success_factors?.length || 0}`);
-        logger.info(`  - database_resources length: ${learningMap.database_resources?.length || 0}`);
-        logger.info(`  - timeline_statistics: ${learningMap.timeline_statistics ? 'EXISTS' : 'NULL/MISSING'}`);
-        logger.info(`  - pitfalls_narrative: ${learningMap.pitfalls_narrative ? 'EXISTS' : 'NULL/MISSING'}`);
-        logger.info(`  - improvement_areas: ${learningMap.improvement_areas ? 'EXISTS' : 'NULL/MISSING'}`);
-        logger.info(`  - resource_recommendations: ${learningMap.resource_recommendations ? 'EXISTS' : 'NULL/MISSING'}`);
-        logger.info(`  - preparation_expectations: ${learningMap.preparation_expectations ? 'EXISTS' : 'NULL/MISSING'}`);
-
-
-        logger.info(`[Learning Map] Enhancement applied: ${learningMap.enhancement_version || '1.0'}`);
-
-        // ===== COMPREHENSIVE LOGGING: Trace generated learning map data =====
-        logger.info(`[Learning Map Controller] 📊 Generated map structure check:`);
-        logger.info(`  - Title: ${learningMap.title}`);
-        logger.info(`  - Foundation: ${JSON.stringify(learningMap.foundation)}`);
-        logger.info(`  - Timeline: ${learningMap.timeline ? learningMap.timeline.total_weeks + ' weeks' : 'MISSING'}`);
-        logger.info(`  - Milestones count: ${learningMap.milestones?.length || 0}`);
-        logger.info(`  - Company tracks count: ${learningMap.company_tracks?.length || 0}`);
-        logger.info(`  - Analytics: ${learningMap.analytics ? JSON.stringify(Object.keys(learningMap.analytics)) : 'MISSING'}`);
-        logger.info(`  - Expected outcomes: ${learningMap.expected_outcomes ? JSON.stringify(Object.keys(learningMap.expected_outcomes)) : 'MISSING'}`);
 
         // Save to database
         const savedMap = await learningMapsQueries.saveLearningMap({
@@ -155,14 +105,6 @@ async function generateLearningMap(req, res) {
           preparation_expectations: learningMap.preparation_expectations || null
         });
 
-        logger.info(`[Learning Map Controller] 💾 Saved to database with ID: ${savedMap.id}`);
-
-        // Log what savedMap contains
-        logger.info(`[Learning Map Controller] 🔍 savedMap type check:`);
-        logger.info(`  - savedMap.milestones type: ${typeof savedMap.milestones}`);
-        logger.info(`  - savedMap.analytics type: ${typeof savedMap.analytics}`);
-        logger.info(`  - savedMap.company_tracks type: ${typeof savedMap.company_tracks}`);
-
         // Return the complete learning map with database ID
         const responseData = {
           ...learningMap,
@@ -173,10 +115,7 @@ async function generateLearningMap(req, res) {
           progress: savedMap.progress
         };
 
-        logger.info(`[Learning Map Controller] 📤 Response data being sent:`);
-        logger.info(`  - responseData.milestones count: ${responseData.milestones?.length || 'MISSING'}`);
-        logger.info(`  - responseData.company_tracks count: ${responseData.company_tracks?.length || 'MISSING'}`);
-        logger.info(`  - responseData.analytics keys: ${responseData.analytics ? Object.keys(responseData.analytics).length : 'MISSING'}`);
+        logger.info(`[LM] SUCCESS id=${savedMap.id} title="${learningMap.title}"`);
 
         return res.json({
           success: true,
@@ -185,7 +124,7 @@ async function generateLearningMap(req, res) {
         });
 
       } catch (error) {
-        logger.error('[Learning Map] Generation failed:', error);
+        logger.error(`[LM] FAILED report=${reportId} error=${error.message}`);
 
         // Check if error is due to insufficient data
         if (error.message.includes('Insufficient foundation data') ||

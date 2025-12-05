@@ -61,7 +61,8 @@ async function generateLearningMapStream(req, res) {
   sendEvent('connected', { message: 'SSE connection established', reportId });
 
   try {
-    logger.info(`[Learning Map Stream] Starting generation for report: ${reportId}`);
+    // CRITICAL LOG: Start of learning map generation
+    logger.info(`[LM] START report=${reportId} user=${userId}`);
 
     // Phase 1: Load cached report data
     sendEvent('progress', { phase: 1, message: 'Loading analysis report...', percent: 5 });
@@ -70,6 +71,7 @@ async function generateLearningMapStream(req, res) {
     const cachedData = await getCachedBatchData(reportId);
 
     if (!cachedData || !cachedData.patternAnalysis) {
+      logger.error(`[LM] ERROR: Report not found - ${reportId}`);
       sendEvent('error', { message: 'Report not found or missing pattern analysis' });
       return res.end();
     }
@@ -96,14 +98,12 @@ async function generateLearningMapStream(req, res) {
     sendEvent('progress', { phase: 2, message: 'Base learning map generated', percent: 55 });
 
     // Phase 2.5: Generate detailed hour-by-hour schedules for timeline weeks
-    // DEBUG MODE: No fallbacks - let errors surface so we can fix them
     sendEvent('progress', { phase: 2, message: 'Generating detailed daily schedules...', percent: 58 });
 
     const pool = require('../config/database');
 
-    // Get interview questions from source posts (real data, NOT curated_problems fallback)
+    // Get interview questions from source posts
     const postIds = cachedData.patternAnalysis?.source_posts?.map(p => p.post_id) || [];
-    logger.info(`[LearningMapStream] Fetching interview questions from ${postIds.length} source posts...`);
 
     const problemsResult = await pool.query(`
       SELECT DISTINCT
@@ -122,19 +122,9 @@ async function generateLearningMapStream(req, res) {
       LIMIT 200
     `, [postIds]);
     const allProblems = problemsResult.rows;
-    logger.info(`[LearningMapStream] Found ${allProblems.length} interview questions from ${postIds.length} source posts`);
-    if (allProblems.length > 0) {
-      logger.info(`[LearningMapStream] Sample problems:`, allProblems.slice(0, 3).map(p => ({
-        name: p.name?.substring(0, 50),
-        category: p.category,
-        difficulty: p.difficulty,
-        company: p.company
-      })));
-    }
 
     // Enhance timeline weeks with hour-by-hour schedules (LLM cached for fast response)
     if (baseLearningMap.timeline && baseLearningMap.timeline.weeks) {
-      logger.info(`[LearningMapStream] Enhancing ${baseLearningMap.timeline.weeks.length} weeks with detailed schedules...`);
       const enhancedWeeks = await timelineMilestoneEnhancementService.enhanceWeeksWithDetailedSchedules(
         baseLearningMap.timeline.weeks,
         allProblems,
@@ -142,7 +132,6 @@ async function generateLearningMapStream(req, res) {
         true // enable LLM enhancement - uses cache for fast response
       );
       baseLearningMap.timeline.weeks = enhancedWeeks;
-      logger.info(`[LearningMapStream] Added detailed_daily_schedules to ${enhancedWeeks.filter(w => w.detailed_daily_schedules).length}/${enhancedWeeks.length} weeks`);
     }
 
     sendEvent('progress', { phase: 2, message: 'Daily schedules generated', percent: 60 });
@@ -215,10 +204,12 @@ async function generateLearningMapStream(req, res) {
       message: 'Learning map generated successfully'
     });
 
-    logger.info(`[Learning Map Stream] Generation complete: ${savedMap.id}`);
+    // CRITICAL LOG: Successful completion
+    logger.info(`[LM] SUCCESS id=${savedMap.id} posts=${sourcePosts.length}`);
 
   } catch (error) {
-    logger.error('[Learning Map Stream] Generation failed:', error);
+    // CRITICAL LOG: Error during generation
+    logger.error(`[LM] FAILED report=${reportId} error=${error.message}`);
     sendEvent('error', {
       message: error.message || 'Failed to generate learning map',
       details: error.message.includes('Insufficient') ? 'insufficient_data' : 'generation_error'
@@ -245,9 +236,6 @@ async function generateOptimizedLearningMap(reportId, userGoals, progressCallbac
     aggregateCommonPitfalls,
     aggregateReadinessChecklist
   } = require('../services/knowledgeGapsResourcesService');
-
-  const startTime = Date.now();
-  logger.info(`[Learning Map Optimized] Starting generation for report: ${reportId}`);
 
   // 1. Load cached report data
   const cachedData = await getCachedBatchData(reportId);
@@ -405,8 +393,6 @@ async function generateOptimizedLearningMap(reportId, userGoals, progressCallbac
     analytics
   };
 
-  logger.info(`[Learning Map Optimized] Generated in ${Date.now() - startTime}ms`);
-
   return learningMap;
 }
 
@@ -419,7 +405,6 @@ async function generateEnhancedTimelineOptimized(sourcePosts, timelineData, skil
   const pool = require('../config/database');
 
   const totalWeeks = userGoals.timelineWeeks || timelineData.avg_prep_weeks || timelineData.median_prep_weeks || 12;
-  logger.info(`[TimelineOptimized] Generating ${totalWeeks} weeks`);
 
   // Extract evidence for context
   const postIds = sourcePosts.map(p => p.post_id);

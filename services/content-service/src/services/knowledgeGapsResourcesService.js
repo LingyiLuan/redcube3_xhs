@@ -23,8 +23,6 @@ const pool = require('../config/database');
  * @returns {Object} Knowledge gaps with evidence
  */
 async function extractKnowledgeGaps(sourcePosts, userGoals) {
-  logger.info('[KnowledgeGaps] Extracting knowledge gaps from failure patterns');
-
   const postIds = sourcePosts.map(p => p.post_id);
 
   if (postIds.length === 0) {
@@ -63,8 +61,6 @@ async function extractKnowledgeGaps(sourcePosts, userGoals) {
 
   const result = await pool.query(failureQuery, [postIds]);
 
-  logger.info(`[KnowledgeGaps] Found ${result.rows.length} posts with failure patterns`);
-
   // Extract struggle patterns from posts
   const strugglePatterns = await analyzeStrugglePatterns(result.rows);
 
@@ -90,10 +86,6 @@ async function extractKnowledgeGaps(sourcePosts, userGoals) {
  * @returns {Object} Curated resources with success rates
  */
 async function extractCuratedResources(sourcePosts) {
-  // ✅ MIGRATION 27 DATABASE-FIRST APPROACH
-  // Use aggregateResourcesFromDB which queries the resources_used field
-  logger.info('[Resources] Extracting curated resources from database (Migration 27)');
-
   const postIds = sourcePosts.map(p => p.post_id);
 
   if (postIds.length === 0) {
@@ -120,8 +112,6 @@ async function extractCuratedResources(sourcePosts) {
 
   const postsWithData = parseInt(result.rows[0].count) || 0;
 
-  logger.info(`[Resources] Found ${resources.length} unique resources from ${postsWithData} posts with data`);
-
   return {
     resources,
     evidence_quality: {
@@ -143,11 +133,6 @@ async function extractCuratedResources(sourcePosts) {
  * Identifies common areas where candidates struggled
  */
 async function analyzeStrugglePatterns(failurePosts) {
-  // ✅ MIGRATION 27 DATABASE-FIRST APPROACH
-  // Query actual database fields instead of LLM extraction
-
-  logger.info(`[StrugglePatterns] Aggregating from database (Migration 27 fields)`);
-
   if (failurePosts.length === 0) {
     return {
       struggle_areas: [],
@@ -197,8 +182,6 @@ async function analyzeStrugglePatterns(failurePosts) {
       ORDER BY fail_count DESC
       LIMIT 10
     `, [postIds]);
-
-    logger.info(`[StrugglePatterns] Found ${areasResult.rows.length} struggle areas, ${skillsResult.rows.length} failed skills from database`);
 
     return {
       struggle_areas: areasResult.rows.map(row => ({
@@ -459,8 +442,6 @@ function normalizeSkillName(skill) {
 async function aggregateSuccessFactors(sourcePosts) {
   const postIds = sourcePosts.map(p => p.post_id);
 
-  logger.info(`[SuccessFactors] Aggregating from ${postIds.length} posts`);
-
   try {
     const result = await pool.query(`
       SELECT
@@ -481,8 +462,6 @@ async function aggregateSuccessFactors(sourcePosts) {
       LIMIT 15
     `, [postIds]);
 
-    logger.info(`[SuccessFactors] Found ${result.rows.length} unique success factors`);
-
     return result.rows.map(row => ({
       factor: row.factor,
       impact: row.impact || 'medium',
@@ -502,8 +481,6 @@ async function aggregateSuccessFactors(sourcePosts) {
  */
 async function aggregateResourcesFromDB(sourcePosts) {
   const postIds = sourcePosts.map(p => p.post_id);
-
-  logger.info(`[ResourcesDB] Aggregating from ${postIds.length} posts`);
 
   try {
     const result = await pool.query(`
@@ -530,8 +507,6 @@ async function aggregateResourcesFromDB(sourcePosts) {
       LIMIT 15
     `, [postIds]);
 
-    logger.info(`[ResourcesDB] Found ${result.rows.length} unique resources`);
-
     return result.rows.map(row => ({
       name: row.resource_name,
       type: row.resource_type || 'Resource',
@@ -553,8 +528,6 @@ async function aggregateResourcesFromDB(sourcePosts) {
  */
 async function aggregateTimelineData(sourcePosts) {
   const postIds = sourcePosts.map(p => p.post_id);
-
-  logger.info(`[TimelineData] Aggregating from ${postIds.length} posts`);
 
   try {
     const result = await pool.query(`
@@ -586,10 +559,6 @@ async function aggregateTimelineData(sourcePosts) {
     `, [postIds]);
 
     const stats = result.rows[0];
-
-    // Convert PostgreSQL numeric types to JavaScript numbers for logging
-    const avgPrepDays = stats.avg_prep_days ? Number(stats.avg_prep_days) : null;
-    logger.info(`[TimelineData] Stats: avg_prep=${avgPrepDays ? Math.round(avgPrepDays) : 'N/A'} days, median=${stats.median_prep_days}, posts_with_data=${stats.posts_with_prep_time}`);
 
     return {
       preparation: {
@@ -646,17 +615,6 @@ async function aggregateTimelineData(sourcePosts) {
  * Creates categorized, prioritized list of areas to focus on
  */
 async function generateKnowledgeGaps(strugglePatterns, failurePostsCount, totalPosts) {
-  logger.info('[KnowledgeGaps] Generating knowledge gaps via LLM');
-
-  // 🔍 DEBUG: Log input data
-  logger.info(`[KnowledgeGaps] 🔍 Input data:`);
-  logger.info(`  - failurePostsCount: ${failurePostsCount}`);
-  logger.info(`  - totalPosts: ${totalPosts}`);
-  logger.info(`  - strugglePatterns.struggle_areas length: ${strugglePatterns.struggle_areas?.length || 0}`);
-  logger.info(`  - strugglePatterns.failed_skills length: ${strugglePatterns.failed_skills?.length || 0}`);
-  logger.info(`  - Sample struggle_areas: ${JSON.stringify(strugglePatterns.struggle_areas?.slice(0, 2))}`);
-  logger.info(`  - Sample failed_skills: ${JSON.stringify(strugglePatterns.failed_skills?.slice(0, 2))}`);
-
   const prompt = `You are an interview preparation expert analyzing ${failurePostsCount} failure experiences from ${totalPosts} total interview posts.
 
 EVIDENCE FROM REAL FAILURE PATTERNS:
@@ -700,15 +658,7 @@ CRITICAL: Return ONLY the JSON array, no explanation. Maximum 8 gaps.`;
   try {
     const response = await analyzeWithOpenRouter(prompt, { max_tokens: 4000, temperature: 0.7 });
 
-    // 🔍 DEBUG: Log raw LLM response
-    logger.info(`[KnowledgeGaps] 🔍 Raw LLM response (first 1000 chars): ${response.substring(0, 1000)}`);
-    logger.info(`[KnowledgeGaps] 🔍 Response length: ${response.length} characters`);
-
     let gaps = extractJsonFromString(response);
-
-    // 🔍 DEBUG: Log extraction result
-    logger.info(`[KnowledgeGaps] 🔍 Extracted gaps type: ${Array.isArray(gaps) ? 'array' : typeof gaps}`);
-    logger.info(`[KnowledgeGaps] 🔍 Extracted gaps: ${JSON.stringify(gaps).substring(0, 500)}`);
 
     // Ensure gaps is an array
     if (!Array.isArray(gaps)) {
@@ -744,10 +694,9 @@ CRITICAL: Return ONLY the JSON array, no explanation. Maximum 8 gaps.`;
       }
     });
 
-    logger.info(`[KnowledgeGaps] Generated ${gaps.length} knowledge gaps successfully`);
     return gaps;
   } catch (error) {
-    logger.error('[KnowledgeGaps] LLM generation failed, using fallback:', error);
+    logger.error(`[KnowledgeGaps] LLM failed: ${error.message}`);
     return generateFallbackKnowledgeGaps(strugglePatterns, failurePostsCount);
   }
 }
@@ -757,8 +706,6 @@ CRITICAL: Return ONLY the JSON array, no explanation. Maximum 8 gaps.`;
  * Ranks resources by effectiveness and mentions
  */
 async function generateCuratedResources(resourcePatterns, resourcePostsCount, totalPosts) {
-  logger.info('[Resources] Generating curated resources via LLM');
-
   const topResources = resourcePatterns.resources
     .filter(r => r.total_mentions >= 3)  // At least 3 mentions
     .sort((a, b) => {
@@ -815,15 +762,7 @@ CRITICAL: Return ONLY the JSON array, no explanation. Maximum 10 resources.`;
   try {
     const response = await analyzeWithOpenRouter(prompt, { max_tokens: 4000, temperature: 0.7 });
 
-    // 🔍 DEBUG: Log raw LLM response
-    logger.info(`[Resources] 🔍 Raw LLM response (first 1000 chars): ${response.substring(0, 1000)}`);
-    logger.info(`[Resources] 🔍 Response length: ${response.length} characters`);
-
     const resources = extractJsonFromString(response);
-
-    // 🔍 DEBUG: Log extraction result
-    logger.info(`[Resources] 🔍 Extracted resources type: ${Array.isArray(resources) ? 'array' : typeof resources}`);
-    logger.info(`[Resources] 🔍 Extracted resources: ${JSON.stringify(resources).substring(0, 500)}`);
 
     // Fill in source_post_ids from actual evidence
     resources.forEach(resource => {
@@ -836,10 +775,9 @@ CRITICAL: Return ONLY the JSON array, no explanation. Maximum 10 resources.`;
       }
     });
 
-    logger.info(`[Resources] Generated ${resources.length} curated resources successfully`);
     return resources;
   } catch (error) {
-    logger.error('[Resources] LLM generation failed, using fallback:', error);
+    logger.error(`[Resources] LLM failed: ${error.message}`);
     return generateFallbackResources(resourcePatterns);
   }
 }
@@ -880,8 +818,6 @@ function generateFallbackResources(resourcePatterns) {
  * Database-first aggregation of mistakes_made and rejection_reasons
  */
 async function aggregateCommonPitfalls(sourcePosts) {
-  logger.info('[CommonPitfalls] Aggregating from database (Migration 27 fields)');
-
   const postIds = sourcePosts.map(p => p.post_id);
 
   if (postIds.length === 0) {
@@ -964,8 +900,6 @@ async function aggregateCommonPitfalls(sourcePosts) {
       }))
     ].sort((a, b) => b.mention_count - a.mention_count).slice(0, 12);
 
-    logger.info(`[CommonPitfalls] Found ${pitfalls.length} common pitfalls from ${postsWithData} posts with data`);
-
     return {
       pitfalls,
       evidence_quality: {
@@ -996,8 +930,6 @@ async function aggregateCommonPitfalls(sourcePosts) {
  * Database-first aggregation of success_factors and improvement_areas
  */
 async function aggregateReadinessChecklist(sourcePosts) {
-  logger.info('[ReadinessChecklist] Aggregating from database (Migration 27 fields)');
-
   const postIds = sourcePosts.map(p => p.post_id);
 
   if (postIds.length === 0) {
@@ -1086,8 +1018,6 @@ async function aggregateReadinessChecklist(sourcePosts) {
       const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
       return priorityDiff !== 0 ? priorityDiff : b.mention_count - a.mention_count;
     }).slice(0, 15);
-
-    logger.info(`[ReadinessChecklist] Found ${checklist_items.length} checklist items from ${postsWithData} posts with data`);
 
     return {
       checklist_items,
