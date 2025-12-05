@@ -42,7 +42,7 @@
             </p>
             <div v-if="autoLoginSuccess" class="loading-spinner small-spinner"></div>
             <div v-else class="action-buttons">
-              <button @click="router.push({ name: 'login' })" class="primary-btn">
+              <button @click="router.push({ name: 'Login' })" class="primary-btn">
                 SIGN IN NOW
               </button>
             </div>
@@ -72,7 +72,7 @@
               <button @click="handleResendVerification" class="primary-btn" :disabled="isResending">
                 {{ isResending ? 'SENDING...' : 'RESEND VERIFICATION EMAIL' }}
               </button>
-              <button @click="router.push({ name: 'register' })" class="secondary-btn">
+              <button @click="router.push({ name: 'Register' })" class="secondary-btn">
                 CREATE NEW ACCOUNT
               </button>
             </div>
@@ -97,7 +97,7 @@
               <button @click="router.push({ name: 'landing' })" class="primary-btn">
                 GO TO HOME
               </button>
-              <button @click="router.push({ name: 'register' })" class="secondary-btn">
+              <button @click="router.push({ name: 'Register' })" class="secondary-btn">
                 SIGN UP
               </button>
             </div>
