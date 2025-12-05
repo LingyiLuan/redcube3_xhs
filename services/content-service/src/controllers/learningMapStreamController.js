@@ -121,14 +121,14 @@ async function generateLearningMapStream(req, res) {
     const allProblems = problemsResult.rows;
     logger.info(`[LearningMapStream] Found ${allProblems.length} interview questions from source posts`);
 
-    // Enhance timeline weeks with hour-by-hour schedules (disable LLM for speed)
+    // Enhance timeline weeks with hour-by-hour schedules (LLM cached for fast response)
     if (baseLearningMap.timeline && baseLearningMap.timeline.weeks) {
       logger.info(`[LearningMapStream] Enhancing ${baseLearningMap.timeline.weeks.length} weeks with detailed schedules...`);
       const enhancedWeeks = await timelineMilestoneEnhancementService.enhanceWeeksWithDetailedSchedules(
         baseLearningMap.timeline.weeks,
         allProblems,
         6, // hours per day
-        false // disable LLM enhancement for speed
+        true // enable LLM enhancement - uses cache for fast response
       );
       baseLearningMap.timeline.weeks = enhancedWeeks;
       logger.info(`[LearningMapStream] Added detailed_daily_schedules to ${enhancedWeeks.filter(w => w.detailed_daily_schedules).length}/${enhancedWeeks.length} weeks`);

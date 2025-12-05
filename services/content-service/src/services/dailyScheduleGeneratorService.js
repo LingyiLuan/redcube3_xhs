@@ -265,24 +265,27 @@ async function getDefaultProblems(focusArea, weekNumber) {
 
 /**
  * Query database for real problems mentioned in posts
+ * Uses leetcode_questions table (the actual production table name)
+ * topic_tags is a JSONB array like ["Array", "Hash Table"]
  */
 async function getProblemsFromDatabase(focusArea) {
   const query = `
-    SELECT DISTINCT
-      lp.problem_name as name,
-      lp.problem_number as number,
-      lp.difficulty,
-      COUNT(*) as mention_count
-    FROM leetcode_problems lp
-    WHERE lp.problem_name IS NOT NULL
-      AND lp.problem_number IS NOT NULL
+    SELECT
+      lq.title as name,
+      lq.frontend_id as number,
+      lq.difficulty,
+      lq.difficulty_numeric
+    FROM leetcode_questions lq
+    WHERE lq.title IS NOT NULL
+      AND lq.frontend_id IS NOT NULL
       AND (
-        lp.category ILIKE $1
-        OR lp.category ILIKE '%' || $1 || '%'
+        EXISTS (
+          SELECT 1 FROM jsonb_array_elements_text(COALESCE(lq.topic_tags, '[]'::jsonb)) AS tag
+          WHERE tag ILIKE $1 OR tag ILIKE '%' || $1 || '%'
+        )
         OR $1 = 'default'
       )
-    GROUP BY lp.problem_name, lp.problem_number, lp.difficulty
-    ORDER BY mention_count DESC, lp.difficulty ASC
+    ORDER BY lq.difficulty_numeric ASC, lq.frontend_id ASC
     LIMIT 12
   `;
 
