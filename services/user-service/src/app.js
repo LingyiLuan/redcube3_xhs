@@ -80,17 +80,19 @@ if (process.env.REDIS_URL) {
         family: 4, // Force IPv4 for Railway private network (IPv6 DNS returns IPv4 addresses)
         connectTimeout: 10000, // 10 second connection timeout
         reconnectStrategy: (retries) => {
-          if (retries > 10) {
-            console.error('[Session] Redis reconnection failed after 10 retries');
-            return false; // Stop reconnecting
-          }
-          return Math.min(retries * 100, 3000); // Exponential backoff, max 3s
-        }
+          // CRITICAL: Never give up reconnecting - always return a delay
+          // This prevents "client is closed" errors after connection loss
+          const delay = Math.min(retries * 500, 30000); // Exponential backoff, max 30s
+          console.log(`[Session] Redis reconnecting in ${delay}ms (attempt ${retries})`);
+          return delay;
+        },
+        // Keepalive to prevent Railway/Redis from closing idle connections
+        keepAlive: 30000 // Send keepalive every 30 seconds
       }
     });
 
     redisClient.on('error', (err) => {
-      console.error('[Session] Redis client error:', err);
+      console.error('[Session] Redis client error:', err.message);
     });
 
     redisClient.on('connect', () => {
@@ -99,6 +101,14 @@ if (process.env.REDIS_URL) {
 
     redisClient.on('ready', () => {
       console.log('[Session] ✅ Redis ready for session storage');
+    });
+
+    redisClient.on('reconnecting', () => {
+      console.log('[Session] 🔄 Redis reconnecting...');
+    });
+
+    redisClient.on('end', () => {
+      console.warn('[Session] ⚠️ Redis connection closed');
     });
 
     // Connect Redis client (async, but we'll handle it)
