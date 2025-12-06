@@ -53,16 +53,25 @@ async function generateLearningMapStream(req, res) {
 
   // Track if client is still connected
   let clientConnected = true;
+  let generationStarted = false;
 
   // Listen for client disconnection
+  // CRITICAL FIX: Only honor close event after generation has actually started
+  // Some infrastructure (Railway/Cloudflare) fires 'close' immediately on SSE setup
   req.on('close', () => {
-    clientConnected = false;
-    logger.warn(`[LM] Client disconnected for report=${reportId}, stopping processing`);
+    if (generationStarted) {
+      clientConnected = false;
+      logger.warn(`[LM] Client disconnected for report=${reportId}, stopping processing`);
+    } else {
+      logger.debug(`[LM] Ignoring early close event for report=${reportId} - generation not started yet`);
+    }
   });
 
   req.on('aborted', () => {
-    clientConnected = false;
-    logger.warn(`[LM] Client aborted for report=${reportId}, stopping processing`);
+    if (generationStarted) {
+      clientConnected = false;
+      logger.warn(`[LM] Client aborted for report=${reportId}, stopping processing`);
+    }
   });
 
   // Helper to send SSE events (check connection first)
@@ -113,6 +122,9 @@ async function generateLearningMapStream(req, res) {
   try {
     // CRITICAL LOG: Start of learning map generation
     logger.info(`[LM] START report=${reportId} user=${userId}`);
+
+    // Mark generation as started - now we can honor close events
+    generationStarted = true;
 
     // Phase 1: Load cached report data
     if (!sendEvent('progress', { phase: 1, message: 'Loading analysis report...', percent: 5 })) {
