@@ -235,7 +235,22 @@ export const useReportsStore = defineStore('reports', () => {
   function clearAll() {
     reports.value = []
     activeReportId.value = null
-    console.log('[ReportsStore] All reports cleared')
+
+    // ✅ CRITICAL FIX: Clear localStorage to prevent user data contamination
+    // Without this, stale batchIds from one user could leak to another user
+    localStorage.removeItem(STORAGE_KEY)
+
+    // Also clear any single-analysis entries (they have dynamic keys)
+    const keysToRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith('single-analysis-')) {
+        keysToRemove.push(key)
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key))
+
+    console.log('[ReportsStore] All reports and localStorage cleared')
   }
 
   // ===== BACKEND PERSISTENCE =====

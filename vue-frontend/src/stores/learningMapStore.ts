@@ -247,16 +247,54 @@ export const useLearningMapStore = defineStore('learningMap', () => {
       }).catch(error => {
         console.error('[LearningMapStore] SSE Error:', error)
 
+        // Check if it's a network/stream error vs a real error
+        const isNetworkError = error.message?.includes('network') || 
+                               error.message?.includes('stream') ||
+                               error.message?.includes('input stream') ||
+                               error.name === 'TypeError'
+
         // Mark pending map as error
         const pending = pendingMaps.value.find(p => p.id === pendingId)
         if (pending) {
           pending.status = 'error'
-          pending.error = error.message || 'Generation failed'
+          if (isNetworkError) {
+            // Network error - backend might still be processing, show checking message
+            pending.error = 'Connection interrupted. Checking if map was saved...'
+            pending.progress = { phase: 5, message: 'Checking if saved...', percent: 95 }
+            
+            // Wait and check if map was saved
+            setTimeout(async () => {
+              const prevMapCount = maps.value.length
+              await fetchUserMaps()
+              if (maps.value.length > prevMapCount) {
+                // Map was saved! Remove error status
+                const pendingIndex = pendingMaps.value.findIndex(p => p.id === pendingId)
+                if (pendingIndex > -1) {
+                  pendingMaps.value.splice(pendingIndex, 1)
+                }
+                console.log('[LearningMapStore] Map was saved despite stream error')
+              } else {
+                // Map wasn't saved, show real error
+                if (pending) {
+                  pending.error = 'Connection lost. Please try generating again.'
+                }
+              }
+            }, 5000)
+          } else {
+            pending.error = error.message || 'Generation failed'
+          }
         }
 
         isGenerating.value = false
         generationProgress.value = null
-        reject(error)
+        
+        // Only reject if it's not a network error (network errors are handled above)
+        if (!isNetworkError) {
+          reject(error)
+        } else {
+          // Resolve undefined for network errors (we're checking if it was saved)
+          resolve(undefined as any)
+        }
       })
     })
   }

@@ -28,18 +28,19 @@ async function analyzeSinglePost(req, res) {
 
     const { text } = value;
 
-    // Use authenticated user's ID from middleware, fallback to 1 if not available
-    const userId = req.user?.id || 1;
+    // ✅ SECURITY FIX: Require authentication - no fallback to userId 1
+    // This prevents data contamination between user accounts
+    if (!req.user?.id) {
+      return res.status(401).json({
+        error: 'Authentication required',
+        message: 'Please log in to perform analysis'
+      });
+    }
+    const userId = req.user.id;
 
     console.log(`🔍 ANALYSIS CONTROLLER - Single Post (NEW RAG PIPELINE):`);
-    console.log(`  - req.user exists: ${!!req.user}`);
     console.log(`  - User ID: ${userId}`);
-
-    if (req.user) {
-      console.log(`  - User Email: ${req.user.email}`);
-    } else {
-      console.log(`  - WARNING: No req.user found, using fallback userId = 1`);
-    }
+    console.log(`  - User Email: ${req.user.email}`);
 
     // ===== STEP 1: AI Extraction =====
     logger.info('[Single Analysis] STEP 1: AI extraction...');
@@ -294,8 +295,16 @@ async function analyzeBatchPosts(req, res) {
     }
 
     const { posts, analyzeConnections = true } = value;
-    // Use authenticated user's ID from middleware, fallback to 1 if not available
-    const userId = req.user?.id || 1;
+
+    // ✅ SECURITY FIX: Require authentication - no fallback to userId 1
+    // This prevents data contamination between user accounts
+    if (!req.user?.id) {
+      return res.status(401).json({
+        error: 'Authentication required',
+        message: 'Please log in to perform batch analysis'
+      });
+    }
+    const userId = req.user.id;
 
     // Generate deterministic batchId based on post content
     // Same posts → Same batchId → Cache hit
@@ -309,8 +318,8 @@ async function analyzeBatchPosts(req, res) {
     logger.info(`[Batch Analysis] Generated deterministic batchId: ${batchId}`);
 
     console.log(`🔍 ANALYSIS CONTROLLER - Batch Posts:`);
-    console.log(`  - req.user exists: ${!!req.user}`);
     console.log(`  - User ID: ${userId}`);
+    console.log(`  - User Email: ${req.user.email}`);
     console.log(`  - Batch size: ${posts.length}`);
     console.log(`  - Posts metadata (first 2):`, posts.slice(0, 2).map(p => ({
       id: p.id,
@@ -319,12 +328,6 @@ async function analyzeBatchPosts(req, res) {
       url: p.url,
       hasText: !!p.text
     })));
-
-    if (req.user) {
-      console.log(`  - User Email: ${req.user.email}`);
-    } else {
-      console.log(`  - WARNING: No req.user found, using fallback userId = 1`);
-    }
 
     const startTime = Date.now();
     let result;

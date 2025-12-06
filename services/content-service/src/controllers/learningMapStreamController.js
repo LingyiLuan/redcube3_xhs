@@ -86,6 +86,30 @@ async function generateLearningMapStream(req, res) {
   // Send initial connection confirmation
   sendEvent('connected', { message: 'SSE connection established', reportId });
 
+  // Keepalive interval to prevent connection timeouts (send every 30 seconds)
+  const keepaliveInterval = setInterval(() => {
+    if (clientConnected) {
+      try {
+        res.write(': keepalive\n\n'); // SSE comment line (keeps connection alive)
+      } catch (error) {
+        clientConnected = false;
+        clearInterval(keepaliveInterval);
+        logger.warn(`[LM] Keepalive failed, client disconnected`);
+      }
+    } else {
+      clearInterval(keepaliveInterval);
+    }
+  }, 30000); // Every 30 seconds
+
+  // Clean up interval on connection close
+  req.on('close', () => {
+    clearInterval(keepaliveInterval);
+  });
+
+  req.on('aborted', () => {
+    clearInterval(keepaliveInterval);
+  });
+
   try {
     // CRITICAL LOG: Start of learning map generation
     logger.info(`[LM] START report=${reportId} user=${userId}`);
@@ -277,10 +301,15 @@ async function generateLearningMapStream(req, res) {
   } catch (error) {
     // CRITICAL LOG: Error during generation
     logger.error(`[LM] FAILED report=${reportId} error=${error.message}`);
-    sendEvent('error', {
-      message: error.message || 'Failed to generate learning map',
-      details: error.message.includes('Insufficient') ? 'insufficient_data' : 'generation_error'
-    });
+    if (clientConnected) {
+      sendEvent('error', {
+        message: error.message || 'Failed to generate learning map',
+        details: error.message.includes('Insufficient') ? 'insufficient_data' : 'generation_error'
+      });
+    }
+  } finally {
+    // Clean up keepalive interval
+    clearInterval(keepaliveInterval);
   }
 
   res.end();
@@ -432,11 +461,16 @@ async function generateOptimizedLearningMap(reportId, userGoals, progressCallbac
   const analytics = buildAnalytics(patterns, timeline, sourcePosts);
 
   // 10. Assemble final learning map
+  // ✅ SECURITY FIX: Require userId - no fallback to 1
+  if (!userGoals.userId) {
+    throw new Error('User ID is required for learning map generation');
+  }
+
   const learningMap = {
     id: `map_${Date.now()}`,
     title: generateTitle(patterns, userGoals),
     created_at: new Date().toISOString(),
-    user_id: userGoals.userId || 1,
+    user_id: userGoals.userId,
     foundation,
     company_tracks: companyTracks,
     timeline,
