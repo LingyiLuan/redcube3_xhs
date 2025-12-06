@@ -516,12 +516,20 @@ async function enhanceWeeksWithDetailedSchedules(weeks, allProblems, availableHo
   }
 
   const enhancedWeeks = [];
-  const problemsPerWeek = Math.ceil(allProblems.length / weeks.length);
+
+  // CRITICAL: Log if allProblems is empty - this will cause placeholder-only schedules
+  if (!allProblems || allProblems.length === 0) {
+    logger.error(`[TimelineEnhancement] CRITICAL: allProblems is EMPTY! Daily schedules will have no real problems.`);
+  } else {
+    logger.info(`[TimelineEnhancement] Enhancing ${weeks.length} weeks with ${allProblems.length} problems`);
+  }
+
+  const problemsPerWeek = Math.ceil((allProblems?.length || 0) / weeks.length);
 
   for (const week of weeks) {
     // Get problems for this week based on skills covered
-    const weekProblems = selectProblemsForWeek(allProblems, week, problemsPerWeek);
-    logger.debug(`[TimelineEnhancement] Week ${week.week}: Selected ${weekProblems.length} problems from ${allProblems.length} total`);
+    const weekProblems = selectProblemsForWeek(allProblems || [], week, problemsPerWeek);
+    logger.debug(`[TimelineEnhancement] Week ${week.week}: Selected ${weekProblems.length} problems from ${allProblems?.length || 0} total`);
 
     // Determine focus area from week title, skills, or problems
     const focusArea = extractFocusArea(week, allProblems);

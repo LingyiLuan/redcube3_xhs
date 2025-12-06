@@ -152,6 +152,14 @@ async function generateLearningMapStream(req, res) {
     // Get interview questions from source posts
     const postIds = cachedData.patternAnalysis?.source_posts?.map(p => p.post_id) || [];
 
+    // DEBUG: Log postIds to trace issue
+    logger.info(`[LM] Fetching problems for ${postIds.length} source posts`);
+    if (postIds.length === 0) {
+      logger.error(`[LM] CRITICAL: postIds array is EMPTY! cachedData.patternAnalysis.source_posts may be missing or malformed`);
+    } else {
+      logger.debug(`[LM] Sample postIds: ${postIds.slice(0, 5).join(', ')}`);
+    }
+
     const problemsResult = await pool.query(`
       SELECT DISTINCT
         iq.id,
@@ -169,6 +177,9 @@ async function generateLearningMapStream(req, res) {
       LIMIT 200
     `, [postIds]);
     const allProblems = problemsResult.rows;
+
+    // DEBUG: Log results
+    logger.info(`[LM] Found ${allProblems.length} interview questions for learning map enhancement`);
 
     if (baseLearningMap.timeline && baseLearningMap.timeline.weeks) {
       const enhancedWeeks = await timelineMilestoneEnhancementService.enhanceWeeksWithDetailedSchedules(
