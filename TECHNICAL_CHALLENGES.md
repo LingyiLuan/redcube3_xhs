@@ -422,3 +422,187 @@ res.clearCookie('redcube.sid', {
 - **Resilient connection handling** with auto-reconnect and health checks
 - **Defense in depth** - multiple strategies (keepalive + ping + health check)
 - Real production bug affecting user authentication
+
+---
+
+## Challenge 22: SSE Timeout on Cloudflare/Railway for Learning Map Generation (Dec 2025)
+
+### Problem
+Learning map generation showed scary "Connection lost" error card to users even though:
+- Backend completed successfully and saved the map to database
+- The map appeared correctly after page refresh
+- Frontend didn't know the generation had succeeded
+
+Users saw: "Error - Connection lost. Please try generating again."
+But the map was actually saved successfully!
+
+### Investigation
+1. **Backend logs confirmed**: `[LM] SUCCESS id=113 posts=200` - map saved!
+2. **Timing analysis**: Generation takes ~2-3 minutes (many LLM calls)
+3. **SSE stream dies** after ~100 seconds despite 30-second keepalives
+
+### Root Cause
+**Cloudflare's 100-second timeout kills SSE connections**
+
+Per [Cloudflare Community](https://community.cloudflare.com/t/server-side-events-sse-is-interrupted-in-approx-100s/424548):
+- Cloudflare has a 100-second timeout between responses
+- Even with keepalive messages every 30 seconds, connections can be killed
+- [Railway also has similar SSE issues](https://station.railway.com/questions/abort-signal-on-sse-not-working-08117407)
+
+The backend **continues processing and saves the map** because we disabled abort-on-disconnect:
+```javascript
+// We intentionally DO NOT listen for close/aborted events
+// because Railway/Cloudflare triggers them prematurely
+// The generation will run to completion regardless
+```
+
+But the frontend treats any stream error as a failure.
+
+### Solution
+**Changed frontend strategy from "show error" to "poll for completion"**
+
+When SSE stream disconnects:
+1. **Don't show error status** - keep showing "Generating"
+2. **Show reassuring message** - "Finalizing in background..."
+3. **Poll every 15 seconds** for up to 3 minutes
+4. **Auto-dismiss when map appears** in the list
+5. **Only show error if polling times out**
+
+```typescript
+if (isNetworkError) {
+  // IMPORTANT: Don't show error status for network disconnects!
+  pending.status = 'generating'  // Keep showing as generating
+  pending.error = null  // No error message
+  pending.progress = { phase: 4, message: 'Finalizing in background...', percent: 85 }
+
+  // Poll for saved map (backend takes ~2-3 minutes total)
+  const pollInterval = setInterval(async () => {
+    await fetchUserMaps()
+    if (maps.value.length > prevMapCount) {
+      // Map was saved! Remove pending card
+      clearInterval(pollInterval)
+      pendingMaps.value.splice(pendingIndex, 1)
+    }
+  }, 15000)  // Check every 15 seconds
+}
+```
+
+### User Experience Before/After
+**Before:**
+- Progress shows 70% → Connection lost → Red error card → User confused
+- User clicks "try again" → Duplicate map generation
+- User refreshes → Sees map was actually saved
+
+**After:**
+- Progress shows 70% → "Finalizing in background..." (85%)
+- Progress continues → "Still generating... (75%)"
+- Map appears in list → Pending card auto-dismisses
+- User never sees error for successful generation
+
+### Files Modified
+- [learningMapStore.ts:256-306](vue-frontend/src/stores/learningMapStore.ts#L256-L306) - Polling-based recovery
+
+### Why Not Fix SSE Timeout Directly?
+Options considered:
+1. **Increase keepalive frequency** - Already at 30s, Cloudflare timeout is architectural
+2. **Disable Cloudflare proxy** - Would lose CDN/DDoS protection
+3. **Switch to WebSockets** - Major refactor, may have similar issues
+4. **Use job queue + polling** - Ideal but requires Redis/BullMQ infrastructure
+
+The polling fallback is a pragmatic solution that works with existing infrastructure.
+
+### Lessons Learned
+1. **SSE isn't reliable for long-running operations** on cloud proxies (Cloudflare, Railway)
+2. **Backend should always save work** regardless of client connection state
+3. **Frontend should assume operations complete** and poll for results
+4. **Don't show error for expected behavior** - SSE disconnection is normal
+5. **User perception > technical reality** - Error card feels like failure even when successful
+
+### Interview Talking Points
+- **Cloud infrastructure limitations** (Cloudflare's 100s timeout)
+- **Graceful degradation** from streaming to polling
+- **UX-first debugging** - The bug was user confusion, not data loss
+- **Real production issue** affecting core feature (learning map generation)
+- **Research-backed solution** with citations to Cloudflare/Railway docs
+
+---
+
+## Challenge 23: Learning Map Empty Problems - Data Pipeline Debug (Dec 2025)
+
+### Problem
+Learning maps showed placeholder text instead of real interview questions:
+- Working map (id=110): `"problemsSolved": 4`, actual question names
+- Broken map (id=112): `"problemsSolved": 0`, placeholder text like "Guided practice: System Design"
+
+Both maps used batches with ~200 source posts and 800+ available questions.
+
+### Investigation
+1. **Compared working vs broken maps** in production database
+2. **Both batches had identical source data** - same first_post_id, same question counts
+3. **Discovered `allProblems` array was empty** when generating broken maps
+
+### Root Cause Analysis
+The `allProblems` array is populated from this query:
+```sql
+SELECT ... FROM interview_questions iq
+WHERE iq.post_id = ANY($1)  -- $1 = postIds array
+```
+
+If `postIds` is empty → query returns 0 rows → `allProblems` is empty → placeholders used.
+
+The issue: **Sometimes `source_posts` wasn't being extracted properly** from cached batch data.
+
+### Solution
+Added debug logging to trace the exact failure point:
+
+```javascript
+// DEBUG: Log postIds to trace issue
+logger.info(`[LM] Fetching problems for ${postIds.length} source posts`);
+if (postIds.length === 0) {
+  logger.error(`[LM] CRITICAL: postIds array is EMPTY!`);
+}
+// ...
+logger.info(`[LM] Found ${allProblems.length} interview questions`);
+```
+
+Key logs to watch for:
+- `[LM] Fetching problems for X source posts` - Should show ~200
+- `[LM] CRITICAL: postIds array is EMPTY!` - Indicates extraction failure
+- `[LM] Found X interview questions` - Should be >0
+
+### Data Pipeline Flow (Documented)
+```
+1. User clicks "Generate Learning Map"
+   ↓
+2. Frontend calls SSE endpoint: /learning-maps/generate-stream
+   ↓
+3. Backend loads cached batch data: getCachedBatchData(reportId)
+   ↓
+4. Extract source posts: cachedData.patternAnalysis.source_posts
+   ↓
+5. Query interview questions: WHERE post_id = ANY(postIds)
+   ↓
+6. Pass to timeline enhancement: enhanceWeeksWithDetailedSchedules(weeks, allProblems)
+   ↓
+7. Each week gets problems assigned based on skills_covered
+   ↓
+8. Falls back to position-based slicing if skills_covered is null
+   ↓
+9. Save enhanced learning map to database
+```
+
+### Files Modified
+- [learningMapStreamController.js:158-205](services/content-service/src/controllers/learningMapStreamController.js#L158-L205) - Debug logging
+- [timelineMilestoneEnhancementService.js:520-525](services/content-service/src/services/timelineMilestoneEnhancementService.js#L520-L525) - Critical warning
+
+### Lessons Learned
+1. **Production data is unpredictable** - Same batch format can have different source_posts structure
+2. **Add critical path logging** - Silent failures are hard to debug
+3. **Compare working vs broken examples** - Database queries reveal patterns
+4. **Document data pipelines** - Complex flows need explicit documentation
+
+### Interview Talking Points
+- **Production database debugging** with psql queries
+- **Comparative analysis** (working map 110 vs broken map 112)
+- **Data pipeline tracing** through multiple services
+- **Defensive logging** for critical code paths

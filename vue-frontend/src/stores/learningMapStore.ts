@@ -253,34 +253,54 @@ export const useLearningMapStore = defineStore('learningMap', () => {
                                error.message?.includes('input stream') ||
                                error.name === 'TypeError'
 
-        // Mark pending map as error
+        // Mark pending map - but NOT as error for network issues (backend keeps running!)
         const pending = pendingMaps.value.find(p => p.id === pendingId)
         if (pending) {
-          pending.status = 'error'
           if (isNetworkError) {
-            // Network error - backend might still be processing, show checking message
-            pending.error = 'Connection interrupted. Checking if map was saved...'
-            pending.progress = { phase: 5, message: 'Checking if saved...', percent: 95 }
-            
-            // Wait and check if map was saved
-            setTimeout(async () => {
-              const prevMapCount = maps.value.length
+            // IMPORTANT: Don't show error status for network disconnects!
+            // Backend continues processing and saves the map. We just poll for it.
+            pending.status = 'generating'  // Keep showing as generating, not error
+            pending.error = null  // No error message - this is expected behavior
+            pending.progress = { phase: 4, message: 'Finalizing in background...', percent: 85 }
+
+            // Poll for saved map (backend takes ~2-3 minutes total)
+            // Check every 15 seconds for up to 3 minutes
+            let checkCount = 0
+            const maxChecks = 12  // 12 * 15s = 3 minutes
+            const prevMapCount = maps.value.length
+
+            const pollInterval = setInterval(async () => {
+              checkCount++
+              console.log(`[LearningMapStore] Polling for saved map (${checkCount}/${maxChecks})...`)
+
               await fetchUserMaps()
               if (maps.value.length > prevMapCount) {
-                // Map was saved! Remove error status
+                // Map was saved! Remove pending card
+                clearInterval(pollInterval)
                 const pendingIndex = pendingMaps.value.findIndex(p => p.id === pendingId)
                 if (pendingIndex > -1) {
                   pendingMaps.value.splice(pendingIndex, 1)
                 }
-                console.log('[LearningMapStore] Map was saved despite stream error')
-              } else {
-                // Map wasn't saved, show real error
+                console.log('[LearningMapStore] Map saved successfully! Stream disconnect was normal.')
+              } else if (checkCount >= maxChecks) {
+                // Give up after 3 minutes
+                clearInterval(pollInterval)
                 if (pending) {
-                  pending.error = 'Connection lost. Please try generating again.'
+                  pending.status = 'error'
+                  pending.error = 'Generation timed out. Please try again.'
+                }
+              } else {
+                // Update progress message
+                pending.progress = {
+                  phase: 4,
+                  message: `Still generating... (${Math.round((checkCount / maxChecks) * 100)}%)`,
+                  percent: 85 + Math.round((checkCount / maxChecks) * 10)
                 }
               }
-            }, 5000)
+            }, 15000)  // Check every 15 seconds
           } else {
+            // Real error - show it
+            pending.status = 'error'
             pending.error = error.message || 'Generation failed'
           }
         }
