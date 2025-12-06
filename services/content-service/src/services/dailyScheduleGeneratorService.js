@@ -238,7 +238,9 @@ function selectProblemsForDay(allProblems, focusArea, weekNumber, isLightDay) {
   });
 
   // Select number of problems based on day type
-  const count = isLightDay ? 2 : 4;
+  // Standard schedule has ~5-6 problem slots (GUIDED + multiple SOLO + MOCK)
+  // Full schedule has even more, so we need 6-8 problems per day
+  const count = isLightDay ? 3 : 8;
   return relevantProblems.slice(0, count);
 }
 

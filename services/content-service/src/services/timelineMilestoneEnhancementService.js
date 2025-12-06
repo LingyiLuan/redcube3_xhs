@@ -602,7 +602,9 @@ function selectProblemsForWeek(allProblems, week, maxProblems) {
   }
 
   // Limit to reasonable number per week
-  return relevantProblems.slice(0, Math.min(maxProblems, 20));
+  // With 8 problems/day × 5 weekdays = 40 problems/week needed
+  // Allow up to 50 to have buffer for filtering
+  return relevantProblems.slice(0, Math.min(maxProblems, 50));
 }
 
 /**
