@@ -454,7 +454,7 @@ async function semanticSearch(queryText, options = {}) {
       AND ($3::varchar IS NULL OR role_type = $3)
       AND ($4::varchar IS NULL OR level = $4)
       AND ($5::varchar IS NULL OR outcome = $5)
-      AND ($7::varchar IS NULL OR metadata->>'company' = $7)
+      AND ($7::varchar IS NULL OR LOWER(metadata->>'company') = LOWER($7))
       AND ($8::varchar IS NULL OR created_at > NOW() - CAST($8 AS INTERVAL))
     ORDER BY
       CASE
