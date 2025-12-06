@@ -52,27 +52,15 @@ async function generateLearningMapStream(req, res) {
   res.flushHeaders();
 
   // Track if client is still connected
+  // CRITICAL FIX: Never abort early - Railway/Cloudflare fires 'close' event immediately
+  // on SSE connection setup. We'll always complete generation and save to DB.
+  // The frontend will auto-refresh to find the saved map.
   let clientConnected = true;
-  let generationStarted = false;
 
-  // Listen for client disconnection
-  // CRITICAL FIX: Only honor close event after generation has actually started
-  // Some infrastructure (Railway/Cloudflare) fires 'close' immediately on SSE setup
-  req.on('close', () => {
-    if (generationStarted) {
-      clientConnected = false;
-      logger.warn(`[LM] Client disconnected for report=${reportId}, stopping processing`);
-    } else {
-      logger.debug(`[LM] Ignoring early close event for report=${reportId} - generation not started yet`);
-    }
-  });
-
-  req.on('aborted', () => {
-    if (generationStarted) {
-      clientConnected = false;
-      logger.warn(`[LM] Client aborted for report=${reportId}, stopping processing`);
-    }
-  });
+  // We intentionally DO NOT listen for close/aborted events anymore
+  // because Railway/Cloudflare triggers them prematurely
+  // The generation will run to completion regardless
+  logger.info(`[LM] SSE setup complete for report=${reportId}, ignoring disconnect events`);
 
   // Helper to send SSE events (check connection first)
   const sendEvent = (event, data) => {
@@ -123,22 +111,11 @@ async function generateLearningMapStream(req, res) {
     // CRITICAL LOG: Start of learning map generation
     logger.info(`[LM] START report=${reportId} user=${userId}`);
 
-    // Mark generation as started - now we can honor close events
-    generationStarted = true;
-
     // Phase 1: Load cached report data
-    if (!sendEvent('progress', { phase: 1, message: 'Loading analysis report...', percent: 5 })) {
-      logger.warn(`[LM] Client disconnected before phase 1, aborting`);
-      return res.end();
-    }
+    sendEvent('progress', { phase: 1, message: 'Loading analysis report...', percent: 5 });
 
     const { getCachedBatchData } = require('./analysisController');
     const cachedData = await getCachedBatchData(reportId);
-
-    if (!clientConnected) {
-      logger.warn(`[LM] Client disconnected during data load, aborting`);
-      return res.end();
-    }
 
     if (!cachedData || !cachedData.patternAnalysis) {
       logger.error(`[LM] ERROR: Report not found - ${reportId}`);
@@ -149,46 +126,26 @@ async function generateLearningMapStream(req, res) {
     const patterns = cachedData.patternAnalysis;
     const sourcePosts = patterns.source_posts || [];
 
-    if (!sendEvent('progress', {
+    sendEvent('progress', {
       phase: 1,
       message: `Loaded ${sourcePosts.length} posts from analysis`,
       percent: 10
-    })) {
-      logger.warn(`[LM] Client disconnected after data load, aborting`);
-      return res.end();
-    }
+    });
 
     // Phase 2: Generate base learning map (this is the heavy LLM work)
-    if (!sendEvent('progress', { phase: 2, message: 'Generating learning map structure...', percent: 15 })) {
-      logger.warn(`[LM] Client disconnected before phase 2, aborting`);
-      return res.end();
-    }
+    sendEvent('progress', { phase: 2, message: 'Generating learning map structure...', percent: 15 });
 
     // Use the optimized generator that skips detailed daily schedules
     const baseLearningMap = await generateOptimizedLearningMap(
       reportId,
       { ...userGoals, userId },
-      (progress) => {
-        if (!clientConnected) return false; // Stop sending progress if disconnected
-        return sendEvent('progress', progress);
-      }
+      (progress) => sendEvent('progress', progress)
     );
 
-    if (!clientConnected) {
-      logger.warn(`[LM] Client disconnected during base map generation, aborting`);
-      return res.end();
-    }
-
-    if (!sendEvent('progress', { phase: 2, message: 'Base learning map generated', percent: 55 })) {
-      logger.warn(`[LM] Client disconnected after base map, aborting`);
-      return res.end();
-    }
+    sendEvent('progress', { phase: 2, message: 'Base learning map generated', percent: 55 });
 
     // Phase 2.5: Generate detailed hour-by-hour schedules for timeline weeks
-    if (!sendEvent('progress', { phase: 2, message: 'Generating detailed daily schedules...', percent: 58 })) {
-      logger.warn(`[LM] Client disconnected before daily schedules, aborting`);
-      return res.end();
-    }
+    sendEvent('progress', { phase: 2, message: 'Generating detailed daily schedules...', percent: 58 });
 
     const pool = require('../config/database');
 
@@ -213,12 +170,6 @@ async function generateLearningMapStream(req, res) {
     `, [postIds]);
     const allProblems = problemsResult.rows;
 
-    // Enhance timeline weeks with hour-by-hour schedules (LLM cached for fast response)
-    if (!clientConnected) {
-      logger.warn(`[LM] Client disconnected before daily schedules, aborting`);
-      return res.end();
-    }
-
     if (baseLearningMap.timeline && baseLearningMap.timeline.weeks) {
       const enhancedWeeks = await timelineMilestoneEnhancementService.enhanceWeeksWithDetailedSchedules(
         baseLearningMap.timeline.weeks,
@@ -229,15 +180,7 @@ async function generateLearningMapStream(req, res) {
       baseLearningMap.timeline.weeks = enhancedWeeks;
     }
 
-    if (!clientConnected) {
-      logger.warn(`[LM] Client disconnected during daily schedules, aborting`);
-      return res.end();
-    }
-
-    if (!sendEvent('progress', { phase: 2, message: 'Daily schedules generated', percent: 60 })) {
-      logger.warn(`[LM] Client disconnected after daily schedules, aborting`);
-      return res.end();
-    }
+    sendEvent('progress', { phase: 2, message: 'Daily schedules generated', percent: 60 });
 
     // Phase 3: Apply enhancements
     sendEvent('progress', { phase: 3, message: 'Enhancing with company tracks...', percent: 65 });
@@ -313,12 +256,10 @@ async function generateLearningMapStream(req, res) {
   } catch (error) {
     // CRITICAL LOG: Error during generation
     logger.error(`[LM] FAILED report=${reportId} error=${error.message}`);
-    if (clientConnected) {
-      sendEvent('error', {
-        message: error.message || 'Failed to generate learning map',
-        details: error.message.includes('Insufficient') ? 'insufficient_data' : 'generation_error'
-      });
-    }
+    sendEvent('error', {
+      message: error.message || 'Failed to generate learning map',
+      details: error.message.includes('Insufficient') ? 'insufficient_data' : 'generation_error'
+    });
   } finally {
     // Clean up keepalive interval
     clearInterval(keepaliveInterval);
