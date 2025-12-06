@@ -151,6 +151,14 @@ export const useAssistantChatStore = defineStore('assistantChat', () => {
     }
   }
 
+  // ✅ CRITICAL FIX: Watch must be BEFORE return statement to actually run
+  // This clears stale chat IDs when user logs out or switches accounts
+  watch(() => authStore.isAuthenticated, (isAuth) => {
+    if (!isAuth) {
+      reset()
+    }
+  })
+
   return {
     chats,
     messages,
@@ -166,11 +174,5 @@ export const useAssistantChatStore = defineStore('assistantChat', () => {
     deleteActiveChat,
     reset
   }
-
-  watch(() => authStore.isAuthenticated, (isAuth) => {
-    if (!isAuth) {
-      reset()
-    }
-  })
 })
 

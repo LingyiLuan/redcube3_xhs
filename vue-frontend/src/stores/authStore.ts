@@ -5,6 +5,7 @@ import { useReportsStore } from './reportsStore'
 import { useLearningMapStore } from './learningMapStore'
 import { useWorkflowStore } from './workflowStore'
 import { useWorkflowLibraryStore } from './workflowLibraryStore'
+import { useAssistantChatStore } from './assistantChatStore'
 
 export const useAuthStore = defineStore('auth', () => {
   // ===== STATE =====
@@ -192,10 +193,12 @@ const userId = computed(() => user.value?.id || null) // No fallback - real auth
     const learningMapStore = useLearningMapStore()
     const workflowStore = useWorkflowStore()
     const workflowLibraryStore = useWorkflowLibraryStore()
+    const assistantChatStore = useAssistantChatStore()
     reportsStore.clearAll()
     learningMapStore.clearAll()
     workflowStore.clearWorkflow()
     workflowLibraryStore.reset()
+    assistantChatStore.reset()
 
     console.log('[AuthStore] Logout successful')
 
