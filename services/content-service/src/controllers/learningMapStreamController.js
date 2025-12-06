@@ -537,9 +537,13 @@ CRITICAL: Return ONLY the JSON array, no explanation.`;
       }
     }
 
-    // DEBUG MODE: Log if we don't have enough weeks instead of padding
+    // Pad with fallback weeks if LLM returned fewer than needed
     if (weeks.length < totalWeeks) {
-      logger.warn(`[TimelineOptimized] [DEBUG] LLM returned only ${weeks.length} weeks but we need ${totalWeeks}. NOT padding with fallback.`);
+      logger.warn(`[TimelineOptimized] LLM returned only ${weeks.length} weeks but we need ${totalWeeks}. Padding with fallback weeks.`);
+      while (weeks.length < totalWeeks) {
+        const nextWeekNum = weeks.length + 1;
+        weeks.push(generateFallbackWeek(nextWeekNum, totalWeeks));
+      }
     }
 
     return {
